@@ -11,6 +11,28 @@ try {
     Pop-Location
 }
 
+# Validate every bootstrap/template before any patch mutates the upstream tree.
+$BootstrapPreflight = @(
+    '.\bootstrap\materialize.js',
+    '.\bootstrap\fix-readiness-nvidia.js',
+    '.\bootstrap\fix-strategy-context.js',
+    '.\bootstrap\harden-production.js',
+    '.\bootstrap\fix-script-shape.js',
+    '.\bootstrap\fix-production-tts-shape.js',
+    '.\bootstrap\fix-production-audio-captions.js',
+    '.\bootstrap\phase1-contracts.js',
+    '.\bootstrap\phase2-scene-pipeline.js',
+    '.\bootstrap\verify-phase1-contracts.js',
+    '.\bootstrap\verify-phase2-scenes.js',
+    '.\bootstrap\templates\content-contracts.js',
+    '.\bootstrap\templates\scene-pipeline-v2.js'
+)
+foreach ($script in $BootstrapPreflight) {
+    node --check $script
+    if ($LASTEXITCODE -ne 0) { throw "Bootstrap syntax preflight failed: $script" }
+}
+Write-Host 'Bootstrap syntax preflight passed.' -ForegroundColor Green
+
 # Apply the deterministic overlay, focused runtime fixes, then editorial/production hardening.
 node .\bootstrap\materialize.js
 if ($LASTEXITCODE -ne 0) { throw 'bootstrap/materialize.js failed' }
