@@ -1,5 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
+$DarkzSeoCommit = 'a6270c512bb338e8251c363656f93891a9afa671'
+
 git submodule update --init --recursive
 Push-Location upstream
 try {
@@ -9,13 +11,37 @@ try {
     Pop-Location
 }
 
-# Apply the deterministic overlay, then focused idempotent runtime fixes.
+# Apply the deterministic overlay, focused runtime fixes, then editorial/production hardening.
 node .\bootstrap\materialize.js
 if ($LASTEXITCODE -ne 0) { throw 'bootstrap/materialize.js failed' }
 node .\bootstrap\fix-readiness-nvidia.js
 if ($LASTEXITCODE -ne 0) { throw 'bootstrap/fix-readiness-nvidia.js failed' }
 node .\bootstrap\fix-strategy-context.js
 if ($LASTEXITCODE -ne 0) { throw 'bootstrap/fix-strategy-context.js failed' }
+node .\bootstrap\harden-production.js
+if ($LASTEXITCODE -ne 0) { throw 'bootstrap/harden-production.js failed' }
+
+# DarkzSEO 1.4 is an optional local advisory engine upstream, but we materialize
+# a pinned copy so Review Studio does not depend on a separately installed module.
+if (-not (Test-Path .\darkzseo\.git)) {
+    git clone https://github.com/darkzOGx/darkzseo.git .\darkzseo
+    if ($LASTEXITCODE -ne 0) { throw 'DarkzSEO clone failed' }
+}
+Push-Location .\darkzseo
+try {
+    git fetch --quiet origin
+    if ($LASTEXITCODE -ne 0) { throw 'DarkzSEO fetch failed' }
+    git checkout --quiet $DarkzSeoCommit
+    if ($LASTEXITCODE -ne 0) { throw 'DarkzSEO checkout failed' }
+} finally {
+    Pop-Location
+}
+
+python -c "import bs4, colorama"
+if ($LASTEXITCODE -ne 0) {
+    python -m pip install -r .\darkzseo\requirements.txt
+    if ($LASTEXITCODE -ne 0) { throw 'DarkzSEO Python dependency install failed' }
+}
 
 Push-Location upstream
 try {
@@ -26,6 +52,14 @@ try {
 
     node --check index.js
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: index.js' }
+    node --check agents/content-strategy-agent.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: agents/content-strategy-agent.js' }
+    node --check agents/script-writer-agent.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: agents/script-writer-agent.js' }
+    node --check utils/ai-video-generator.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: utils/ai-video-generator.js' }
+    node --check utils/operator-service.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: utils/operator-service.js' }
     node --check utils/ai-text-service.js
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: utils/ai-text-service.js' }
     node --check utils/credential-manager.js
@@ -40,10 +74,17 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/fix-readiness-nvidia.js' }
     node --check ..\bootstrap\fix-strategy-context.js
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/fix-strategy-context.js' }
+    node --check ..\bootstrap\harden-production.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/harden-production.js' }
+
+    python ..\darkzseo\darkzseo.py --help *> $null
+    if ($LASTEXITCODE -ne 0) { throw 'DarkzSEO 1.4 smoke check failed' }
 
     Write-Host 'AgentTube materializado com NVIDIA NIM, GroqCloud, Cerebras e sqlite3 compativel com Node 24.' -ForegroundColor Green
     Write-Host 'NVIDIA NIM GPT-OSS configurado para walkthrough e production-readiness.' -ForegroundColor Green
     Write-Host 'Generation strategyContext protegido contra valores null.' -ForegroundColor Green
+    Write-Host 'Production hardening ativo: research, provenance, anti-hallucination, local visuals, quota breaker e duplicate guard.' -ForegroundColor Green
+    Write-Host 'DarkzSEO 1.4 pinned e validado localmente.' -ForegroundColor Green
     Write-Host 'sqlite3 install scripts approved for this project.' -ForegroundColor Green
     Write-Host 'Execute: npm install' -ForegroundColor Cyan
 } finally {
