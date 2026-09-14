@@ -26,6 +26,8 @@ node .\bootstrap\fix-production-tts-shape.js
 if ($LASTEXITCODE -ne 0) { throw 'bootstrap/fix-production-tts-shape.js failed' }
 node .\bootstrap\fix-production-audio-captions.js
 if ($LASTEXITCODE -ne 0) { throw 'bootstrap/fix-production-audio-captions.js failed' }
+node .\bootstrap\phase1-contracts.js
+if ($LASTEXITCODE -ne 0) { throw 'bootstrap/phase1-contracts.js failed' }
 
 # DarkzSEO 1.4 is an optional local advisory engine upstream, but we materialize
 # a pinned copy so Review Studio does not depend on a separately installed module.
@@ -74,6 +76,10 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: utils/credential-manager.js' }
     node --check utils/production-readiness-service.js
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: utils/production-readiness-service.js' }
+    node --check utils/generation-recovery-service.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: utils/generation-recovery-service.js' }
+    node --check utils/content-contracts.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: utils/content-contracts.js' }
     node --check walkthrough.js
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: walkthrough.js' }
     node --check ..\bootstrap\materialize.js
@@ -90,6 +96,15 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/fix-production-tts-shape.js' }
     node --check ..\bootstrap\fix-production-audio-captions.js
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/fix-production-audio-captions.js' }
+    node --check ..\bootstrap\phase1-contracts.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/phase1-contracts.js' }
+    node --check ..\bootstrap\verify-phase1-contracts.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/verify-phase1-contracts.js' }
+    node --check ..\bootstrap\templates\content-contracts.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/templates/content-contracts.js' }
+
+    node ..\bootstrap\verify-phase1-contracts.js
+    if ($LASTEXITCODE -ne 0) { throw 'Phase 1 content contract regression checks failed' }
 
     python ..\darkzseo\darkzseo.py --help *> $null
     if ($LASTEXITCODE -ne 0) { throw 'DarkzSEO 1.4 smoke check failed' }
@@ -100,6 +115,7 @@ try {
     Write-Host 'ScriptWriter protegido contra arrays/campos opcionais ausentes nas respostas da IA.' -ForegroundColor Green
     Write-Host 'Production TTS protegido contra variacoes de estrutura do roteiro.' -ForegroundColor Green
     Write-Host 'Gemini TTS longo dividido em chunks e captions protegidas contra conclusion sem recap.' -ForegroundColor Green
+    Write-Host 'FASE 1 ativa: Strategy/Script Contracts v1, normalizacao central, validacao e migracao de checkpoints.' -ForegroundColor Green
     Write-Host 'Production hardening ativo: research, provenance, anti-hallucination, local visuals, quota breaker e duplicate guard.' -ForegroundColor Green
     Write-Host 'DarkzSEO 1.4 pinned e validado localmente.' -ForegroundColor Green
     Write-Host 'sqlite3 install scripts approved for this project.' -ForegroundColor Green
