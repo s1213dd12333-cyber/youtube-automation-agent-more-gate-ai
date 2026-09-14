@@ -31,6 +31,7 @@ $BootstrapPreflight = @(
     '.\bootstrap\phase5-research-evidence.js',
     '.\bootstrap\phase6-video-instructions.js',
     '.\bootstrap\phase7-visual-director.js',
+    '.\bootstrap\fix-phase7-instruction-prompt.js',
     '.\bootstrap\verify-phase1-contracts.js',
     '.\bootstrap\verify-phase2-scenes.js',
     '.\bootstrap\verify-phase2-scenes-v3.js',
@@ -67,7 +68,8 @@ $PatchScripts = @(
     '.\bootstrap\phase4-provider-usage.js',
     '.\bootstrap\phase5-research-evidence.js',
     '.\bootstrap\phase6-video-instructions.js',
-    '.\bootstrap\phase7-visual-director.js'
+    '.\bootstrap\phase7-visual-director.js',
+    '.\bootstrap\fix-phase7-instruction-prompt.js'
 )
 foreach ($script in $PatchScripts) {
     node $script
