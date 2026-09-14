@@ -46,6 +46,16 @@ function insertBefore(text, anchor, block, label) {
   let s = read(rel);
   const block = `  nvidia: {\n    name: 'NVIDIA NIM',\n    baseURL: 'https://integrate.api.nvidia.com/v1',\n    defaultModel: 'openai/gpt-oss-20b',\n    models: [\n      'openai/gpt-oss-20b',\n      'nvidia/llama-3.3-nemotron-super-49b-v1',\n      'z-ai/glm-5.1',\n      'minimaxai/minimax-m3',\n    ],\n    envKey: 'NVIDIA_API_KEY',\n  },\n  groq: {\n    name: 'GroqCloud',\n    baseURL: 'https://api.groq.com/openai/v1',\n    defaultModel: 'openai/gpt-oss-20b',\n    models: [\n      'openai/gpt-oss-20b',\n      'openai/gpt-oss-120b',\n      'qwen/qwen3.6-27b',\n      'qwen/qwen3.8-27b',\n    ],\n    envKey: 'GROQ_API_KEY',\n  },\n  cerebras: {\n    name: 'Cerebras Inference',\n    baseURL: 'https://api.cerebras.ai/v1',\n    defaultModel: 'gpt-oss-120b',\n    models: [\n      'gpt-oss-120b',\n      'zai-glm-4.7',\n    ],\n    envKey: 'CEREBRAS_API_KEY',\n  },\n`;
   s = insertBefore(s, '  kimi: {', block, 'AI provider catalog');
+
+  s = replaceOnce(s,
+    `      const response = await this.client.chat.completions.create({\n        ...params,\n        max_completion_tokens: maxTokens,\n      });`,
+    `      const response = await this.client.chat.completions.create({\n        ...params,\n        ...(this.providerName === 'NVIDIA NIM'\n          ? { max_tokens: maxTokens }\n          : { max_completion_tokens: maxTokens }),\n      });`,
+    'NVIDIA max_tokens compatibility');
+
+  s = replaceOnce(s,
+    `    if (typeof content !== 'string' || !content.trim()) {\n      // A null/empty body used to surface as cryptic "Unexpected end of JSON input"\n      // in the agents' JSON parsers. Report the real cause instead.\n      throw new Error(\n        \`${'${this.providerName}'} returned an empty response. Check the API key and model quota.\`\n      );\n    }`,
+    `    if (typeof content !== 'string' || !content.trim()) {\n      // Reasoning models can consume the full completion budget before emitting\n      // visible content. Expose safe metadata only; never log reasoning text/keys.\n      const choice = response?.choices?.[0];\n      const reasoning = choice?.message?.reasoning_content;\n      const finishReason = choice?.finish_reason || 'unknown';\n      const reasoningChars = typeof reasoning === 'string' ? reasoning.length : 0;\n      throw new Error(\n        \`${'${this.providerName}'} returned an empty response (finish_reason=${'${finishReason}'}, reasoning_chars=${'${reasoningChars}'}). Increase the completion budget if finish_reason=length.\`\n      );\n    }`,
+    'reasoning-aware empty response diagnostics');
   write(rel, s);
 }
 
@@ -82,6 +92,10 @@ function insertBefore(text, anchor, block, label) {
     "console.log(chalk.white('Google Gemini offers free tiers for supported text and TTS usage.'));",
     "console.log(chalk.white('Google Gemini, Groq, NVIDIA NIM, and Cerebras may offer free/developer usage subject to provider limits.'));",
     'walkthrough free provider guidance');
+  s = replaceOnce(s,
+    "      const reply = await service.generateText('Reply with the single word OK.', { maxTokens: 20, temperature: 0 });",
+    "      const validationMaxTokens = guide === AI_PROVIDER_GUIDE.nvidia ? 1024 : 20;\n      const reply = await service.generateText('Reply with the single word OK.', { maxTokens: validationMaxTokens, temperature: 0 });",
+    'reasoning model validation token budget');
   write(rel, s);
 }
 
