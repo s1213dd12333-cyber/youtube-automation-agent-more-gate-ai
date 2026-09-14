@@ -1,0 +1,97 @@
+diff -ruN yta_orig/youtube-automation-agent-master/utils/ai-text-service.js yta_impl/youtube-automation-agent-master/utils/ai-text-service.js
+--- yta_orig/youtube-automation-agent-master/utils/ai-text-service.js
++++ yta_impl/youtube-automation-agent-master/utils/ai-text-service.js
+@@ -23,6 +23,40 @@
+     models: ['openai/gpt-5.6-sol', 'anthropic/claude-fable-5', 'google/gemini-3.7-flash', 'moonshotai/kimi-k3', 'z-ai/glm-5.3'],
+     envKey: 'OPENROUTER_API_KEY',
+   },
++  nvidia: {
++    name: 'NVIDIA NIM',
++    baseURL: 'https://integrate.api.nvidia.com/v1',
++    defaultModel: 'openai/gpt-oss-20b',
++    models: [
++      'openai/gpt-oss-20b',
++      'nvidia/llama-3.3-nemotron-super-49b-v1',
++      'z-ai/glm-5.1',
++      'minimaxai/minimax-m3',
++    ],
++    envKey: 'NVIDIA_API_KEY',
++  },
++  groq: {
++    name: 'GroqCloud',
++    baseURL: 'https://api.groq.com/openai/v1',
++    defaultModel: 'openai/gpt-oss-20b',
++    models: [
++      'openai/gpt-oss-20b',
++      'openai/gpt-oss-120b',
++      'qwen/qwen3.6-27b',
++      'qwen/qwen3.8-27b',
++    ],
++    envKey: 'GROQ_API_KEY',
++  },
++  cerebras: {
++    name: 'Cerebras Inference',
++    baseURL: 'https://api.cerebras.ai/v1',
++    defaultModel: 'gpt-oss-120b',
++    models: [
++      'gpt-oss-120b',
++      'zai-glm-4.7',
++    ],
++    envKey: 'CEREBRAS_API_KEY',
++  },
+   kimi: {
+     name: 'Kimi (Moonshot AI)',
+     baseURL: 'https://api.moonshot.ai/v1',
+diff -ruN yta_orig/youtube-automation-agent-master/utils/credential-manager.js yta_impl/youtube-automation-agent-master/utils/credential-manager.js
+--- yta_orig/youtube-automation-agent-master/utils/credential-manager.js
++++ yta_impl/youtube-automation-agent-master/utils/credential-manager.js
+@@ -253,6 +253,51 @@
+     console.log(chalk.green('OpenRouter configured successfully!'));
+   }
+ 
++  async setupCompatibleProviderCredentials(providerId, keyUrl) {
++    const preset = PROVIDERS[providerId];
++    if (!preset) throw new Error(`Unknown AI provider: ${providerId}`);
++
++    console.log(chalk.cyan(`\n${preset.name} Setup`));
++    console.log(chalk.gray(`Get your API key from: ${keyUrl}`));
++
++    const answers = await inquirer.prompt([
++      {
++        type: 'password',
++        name: 'apiKey',
++        message: `Enter your ${preset.name} API Key:`,
++        validate: input => input.length > 0 || 'API key is required'
++      },
++      {
++        type: 'list',
++        name: 'model',
++        message: 'Select model:',
++        choices: [...preset.models],
++        default: preset.defaultModel
++      }
++    ]);
++
++    this.credentials.aiProvider = {
++      provider: providerId,
++      apiKey: answers.apiKey,
++      model: answers.model
++    };
++
++    await this.saveCredentials();
++    console.log(chalk.green(`${preset.name} configured successfully!`));
++  }
++
++  async setupNvidiaCredentials() {
++    return this.setupCompatibleProviderCredentials('nvidia', 'https://build.nvidia.com/');
++  }
++
++  async setupGroqCredentials() {
++    return this.setupCompatibleProviderCredentials('groq', 'https://console.groq.com/keys');
++  }
++
++  async setupCerebrasCredentials() {
++    return this.setupCompatibleProviderCredentials('cerebras', 'https://cloud.cerebras.ai/');
++  }
++
+   // Kimi (Moonshot AI) Setup
