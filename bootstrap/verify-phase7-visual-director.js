@@ -136,12 +136,13 @@ check('generic brief scoring exposes high generic-AI risk transparently', () => 
   assert(quality.genericAiRisk > 50);
 });
 
-check('rendered provider prompt contains concrete labeled visual fields', () => {
+check('rendered provider prompt contains concrete labeled visual fields and phase 6 direction', () => {
   const prompt = plan.scenes[0].prompt;
   const fields = parsePromptFields(prompt);
   assert(fields['VISUAL TYPE']);
   assert(fields.SUBJECT.toLowerCase().includes('atomic'));
   assert(fields['CONCRETE DETAILS']);
+  assert(fields['VIDEO DIRECTION'].includes('scientific diagrams'));
   assert(fields.AVOID);
   assert(prompt.includes('no embedded text'));
 });
@@ -182,13 +183,13 @@ check('AI video fallback delegates to the scene-specific v7 SVG renderer', () =>
   assert(source.includes('const svg = buildLocalVisualSvg(prompt, width, height);'));
 });
 
-check('Scene Repair Studio exposes v7 quality metrics and expanded structured prompt limit', () => {
+check('Scene Repair Studio exposes v7 quality metrics and full structured-prompt headroom', () => {
   const dashboard = fs.readFileSync(path.join(upstream, 'dashboard', 'app.js'), 'utf8');
   const repair = fs.readFileSync(path.join(upstream, 'utils', 'scene-repair-service.js'), 'utf8');
   assert(dashboard.includes('Visual Director v7'));
   assert(dashboard.includes('Generic-AI risk'));
-  assert(dashboard.includes('maxlength="4000"'));
-  assert(repair.includes("this.text(input.prompt, 4000, 'Scene prompt')"));
+  assert(dashboard.includes('maxlength="8000"'));
+  assert(repair.includes("this.text(input.prompt, 8000, 'Scene prompt')"));
 });
 
 check('package exposes the Phase 7 regression command', () => {
