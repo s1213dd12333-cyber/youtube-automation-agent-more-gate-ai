@@ -14,6 +14,14 @@ const upstream = path.join(__dirname, '..', 'upstream');
     if (!source.includes(from)) throw new Error('Phase 7 instruction prompt anchor not found');
     source = source.replace(from, to);
   }
+
+  const typeFrom = "  const text = `${scene.label || ''} ${scene.scriptText || ''} ${strategy.topic || ''}`.toLowerCase();\n";
+  const typeTo = "  const sceneText = `${scene.label || ''} ${scene.scriptText || ''}`.toLowerCase();\n  const text = sceneText.trim().length >= 30 ? sceneText : `${sceneText} ${strategy.topic || ''}`.toLowerCase();\n";
+  if (!source.includes(typeTo)) {
+    if (!source.includes(typeFrom)) throw new Error('Phase 7 visual type routing anchor not found');
+    source = source.replace(typeFrom, typeTo);
+  }
+
   fs.writeFileSync(file, source, 'utf8');
 }
 
@@ -37,4 +45,4 @@ const upstream = path.join(__dirname, '..', 'upstream');
   fs.writeFileSync(file, source, 'utf8');
 }
 
-console.log('Phase 7 visual prompts preserve Phase 6 per-video direction with structured-prompt headroom.');
+console.log('Phase 7 visual prompts preserve Phase 6 direction, structured-prompt headroom, and scene-first visual routing.');
