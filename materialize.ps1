@@ -24,6 +24,8 @@ node .\bootstrap\fix-script-shape.js
 if ($LASTEXITCODE -ne 0) { throw 'bootstrap/fix-script-shape.js failed' }
 node .\bootstrap\fix-production-tts-shape.js
 if ($LASTEXITCODE -ne 0) { throw 'bootstrap/fix-production-tts-shape.js failed' }
+node .\bootstrap\fix-production-audio-captions.js
+if ($LASTEXITCODE -ne 0) { throw 'bootstrap/fix-production-audio-captions.js failed' }
 
 # DarkzSEO 1.4 is an optional local advisory engine upstream, but we materialize
 # a pinned copy so Review Studio does not depend on a separately installed module.
@@ -86,6 +88,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/fix-script-shape.js' }
     node --check ..\bootstrap\fix-production-tts-shape.js
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/fix-production-tts-shape.js' }
+    node --check ..\bootstrap\fix-production-audio-captions.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/fix-production-audio-captions.js' }
 
     python ..\darkzseo\darkzseo.py --help *> $null
     if ($LASTEXITCODE -ne 0) { throw 'DarkzSEO 1.4 smoke check failed' }
@@ -95,6 +99,7 @@ try {
     Write-Host 'Generation strategyContext protegido contra valores null.' -ForegroundColor Green
     Write-Host 'ScriptWriter protegido contra arrays/campos opcionais ausentes nas respostas da IA.' -ForegroundColor Green
     Write-Host 'Production TTS protegido contra variacoes de estrutura do roteiro.' -ForegroundColor Green
+    Write-Host 'Gemini TTS longo dividido em chunks e captions protegidas contra conclusion sem recap.' -ForegroundColor Green
     Write-Host 'Production hardening ativo: research, provenance, anti-hallucination, local visuals, quota breaker e duplicate guard.' -ForegroundColor Green
     Write-Host 'DarkzSEO 1.4 pinned e validado localmente.' -ForegroundColor Green
     Write-Host 'sqlite3 install scripts approved for this project.' -ForegroundColor Green
