@@ -112,9 +112,13 @@ check('SEO prompt receives the same per-video instructions', () => {
 check('thumbnail and scene visual direction retain instructions', () => {
   const thumbnail = fs.readFileSync(path.join(upstream, 'agents', 'thumbnail-designer-agent.js'), 'utf8');
   const scenes = fs.readFileSync(path.join(upstream, 'utils', 'scene-pipeline-v2.js'), 'utf8');
+  const visualDirectorPath = path.join(upstream, 'utils', 'visual-director-v7.js');
+  const visualDirector = fs.existsSync(visualDirectorPath) ? fs.readFileSync(visualDirectorPath, 'utf8') : '';
   assert(thumbnail.includes("videoInstructions: script.metadata?.strategy?.videoInstructions || ''"));
   assert(thumbnail.includes('Video-specific direction: ${concept.videoInstructions'));
-  assert(scenes.includes('visualInstructionSuffix(production.strategy?.videoInstructions'));
+  const legacyPath = scenes.includes('visualInstructionSuffix(production.strategy?.videoInstructions');
+  const directorPath = scenes.includes('VisualDirectorV7') && visualDirector.includes('VIDEO DIRECTION: ${brief.videoInstructions}');
+  assert(legacyPath || directorPath, 'Per-video instructions must reach scene visual prompts');
 });
 
 check('New Generation Job exposes a 4000-character Instructions field', () => {
