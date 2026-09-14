@@ -1,5 +1,7 @@
 'use strict';
 
+process.env.VISUAL_ROUTER_ENABLED = 'false';
+
 const assert = require('assert');
 const fs = require('fs');
 const fsp = fs.promises;
