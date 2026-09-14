@@ -32,6 +32,8 @@ $BootstrapPreflight = @(
     '.\bootstrap\phase6-video-instructions.js',
     '.\bootstrap\phase7-visual-director.js',
     '.\bootstrap\fix-phase7-instruction-prompt.js',
+    '.\bootstrap\phase8-visual-router.js',
+    '.\bootstrap\fix-phase8-relevance-score.js',
     '.\bootstrap\verify-phase1-contracts.js',
     '.\bootstrap\verify-phase2-scenes.js',
     '.\bootstrap\verify-phase2-scenes-v3.js',
@@ -40,13 +42,15 @@ $BootstrapPreflight = @(
     '.\bootstrap\verify-phase5-research-evidence.js',
     '.\bootstrap\verify-phase6-video-instructions.js',
     '.\bootstrap\verify-phase7-visual-director.js',
+    '.\bootstrap\verify-phase8-visual-router.js',
     '.\bootstrap\templates\content-contracts.js',
     '.\bootstrap\templates\scene-pipeline-v2.js',
     '.\bootstrap\templates\scene-narration-v3.js',
     '.\bootstrap\templates\ai-gateway-v4.js',
     '.\bootstrap\templates\research-evidence-v5.js',
     '.\bootstrap\templates\video-instructions-v6.js',
-    '.\bootstrap\templates\visual-director-v7.js'
+    '.\bootstrap\templates\visual-director-v7.js',
+    '.\bootstrap\templates\visual-router-v8.js'
 )
 foreach ($script in $BootstrapPreflight) {
     node --check $script
@@ -69,7 +73,9 @@ $PatchScripts = @(
     '.\bootstrap\phase5-research-evidence.js',
     '.\bootstrap\phase6-video-instructions.js',
     '.\bootstrap\phase7-visual-director.js',
-    '.\bootstrap\fix-phase7-instruction-prompt.js'
+    '.\bootstrap\fix-phase7-instruction-prompt.js',
+    '.\bootstrap\phase8-visual-router.js',
+    '.\bootstrap\fix-phase8-relevance-score.js'
 )
 foreach ($script in $PatchScripts) {
     node $script
@@ -124,6 +130,7 @@ try {
         'utils\research-evidence-v5.js',
         'utils\video-instructions-v6.js',
         'utils\visual-director-v7.js',
+        'utils\visual-router-v8.js',
         'utils\provenance-service.js',
         'dashboard\app.js',
         'dashboard\enhance.js',
@@ -141,7 +148,8 @@ try {
         @{ Path = '..\bootstrap\verify-phase4-provider-usage.js'; Error = 'Phase 4 provider router/usage regression checks failed' },
         @{ Path = '..\bootstrap\verify-phase5-research-evidence.js'; Error = 'Phase 5 research/evidence regression checks failed' },
         @{ Path = '..\bootstrap\verify-phase6-video-instructions.js'; Error = 'Phase 6 video instruction regression checks failed' },
-        @{ Path = '..\bootstrap\verify-phase7-visual-director.js'; Error = 'Phase 7 Visual Director regression checks failed' }
+        @{ Path = '..\bootstrap\verify-phase7-visual-director.js'; Error = 'Phase 7 Visual Director regression checks failed' },
+        @{ Path = '..\bootstrap\verify-phase8-visual-router.js'; Error = 'Phase 8 Visual Router regression checks failed' }
     )
     foreach ($check in $RegressionChecks) {
         node $check.Path
@@ -159,11 +167,12 @@ try {
     Write-Host 'FASE 5 ativa: Research Agent, Evidence Desk, evidence packs, claim gate e auditoria persistente.' -ForegroundColor Green
     Write-Host 'FASE 6 ativa: Instructions por video persistentes, Resume fiel e propagacao para research/script/SEO/media/review.' -ForegroundColor Green
     Write-Host 'FASE 7 ativa: Visual Director, VisualBrief por cena, anti-generico, quality gate e local renderer especifico.' -ForegroundColor Green
+    Write-Host 'FASE 8 ativa: Visual Router source-first, licencas fail-closed, cache local, creditos e proveniencia de midia.' -ForegroundColor Green
     Write-Host 'Production hardening ativo: provenance, anti-hallucination, local visuals, quota breaker e duplicate guard.' -ForegroundColor Green
     Write-Host 'DarkzSEO 1.4 pinned e validado localmente.' -ForegroundColor Green
     Write-Host 'sqlite3 install scripts approved for this project.' -ForegroundColor Green
     Write-Host 'Execute: npm install' -ForegroundColor Cyan
-    Write-Host 'Depois execute: npm run test:contracts; npm run test:scenes; npm run test:audio-scenes; npm run test:ai-usage; npm run test:evidence; npm run test:instructions; npm run test:visual-director' -ForegroundColor Cyan
+    Write-Host 'Depois execute: npm run test:contracts; npm run test:scenes; npm run test:audio-scenes; npm run test:ai-usage; npm run test:evidence; npm run test:instructions; npm run test:visual-director; npm run test:visual-router' -ForegroundColor Cyan
     Write-Host 'Depois execute: npx playwright install chromium' -ForegroundColor Cyan
 } finally {
     Pop-Location
