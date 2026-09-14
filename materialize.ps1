@@ -29,17 +29,20 @@ $BootstrapPreflight = @(
     '.\bootstrap\phase3-audio-timing.js',
     '.\bootstrap\phase4-provider-usage.js',
     '.\bootstrap\phase5-research-evidence.js',
+    '.\bootstrap\phase6-video-instructions.js',
     '.\bootstrap\verify-phase1-contracts.js',
     '.\bootstrap\verify-phase2-scenes.js',
     '.\bootstrap\verify-phase2-scenes-v3.js',
     '.\bootstrap\verify-phase3-audio.js',
     '.\bootstrap\verify-phase4-provider-usage.js',
     '.\bootstrap\verify-phase5-research-evidence.js',
+    '.\bootstrap\verify-phase6-video-instructions.js',
     '.\bootstrap\templates\content-contracts.js',
     '.\bootstrap\templates\scene-pipeline-v2.js',
     '.\bootstrap\templates\scene-narration-v3.js',
     '.\bootstrap\templates\ai-gateway-v4.js',
-    '.\bootstrap\templates\research-evidence-v5.js'
+    '.\bootstrap\templates\research-evidence-v5.js',
+    '.\bootstrap\templates\video-instructions-v6.js'
 )
 foreach ($script in $BootstrapPreflight) {
     node --check $script
@@ -59,7 +62,8 @@ $PatchScripts = @(
     '.\bootstrap\phase2-scene-pipeline.js',
     '.\bootstrap\phase3-audio-timing.js',
     '.\bootstrap\phase4-provider-usage.js',
-    '.\bootstrap\phase5-research-evidence.js'
+    '.\bootstrap\phase5-research-evidence.js',
+    '.\bootstrap\phase6-video-instructions.js'
 )
 foreach ($script in $PatchScripts) {
     node $script
@@ -98,6 +102,8 @@ try {
         'database\db.js',
         'agents\content-strategy-agent.js',
         'agents\script-writer-agent.js',
+        'agents\thumbnail-designer-agent.js',
+        'agents\seo-optimizer-agent.js',
         'agents\production-management-agent.js',
         'utils\ai-video-generator.js',
         'utils\operator-service.js',
@@ -110,6 +116,7 @@ try {
         'utils\scene-pipeline-v2.js',
         'utils\scene-narration-v3.js',
         'utils\research-evidence-v5.js',
+        'utils\video-instructions-v6.js',
         'utils\provenance-service.js',
         'dashboard\app.js',
         'dashboard\enhance.js',
@@ -125,7 +132,8 @@ try {
         @{ Path = '..\bootstrap\verify-phase2-scenes-v3.js'; Error = 'Phase 2 scene pipeline regression checks failed under Phase 3' },
         @{ Path = '..\bootstrap\verify-phase3-audio.js'; Error = 'Phase 3 audio timing regression checks failed' },
         @{ Path = '..\bootstrap\verify-phase4-provider-usage.js'; Error = 'Phase 4 provider router/usage regression checks failed' },
-        @{ Path = '..\bootstrap\verify-phase5-research-evidence.js'; Error = 'Phase 5 research/evidence regression checks failed' }
+        @{ Path = '..\bootstrap\verify-phase5-research-evidence.js'; Error = 'Phase 5 research/evidence regression checks failed' },
+        @{ Path = '..\bootstrap\verify-phase6-video-instructions.js'; Error = 'Phase 6 video instruction regression checks failed' }
     )
     foreach ($check in $RegressionChecks) {
         node $check.Path
@@ -141,11 +149,12 @@ try {
     Write-Host 'FASE 3 ativa: TTS persistente por chunks, retry seletivo, duracao real do audio e captions scene-timed.' -ForegroundColor Green
     Write-Host 'FASE 4 ativa: AI Provider Router, circuit breaker, tokens/quotas, budgets e Usage Center.' -ForegroundColor Green
     Write-Host 'FASE 5 ativa: Research Agent, Evidence Desk, evidence packs, claim gate e auditoria persistente.' -ForegroundColor Green
+    Write-Host 'FASE 6 ativa: Instructions por video persistentes, Resume fiel e propagacao para research/script/SEO/media/review.' -ForegroundColor Green
     Write-Host 'Production hardening ativo: provenance, anti-hallucination, local visuals, quota breaker e duplicate guard.' -ForegroundColor Green
     Write-Host 'DarkzSEO 1.4 pinned e validado localmente.' -ForegroundColor Green
     Write-Host 'sqlite3 install scripts approved for this project.' -ForegroundColor Green
     Write-Host 'Execute: npm install' -ForegroundColor Cyan
-    Write-Host 'Depois execute: npm run test:contracts; npm run test:scenes; npm run test:audio-scenes; npm run test:ai-usage; npm run test:evidence' -ForegroundColor Cyan
+    Write-Host 'Depois execute: npm run test:contracts; npm run test:scenes; npm run test:audio-scenes; npm run test:ai-usage; npm run test:evidence; npm run test:instructions' -ForegroundColor Cyan
     Write-Host 'Depois execute: npx playwright install chromium' -ForegroundColor Cyan
 } finally {
     Pop-Location
