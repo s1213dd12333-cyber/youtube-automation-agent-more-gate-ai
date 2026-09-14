@@ -32,7 +32,7 @@ $BootstrapPreflight = @(
     '.\bootstrap\phase6-video-instructions.js',
     '.\bootstrap\phase7-visual-director.js',
     '.\bootstrap\fix-phase7-instruction-prompt.js',
-    '.\bootstrap\phase8-visual-router.js',
+    '.\bootstrap\phase8-visual-router-safe.js',
     '.\bootstrap\fix-phase8-relevance-score.js',
     '.\bootstrap\fix-phase8-source-audit.js',
     '.\bootstrap\verify-phase1-contracts.js',
@@ -75,7 +75,7 @@ $PatchScripts = @(
     '.\bootstrap\phase6-video-instructions.js',
     '.\bootstrap\phase7-visual-director.js',
     '.\bootstrap\fix-phase7-instruction-prompt.js',
-    '.\bootstrap\phase8-visual-router.js',
+    '.\bootstrap\phase8-visual-router-safe.js',
     '.\bootstrap\fix-phase8-relevance-score.js',
     '.\bootstrap\fix-phase8-source-audit.js'
 )
