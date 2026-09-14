@@ -88,10 +88,14 @@ async function main() {
   assert(pipelineSource.includes("const { SceneNarrationV3 } = require('./scene-narration-v3');"));
   assert(pipelineSource.includes('await this.sceneNarration.generate(productionId, scene)'));
   assert(pipelineSource.includes('duration: narration.duration'));
+  assert(repairSource.includes("const { SceneNarrationV3 } = require('./scene-narration-v3');"));
+  assert(repairSource.includes('this.sceneNarration = new SceneNarrationV3'));
+  assert(repairSource.includes('duration: narration.duration'));
+  assert(repairSource.includes('duration: narrationResult.duration'));
   assert(repairSource.includes("timingSource: 'measured-scene-audio'"));
 
   await fsp.rm(temp, { recursive: true, force: true });
-  console.log('Phase 3 audio timing OK: 16 regression checks passed.');
+  console.log('Phase 3 audio timing OK: 20 regression checks passed.');
 }
 
 main().catch(error => {
