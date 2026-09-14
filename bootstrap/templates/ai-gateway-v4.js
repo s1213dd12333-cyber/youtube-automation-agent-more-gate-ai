@@ -256,6 +256,14 @@ class AIGatewayV4 {
     return DEFAULT_ORDERS[value] ? value : 'balanced';
   }
 
+  requestModel(candidate, options = {}) {
+    // A caller-supplied model is safe only for an explicit provider request. In auto mode,
+    // each fallback must use that provider's own configured/default model.
+    return this.mode(options) === 'auto' && !options.provider
+      ? candidate.model
+      : options.model || candidate.model;
+  }
+
   availableCandidates(options = {}) {
     const candidates = [];
     const selected = this.credentials.aiProvider || {};
@@ -388,7 +396,7 @@ class AIGatewayV4 {
       client = new OpenAI({ apiKey: candidate.apiKey, baseURL: candidate.preset.baseURL });
       this.clients.set(candidate.id, client);
     }
-    const model = options.model || candidate.model;
+    const model = this.requestModel(candidate, options);
     const maxTokens = Math.max(1, Math.round(finite(options.maxTokens, 2048)));
     const params = { model, messages: [{ role: 'user', content: prompt }], temperature: options.temperature ?? 0.7 };
     const firstBudget = candidate.id === 'nvidia' ? { max_tokens: maxTokens } : { max_completion_tokens: maxTokens };
@@ -436,7 +444,7 @@ class AIGatewayV4 {
       client = new GoogleGenAI({ apiKey: candidate.apiKey });
       this.clients.set('gemini', client);
     }
-    const model = options.model || candidate.model;
+    const model = this.requestModel(candidate, options);
     const config = { maxOutputTokens: Math.max(1, Math.round(finite(options.maxTokens, 2048))) };
     if (!/^gemini-3\.(?:[5-9]|\d{2,})-/.test(model)) config.temperature = options.temperature ?? 0.7;
     const response = await client.models.generateContent({ model, contents: prompt, config });
