@@ -29,6 +29,13 @@ function instructionHash(value) {
   return normalized ? crypto.createHash('sha256').update(normalized).digest('hex') : null;
 }
 
+function extractResearchFocus(value) {
+  const text = normalizeVideoInstructions(value);
+  if (!text) return '';
+  const match = text.match(/(?:focus\s+on|emphasize|prioritize|cover|include)\s*[:\-]?\s*([^\n.!?]{3,240})/i);
+  return match ? match[1].trim().slice(0, 240) : '';
+}
+
 function instructionEnvelope(value) {
   const text = normalizeVideoInstructions(value);
   return {
@@ -36,6 +43,7 @@ function instructionEnvelope(value) {
     text,
     present: Boolean(text),
     hash: instructionHash(text),
+    researchFocus: extractResearchFocus(text),
     maxLength: MAX_VIDEO_INSTRUCTIONS,
     policy: POLICY
   };
@@ -64,6 +72,7 @@ module.exports = {
   VIDEO_INSTRUCTION_POLICY: POLICY,
   normalizeVideoInstructions,
   instructionHash,
+  extractResearchFocus,
   instructionEnvelope,
   promptInstructionBlock,
   visualInstructionSuffix
