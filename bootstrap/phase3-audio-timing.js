@@ -67,6 +67,7 @@ function patchPackage() {
   const rel = 'package.json';
   const pkg = JSON.parse(read(rel));
   pkg.scripts = pkg.scripts || {};
+  pkg.scripts['test:scenes'] = 'node ../bootstrap/verify-phase2-scenes-v3.js';
   pkg.scripts['test:audio-scenes'] = 'node ../bootstrap/verify-phase3-audio.js';
   write(rel, `${JSON.stringify(pkg, null, 2)}\n`);
 }
