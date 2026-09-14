@@ -1,0 +1,49 @@
+diff -ruN yta_orig/youtube-automation-agent-master/.env.example yta_impl/youtube-automation-agent-master/.env.example
+--- yta_orig/youtube-automation-agent-master/.env.example
++++ yta_impl/youtube-automation-agent-master/.env.example
+@@ -5,6 +5,9 @@
+ # Uncomment the line you use — placeholder values must stay commented out
+ # OPENAI_API_KEY=your-openai-api-key-here
+ # OPENROUTER_API_KEY=your-openrouter-api-key-here
++# NVIDIA_API_KEY=your-nvidia-api-key-here
++# GROQ_API_KEY=your-groq-api-key-here
++# CEREBRAS_API_KEY=your-cerebras-api-key-here
+ # GEMINI_API_KEY=your-gemini-api-key-here
+ # MOONSHOT_API_KEY=your-kimi-api-key-here
+ # MIMO_API_KEY=your-mimo-api-key-here
+diff -ruN yta_orig/youtube-automation-agent-master/README.md yta_impl/youtube-automation-agent-master/README.md
+--- yta_orig/youtube-automation-agent-master/README.md
++++ yta_impl/youtube-automation-agent-master/README.md
+@@ -32,7 +32,7 @@
+ - **Self-hosted:** your credentials, media, and channel data stay under your control.
+ - **Approval-first:** nothing is scheduled until quality, rights, and human-review gates pass by default.
+ - **Strategy-driven:** give the Autonomous Channel Operator an objective, audience, pillars, cadence, and guardrails; it turns them into researched content plans and production runs.
+-- **Provider-flexible:** use Gemini, OpenAI, OpenRouter, Kimi, MiMo, GLM, or another OpenAI-compatible text endpoint, plus Seedance, MiniMax H3, Gemini Omni Flash, Kling, Wan, or local FFmpeg for video.
++- **Provider-flexible:** use Gemini, OpenAI, NVIDIA NIM, GroqCloud, Cerebras, OpenRouter, Kimi, MiMo, GLM, or another OpenAI-compatible text endpoint, plus Seedance, MiniMax H3, Gemini Omni Flash, Kling, Wan, or local FFmpeg for video.
+ - **Observable:** follow persistent generation jobs, failures, review state, publishing, and local activation milestones from the dashboard.
+@@ -284,6 +284,14 @@
+ 1. Get a key from [Google AI Studio](https://aistudio.google.com/)
+ 2. Set `GEMINI_API_KEY` in `.env`
+ 
++#### NVIDIA NIM / GroqCloud / Cerebras
++
++| Provider | Get key at | Env var |
++|----------|-----------|---------|
++| NVIDIA NIM | [NVIDIA Build](https://build.nvidia.com/) | `NVIDIA_API_KEY` |
++| GroqCloud | [GroqCloud Console](https://console.groq.com/keys) | `GROQ_API_KEY` |
++| Cerebras Inference | [Cerebras Cloud](https://cloud.cerebras.ai/) | `CEREBRAS_API_KEY` |
++
+ #### Kimi / MiMo / GLM
+diff -ruN yta_orig/youtube-automation-agent-master/config/credentials.example.json yta_impl/youtube-automation-agent-master/config/credentials.example.json
+--- yta_orig/youtube-automation-agent-master/config/credentials.example.json
++++ yta_impl/youtube-automation-agent-master/config/credentials.example.json
+@@ -10,6 +10,11 @@
+     "apiKey": "YOUR_OPENAI_API_KEY",
+     "model": "gpt-5.6"
+   },
++  "aiProvider": {
++    "provider": "nvidia",
++    "apiKey": "YOUR_PROVIDER_API_KEY",
++    "model": "openai/gpt-oss-20b"
++  },
+   "replicate": {
