@@ -91,7 +91,7 @@ async function main() {
   assert(repairSource.includes("timingSource: 'measured-scene-audio'"));
 
   await fsp.rm(temp, { recursive: true, force: true });
-  console.log('Phase 3 audio timing OK: 14 regression checks passed.');
+  console.log('Phase 3 audio timing OK: 16 regression checks passed.');
 }
 
 main().catch(error => {
