@@ -121,6 +121,22 @@ function testAlternateModelShapeRepair() {
   ]);
   assert.deepStrictEqual(script.conclusion.keyPoints, script.conclusion.recap);
   assert.strictEqual(validateScript(script).valid, true);
+
+  const durationVariants = normalizeScript({
+    title: 'Duration Variants',
+    hook: 'Duration parsing must tolerate common model output.',
+    sections: [
+      { title: 'Seconds', content: 'A', duration: '90 seconds' },
+      { title: 'Clock', content: 'B', duration: '1:30' },
+      { title: 'Minutes', content: 'C', duration: '2 minutes' }
+    ],
+    conclusion: { summary: 'Duration variants normalized.' },
+    cta: 'Subscribe.'
+  });
+  assert.deepStrictEqual(
+    durationVariants.mainContent.sections.map(section => section.duration),
+    [90, 90, 120]
+  );
 }
 
 function testInvalidScriptFailsClosed() {
