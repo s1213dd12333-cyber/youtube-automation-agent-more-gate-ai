@@ -20,6 +20,8 @@ node .\bootstrap\fix-strategy-context.js
 if ($LASTEXITCODE -ne 0) { throw 'bootstrap/fix-strategy-context.js failed' }
 node .\bootstrap\harden-production.js
 if ($LASTEXITCODE -ne 0) { throw 'bootstrap/harden-production.js failed' }
+node .\bootstrap\fix-script-shape.js
+if ($LASTEXITCODE -ne 0) { throw 'bootstrap/fix-script-shape.js failed' }
 
 # DarkzSEO 1.4 is an optional local advisory engine upstream, but we materialize
 # a pinned copy so Review Studio does not depend on a separately installed module.
@@ -76,6 +78,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/fix-strategy-context.js' }
     node --check ..\bootstrap\harden-production.js
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/harden-production.js' }
+    node --check ..\bootstrap\fix-script-shape.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/fix-script-shape.js' }
 
     python ..\darkzseo\darkzseo.py --help *> $null
     if ($LASTEXITCODE -ne 0) { throw 'DarkzSEO 1.4 smoke check failed' }
@@ -83,10 +87,12 @@ try {
     Write-Host 'AgentTube materializado com NVIDIA NIM, GroqCloud, Cerebras e sqlite3 compativel com Node 24.' -ForegroundColor Green
     Write-Host 'NVIDIA NIM GPT-OSS configurado para walkthrough e production-readiness.' -ForegroundColor Green
     Write-Host 'Generation strategyContext protegido contra valores null.' -ForegroundColor Green
+    Write-Host 'ScriptWriter protegido contra arrays/campos opcionais ausentes nas respostas da IA.' -ForegroundColor Green
     Write-Host 'Production hardening ativo: research, provenance, anti-hallucination, local visuals, quota breaker e duplicate guard.' -ForegroundColor Green
     Write-Host 'DarkzSEO 1.4 pinned e validado localmente.' -ForegroundColor Green
     Write-Host 'sqlite3 install scripts approved for this project.' -ForegroundColor Green
     Write-Host 'Execute: npm install' -ForegroundColor Cyan
+    Write-Host 'Depois execute: npx playwright install chromium' -ForegroundColor Cyan
 } finally {
     Pop-Location
 }
