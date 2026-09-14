@@ -19,7 +19,13 @@ function replaceOnce(text, from, to, label) {
 function copyContracts() {
   const template = path.join(root, 'bootstrap', 'templates', 'content-contracts.js');
   if (!fs.existsSync(template)) throw new Error('Missing bootstrap/templates/content-contracts.js');
-  write('utils/content-contracts.js', fs.readFileSync(template, 'utf8'));
+  let source = fs.readFileSync(template, 'utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  const oldFiniteNumber = "function finiteNumber(value, fallback = 0, min = null, max = null) {\n  const parsed = Number(value);\n  let result = Number.isFinite(parsed) ? parsed : fallback;\n  if (min !== null) result = Math.max(min, result);\n  if (max !== null) result = Math.min(max, result);\n  return result;\n}\n";
+  const robustFiniteNumber = "function finiteNumber(value, fallback = 0, min = null, max = null) {\n  let parsed = Number.NaN;\n  const missing = value === undefined || value === null || (typeof value === 'string' && !value.trim());\n  if (!missing) {\n    if (typeof value === 'string') {\n      const raw = value.trim().toLowerCase();\n      const clock = raw.match(/^(\\d+):([0-5]?\\d)(?::([0-5]?\\d))?$/);\n      if (clock) {\n        parsed = clock[3] === undefined\n          ? Number(clock[1]) * 60 + Number(clock[2])\n          : Number(clock[1]) * 3600 + Number(clock[2]) * 60 + Number(clock[3]);\n      } else {\n        const unit = raw.match(/^(\\d+(?:\\.\\d+)?)\\s*(seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h)$/);\n        if (unit) {\n          const amount = Number(unit[1]);\n          const suffix = unit[2];\n          const multiplier = /^(hours?|hrs?|h)$/.test(suffix) ? 3600 : /^(minutes?|mins?|m)$/.test(suffix) ? 60 : 1;\n          parsed = amount * multiplier;\n        } else {\n          parsed = Number(raw);\n        }\n      }\n    } else {\n      parsed = Number(value);\n    }\n  }\n  let result = Number.isFinite(parsed) ? parsed : fallback;\n  if (min !== null) result = Math.max(min, result);\n  if (max !== null) result = Math.min(max, result);\n  return result;\n}\n";
+
+  source = replaceOnce(source, oldFiniteNumber, robustFiniteNumber, 'robust numeric/duration normalization');
+  write('utils/content-contracts.js', source);
 }
 
 function patchContentStrategy() {
