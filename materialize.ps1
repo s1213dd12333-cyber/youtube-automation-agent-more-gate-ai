@@ -22,6 +22,8 @@ node .\bootstrap\harden-production.js
 if ($LASTEXITCODE -ne 0) { throw 'bootstrap/harden-production.js failed' }
 node .\bootstrap\fix-script-shape.js
 if ($LASTEXITCODE -ne 0) { throw 'bootstrap/fix-script-shape.js failed' }
+node .\bootstrap\fix-production-tts-shape.js
+if ($LASTEXITCODE -ne 0) { throw 'bootstrap/fix-production-tts-shape.js failed' }
 
 # DarkzSEO 1.4 is an optional local advisory engine upstream, but we materialize
 # a pinned copy so Review Studio does not depend on a separately installed module.
@@ -58,6 +60,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: agents/content-strategy-agent.js' }
     node --check agents/script-writer-agent.js
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: agents/script-writer-agent.js' }
+    node --check agents/production-management-agent.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: agents/production-management-agent.js' }
     node --check utils/ai-video-generator.js
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: utils/ai-video-generator.js' }
     node --check utils/operator-service.js
@@ -80,6 +84,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/harden-production.js' }
     node --check ..\bootstrap\fix-script-shape.js
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/fix-script-shape.js' }
+    node --check ..\bootstrap\fix-production-tts-shape.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/fix-production-tts-shape.js' }
 
     python ..\darkzseo\darkzseo.py --help *> $null
     if ($LASTEXITCODE -ne 0) { throw 'DarkzSEO 1.4 smoke check failed' }
@@ -88,6 +94,7 @@ try {
     Write-Host 'NVIDIA NIM GPT-OSS configurado para walkthrough e production-readiness.' -ForegroundColor Green
     Write-Host 'Generation strategyContext protegido contra valores null.' -ForegroundColor Green
     Write-Host 'ScriptWriter protegido contra arrays/campos opcionais ausentes nas respostas da IA.' -ForegroundColor Green
+    Write-Host 'Production TTS protegido contra variacoes de estrutura do roteiro.' -ForegroundColor Green
     Write-Host 'Production hardening ativo: research, provenance, anti-hallucination, local visuals, quota breaker e duplicate guard.' -ForegroundColor Green
     Write-Host 'DarkzSEO 1.4 pinned e validado localmente.' -ForegroundColor Green
     Write-Host 'sqlite3 install scripts approved for this project.' -ForegroundColor Green
