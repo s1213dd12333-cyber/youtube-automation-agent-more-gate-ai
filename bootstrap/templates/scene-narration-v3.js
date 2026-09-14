@@ -59,7 +59,7 @@ class SceneNarrationV3 {
   isRetriable(error) {
     const status = Number(error?.status || error?.statusCode || error?.response?.status || 0);
     const message = String(error?.message || '').toLowerCase();
-    if (/quota[^\n]*(?:limit|remaining)[^\n]*0|limit[^\n]*0|resource_exhausted/.test(message)) return false;
+    if (/quota[^\n]*(?:limit|remaining)[^\n]*0|(?:limit|remaining)[^\n]*[:=]\s*0/.test(message)) return false;
     if ([400, 401, 403, 404, 422].includes(status)) return false;
     if ([408, 409, 425, 429].includes(status) || status >= 500) return true;
     return status === 0;
