@@ -1,0 +1,96 @@
+diff -ruN yta_orig/youtube-automation-agent-master/utils/credential-manager.js yta_impl/youtube-automation-agent-master/utils/credential-manager.js
+--- yta_orig/youtube-automation-agent-master/utils/credential-manager.js
++++ yta_impl/youtube-automation-agent-master/utils/credential-manager.js
+@@ -530,7 +530,7 @@
+     }
+ 
+     if (!this.hasAITextProvider()) {
+-      missing.push('an AI provider (OpenAI, Gemini, OpenRouter, Kimi, MiMo, or GLM)');
++      missing.push('an AI provider (OpenAI, Gemini, NVIDIA NIM, Groq, Cerebras, OpenRouter, Kimi, MiMo, or GLM)');
+     }
+@@ -609,7 +609,7 @@
+     const setupSteps = [
+       { name: '🎬 YouTube API', action: () => this.setupYouTubeCredentials() },
+-      { name: '🤖 AI Service (OpenAI/Gemini)', action: () => this.setupAIService() },
++      { name: '🤖 AI Service (OpenAI/Gemini/NVIDIA/Groq/Cerebras)', action: () => this.setupAIService() },
+@@ -637,6 +637,9 @@
+           { name: 'OpenAI (GPT-5.6)', value: 'openai' },
+           { name: 'Google Gemini (Gemini 3.7)', value: 'gemini' },
+           { name: 'OpenRouter (400+ models, one API key)', value: 'openrouter' },
++          { name: 'NVIDIA NIM (hosted OpenAI-compatible models)', value: 'nvidia' },
++          { name: 'GroqCloud (fast inference; free tier available)', value: 'groq' },
++          { name: 'Cerebras Inference (fast GPT-OSS; free key available)', value: 'cerebras' },
+           { name: 'Kimi (Moonshot AI — K3)', value: 'kimi' },
+@@ -648,6 +651,9 @@
+       case 'openai': return await this.setupOpenAICredentials();
+       case 'gemini': return await this.setupGeminiCredentials();
+       case 'openrouter': return await this.setupOpenRouterCredentials();
++      case 'nvidia': return await this.setupNvidiaCredentials();
++      case 'groq': return await this.setupGroqCredentials();
++      case 'cerebras': return await this.setupCerebrasCredentials();
+       case 'kimi': return await this.setupKimiCredentials();
+diff -ruN yta_orig/youtube-automation-agent-master/walkthrough.js yta_impl/youtube-automation-agent-master/walkthrough.js
+--- yta_orig/youtube-automation-agent-master/walkthrough.js
++++ yta_impl/youtube-automation-agent-master/walkthrough.js
+@@ -68,6 +68,57 @@
+     },
+     validationCreds: (apiKey, model) => ({ aiProvider: { provider: 'openrouter', apiKey, model } })
+   },
++  nvidia: {
++    label: 'NVIDIA NIM — hosted developer inference, OpenAI-compatible',
++    keyUrl: 'https://build.nvidia.com/',
++    keyHint: 'generated from NVIDIA Build / API catalog',
++    instructions: [
++      'Sign in with an NVIDIA Developer account',
++      'Open a supported model in NVIDIA Build',
++      'Generate an API key and copy it'
++    ],
++    models: [...PROVIDERS.nvidia.models],
++    defaultModel: PROVIDERS.nvidia.defaultModel,
++    covers: 'scripts/text generation; quotas and model availability depend on NVIDIA developer access',
++    save(credentials, apiKey, model) {
++      credentials.aiProvider = { provider: 'nvidia', apiKey, model };
++    },
++    validationCreds: (apiKey, model) => ({ aiProvider: { provider: 'nvidia', apiKey, model } })
++  },
++  groq: {
++    label: 'GroqCloud — very fast hosted inference; free tier available',
++    keyUrl: 'https://console.groq.com/keys',
++    keyHint: 'created in the GroqCloud console',
++    instructions: [
++      'Create or sign in to a GroqCloud account',
++      'Open API Keys',
++      'Create a key and copy it'
++    ],
++    models: [...PROVIDERS.groq.models],
++    defaultModel: PROVIDERS.groq.defaultModel,
++    covers: 'scripts/text generation; free-tier calls are subject to Groq rate limits',
++    save(credentials, apiKey, model) {
++      credentials.aiProvider = { provider: 'groq', apiKey, model };
++    },
++    validationCreds: (apiKey, model) => ({ aiProvider: { provider: 'groq', apiKey, model } })
++  },
++  cerebras: {
++    label: 'Cerebras Inference — high-speed GPT-OSS/GLM inference',
++    keyUrl: 'https://cloud.cerebras.ai/',
++    keyHint: 'created in Cerebras Cloud',
++    instructions: [
++      'Create or sign in to Cerebras Cloud',
++      'Open API Keys',
++      'Create a key and copy it'
++    ],
++    models: [...PROVIDERS.cerebras.models],
++    defaultModel: PROVIDERS.cerebras.defaultModel,
++    covers: 'scripts/text generation; free-tier availability and limits depend on the account/model',
++    save(credentials, apiKey, model) {
++      credentials.aiProvider = { provider: 'cerebras', apiKey, model };
++    },
++    validationCreds: (apiKey, model) => ({ aiProvider: { provider: 'cerebras', apiKey, model } })
++  },
+   kimi: {
+@@ -256,7 +307,7 @@
+       if (!redo) return;
+     } else {
+       console.log(chalk.white('The agent needs one AI service. If you don\'t want to spend money,'));
+-      console.log(chalk.white('Google Gemini offers free tiers for supported text and TTS usage.'));
++      console.log(chalk.white('Google Gemini, Groq, NVIDIA NIM, and Cerebras may offer free/developer usage subject to provider limits.'));
