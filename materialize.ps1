@@ -9,8 +9,9 @@ try {
     Pop-Location
 }
 
+# bootstrap/materialize.js is the single source of truth for all overlay changes,
+# including NVIDIA NIM GPT-OSS compatibility and walkthrough validation fixes.
 node .\bootstrap\materialize.js
-node .\bootstrap\fix-nvidia-nim.js
 
 Push-Location upstream
 try {
@@ -22,9 +23,8 @@ try {
     node --check utils/credential-manager.js
     node --check walkthrough.js
     node --check ..\bootstrap\materialize.js
-    node --check ..\bootstrap\fix-nvidia-nim.js
-    Write-Host 'AgentTube materializado com NVIDIA NIM, GroqCloud, Cerebras e sqlite3 compatível com Node 24.' -ForegroundColor Green
-    Write-Host 'NVIDIA NIM configurado para usar max_tokens com GPT-OSS.' -ForegroundColor Green
+    Write-Host 'AgentTube materializado com NVIDIA NIM, GroqCloud, Cerebras e sqlite3 compativel com Node 24.' -ForegroundColor Green
+    Write-Host 'NVIDIA NIM GPT-OSS configurado pelo materializador principal.' -ForegroundColor Green
     Write-Host 'sqlite3 install scripts approved for this project.' -ForegroundColor Green
     Write-Host 'Execute: npm install' -ForegroundColor Cyan
 } finally {
