@@ -9,11 +9,13 @@ try {
     Pop-Location
 }
 
-# Apply the deterministic overlay, then the small idempotent readiness fix.
+# Apply the deterministic overlay, then focused idempotent runtime fixes.
 node .\bootstrap\materialize.js
 if ($LASTEXITCODE -ne 0) { throw 'bootstrap/materialize.js failed' }
 node .\bootstrap\fix-readiness-nvidia.js
 if ($LASTEXITCODE -ne 0) { throw 'bootstrap/fix-readiness-nvidia.js failed' }
+node .\bootstrap\fix-strategy-context.js
+if ($LASTEXITCODE -ne 0) { throw 'bootstrap/fix-strategy-context.js failed' }
 
 Push-Location upstream
 try {
@@ -22,6 +24,8 @@ try {
     npm pkg set "allowScripts.sqlite3=true" --json
     if ($LASTEXITCODE -ne 0) { throw 'npm pkg set allowScripts.sqlite3 failed' }
 
+    node --check index.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: index.js' }
     node --check utils/ai-text-service.js
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: utils/ai-text-service.js' }
     node --check utils/credential-manager.js
@@ -34,9 +38,12 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/materialize.js' }
     node --check ..\bootstrap\fix-readiness-nvidia.js
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/fix-readiness-nvidia.js' }
+    node --check ..\bootstrap\fix-strategy-context.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/fix-strategy-context.js' }
 
     Write-Host 'AgentTube materializado com NVIDIA NIM, GroqCloud, Cerebras e sqlite3 compativel com Node 24.' -ForegroundColor Green
     Write-Host 'NVIDIA NIM GPT-OSS configurado para walkthrough e production-readiness.' -ForegroundColor Green
+    Write-Host 'Generation strategyContext protegido contra valores null.' -ForegroundColor Green
     Write-Host 'sqlite3 install scripts approved for this project.' -ForegroundColor Green
     Write-Host 'Execute: npm install' -ForegroundColor Cyan
 } finally {
