@@ -28,6 +28,8 @@ node .\bootstrap\fix-production-audio-captions.js
 if ($LASTEXITCODE -ne 0) { throw 'bootstrap/fix-production-audio-captions.js failed' }
 node .\bootstrap\phase1-contracts.js
 if ($LASTEXITCODE -ne 0) { throw 'bootstrap/phase1-contracts.js failed' }
+node .\bootstrap\phase2-scene-pipeline.js
+if ($LASTEXITCODE -ne 0) { throw 'bootstrap/phase2-scene-pipeline.js failed' }
 
 # DarkzSEO 1.4 is an optional local advisory engine upstream, but we materialize
 # a pinned copy so Review Studio does not depend on a separately installed module.
@@ -80,6 +82,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: utils/generation-recovery-service.js' }
     node --check utils/content-contracts.js
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: utils/content-contracts.js' }
+    node --check utils/scene-pipeline-v2.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: utils/scene-pipeline-v2.js' }
     node --check walkthrough.js
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: walkthrough.js' }
     node --check ..\bootstrap\materialize.js
@@ -102,9 +106,17 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/verify-phase1-contracts.js' }
     node --check ..\bootstrap\templates\content-contracts.js
     if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/templates/content-contracts.js' }
+    node --check ..\bootstrap\phase2-scene-pipeline.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/phase2-scene-pipeline.js' }
+    node --check ..\bootstrap\verify-phase2-scenes.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/verify-phase2-scenes.js' }
+    node --check ..\bootstrap\templates\scene-pipeline-v2.js
+    if ($LASTEXITCODE -ne 0) { throw 'Syntax check failed: bootstrap/templates/scene-pipeline-v2.js' }
 
     node ..\bootstrap\verify-phase1-contracts.js
     if ($LASTEXITCODE -ne 0) { throw 'Phase 1 content contract regression checks failed' }
+    node ..\bootstrap\verify-phase2-scenes.js
+    if ($LASTEXITCODE -ne 0) { throw 'Phase 2 scene pipeline regression checks failed' }
 
     python ..\darkzseo\darkzseo.py --help *> $null
     if ($LASTEXITCODE -ne 0) { throw 'DarkzSEO 1.4 smoke check failed' }
@@ -116,10 +128,12 @@ try {
     Write-Host 'Production TTS protegido contra variacoes de estrutura do roteiro.' -ForegroundColor Green
     Write-Host 'Gemini TTS longo dividido em chunks e captions protegidas contra conclusion sem recap.' -ForegroundColor Green
     Write-Host 'FASE 1 ativa: Strategy/Script Contracts v1, normalizacao central, validacao e migracao de checkpoints.' -ForegroundColor Green
+    Write-Host 'FASE 2 ativa: pipeline scene-first, estados persistentes por cena, resume granular e rebuild seletivo.' -ForegroundColor Green
     Write-Host 'Production hardening ativo: research, provenance, anti-hallucination, local visuals, quota breaker e duplicate guard.' -ForegroundColor Green
     Write-Host 'DarkzSEO 1.4 pinned e validado localmente.' -ForegroundColor Green
     Write-Host 'sqlite3 install scripts approved for this project.' -ForegroundColor Green
     Write-Host 'Execute: npm install' -ForegroundColor Cyan
+    Write-Host 'Depois execute: npm run test:contracts; npm run test:scenes' -ForegroundColor Cyan
     Write-Host 'Depois execute: npx playwright install chromium' -ForegroundColor Cyan
 } finally {
     Pop-Location
