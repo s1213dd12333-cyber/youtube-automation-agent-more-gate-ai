@@ -5,8 +5,12 @@ const path = require('path');
 const upstream = path.resolve(__dirname, '..', 'upstream');
 
 function file(rel) { return path.join(upstream, rel); }
-function read(rel) { return fs.readFileSync(file(rel), 'utf8'); }
-function write(rel, text) { fs.writeFileSync(file(rel), text, 'utf8'); }
+function read(rel) {
+  // Git on Windows may checkout text files using CRLF. The materializer uses
+  // deterministic LF anchors, so normalize line endings before matching.
+  return fs.readFileSync(file(rel), 'utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
+function write(rel, text) { fs.writeFileSync(file(rel), text.replace(/\r\n/g, '\n'), 'utf8'); }
 function replaceOnce(text, from, to, label) {
   if (text.includes(to)) return text;
   const index = text.indexOf(from);
