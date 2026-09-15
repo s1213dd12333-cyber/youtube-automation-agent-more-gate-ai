@@ -85,3 +85,9 @@ syntax(['phase11-persistent-character-resolver.js', 'verify-phase11-persistent-c
 requireFiles(['templates/persistent-character-resolver-db-tables-v11.txt', 'templates/persistent-character-resolver-db-methods-v11.txt'], 'Phase 11.11.2');
 require('./phase11-persistent-character-resolver.js');
 run('verify-phase11-persistent-character-resolver.js');
+
+// 11.11.3 — Canonical Character Assets.
+syntax(['phase11-canonical-character-assets.js', 'verify-phase11-canonical-character-assets.js', 'templates/canonical-character-assets-v11.js']);
+requireFiles(['templates/persistent-character-assets-db-tables-v11.txt', 'templates/persistent-character-assets-db-methods-v11.txt'], 'Phase 11.11.3');
+require('./phase11-canonical-character-assets.js');
+run('verify-phase11-canonical-character-assets.js');
