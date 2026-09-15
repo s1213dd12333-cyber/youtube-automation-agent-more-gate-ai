@@ -13,286 +13,220 @@ Phase 11.11 closes that gap without changing the Phase 11.1 Character Bible cont
 1. **11.11.1 — Persistent Character Registry** — implemented and Windows-validated.
    - production-independent canonical `characterId`;
    - exact visual-identity fingerprint reuse;
-   - explicit `characterKey` support with fail-closed conflict detection;
+   - explicit `characterKey` with fail-closed conflicts;
    - per-production usage provenance;
-   - canonical identity excludes expression, pose, action, current location and temporary props.
+   - pose, emotion, action, location and temporary props excluded from canonical identity.
 2. **11.11.2 — Character Aliases + Resolver** — implemented and Windows-validated.
-   - exact `characterKey`, aliases and safe narrative-name resolution;
-   - collision/ambiguity fail-closed;
-   - contextual generic resolution only when one compatible character exists;
-   - contextual generic references are not auto-promoted into permanent aliases;
-   - no broad fuzzy matching.
+   - exact key/alias/name resolution;
+   - contextual generic resolution only when unique;
+   - ambiguity fail-closed and no broad fuzzy matching;
+   - generic contextual references are not promoted automatically to permanent aliases.
 3. **11.11.3 — Canonical Character Assets** — implemented and Windows-validated.
-   - provider-backed canonical character reference images;
-   - immutable hash/provider/model/origin provenance;
-   - one `character_reference` role per persistent character;
+   - provider-backed immutable `character_reference`;
+   - hash/provider/model/origin provenance;
    - no generic/local fallback promotion;
-   - unresolved or ambiguous declarations fail closed.
+   - unresolved or ambiguous promotion fails closed.
 4. **11.11.4 — Wardrobe / Appearance State Layers** — implemented and Windows-validated.
-   - mutable wardrobe, footwear, hair, condition, cleanliness and age-appearance overlays;
-   - injuries, carried items, temporary accessories, appearance notes and story state;
+   - wardrobe, footwear, hair, condition, cleanliness, apparent age, injuries and temporary accessories;
    - `scene` or explicit `until_changed` persistence;
    - durable reset prevents stale appearance state from resurfacing;
-   - canonical identity and 11.11.3 reference remain immutable.
-5. **11.11.5 — Scene / Shot Character Binding** — implemented and Windows-validated.
-   - exact `characterId` binding for the Shot Planner cast;
-   - explicit `visible`, `occluded`, `offscreen` and `mentioned` semantics;
-   - explicit per-scene/per-shot overrides take precedence over derived Shot Planner visibility;
-   - canonical character asset and 11.11.4 appearance state enrich visual bindings;
-   - binding fingerprints participate in shot/scene/production fingerprints.
-6. **11.11.6 — Cross-Video Character Continuity Gate**
-   - compare visible reused characters against canonical reference assets;
-   - tolerate declared appearance state while blocking replacement/identity drift.
-7. **11.11.7 — Character Library UI + Operator Controls**
+   - canonical identity/reference remain immutable.
+5. **11.11.5 — Scene / Shot Character Binding** — implemented, Windows-validated and hardened.
+   - exact persistent `characterId` per shot;
+   - `visible`, `occluded`, `offscreen`, `mentioned` semantics;
+   - explicit declarations override derived Shot Planner cast;
+   - stale persisted bindings are pruned after a successful replacement set;
+   - compatible explicit declarations merge; contradictions remain fail-closed;
+   - binding fingerprints invalidate stale visual generation.
+6. **11.11.6 — Cross-Video Character Continuity Gate** — implemented and Windows-validated.
+   - evaluates only resolved `visible` / `occluded` character bindings;
+   - compares reused characters against the canonical 11.11.3 `character_reference`;
+   - tolerates only explicitly declared 11.11.4 appearance-state variation;
+   - blocks missing characters, replacements, canonical identity drift and appearance-state drift;
+   - audit-only provider absence by default, with an opt-in strict vision mode.
+7. **11.11.7 — Character Library UI + Operator Controls** — pending.
    - inspect identities, aliases, references, states, bindings and gate history;
-   - audited operator corrections; canonical identity read-only.
-8. **11.11.8 — E2E Cross-Video Character Tests**
+   - audited operator corrections with canonical identity read-only.
+8. **11.11.8 — E2E Cross-Video Character Tests** — pending.
    - deterministic multi-episode closeout across all 11.11 components.
 
-## 11.11.1 contract
+## 11.11.1 — Persistent Character Registry contract
 
-`PersistentCharacterRegistryV11` consumes the `cartoonBible.characters` produced by Phase 11.1 only when the bible is in `kids_cartoon_2d` mode.
+`PersistentCharacterRegistryV11` consumes `cartoonBible.characters` in `kids_cartoon_2d` mode and creates/reuses a production-independent `characterId`.
 
-Stable canonical identity may include:
+Canonical identity may include explicit character key, name, species/type, visual descriptor, palette, proportions, face rules, shape language/silhouette, base outfit, stable markings and stable accessories.
 
-- explicit `characterKey` when supplied;
-- normalized display name when no explicit key exists;
-- species/type;
-- stable visual descriptor;
-- palette and color placement;
-- body proportions;
-- facial landmarks/rules;
-- shape language/silhouette;
-- canonical outfit;
-- stable markings and accessories.
+Role, personality prose, expression, pose, action, current location and temporary held props are deliberately excluded. An explicit `characterKey` whose later declaration disagrees with the stored canonical visual identity fails closed with `explicit_character_key_identity_conflict` rather than mutating the original character.
 
-The following are deliberately excluded from canonical identity:
-
-- role (`main` vs `supporting`);
-- personality prose;
-- expressions;
-- poses;
-- current action;
-- current location;
-- temporary held props;
-- future wardrobe/appearance state.
-
-This means an episode can move a character, change its emotion, pose, story role or temporary prop without creating a new canonical identity.
-
-### Explicit-key conflicts
-
-When an explicit `characterKey` already exists but a later declaration changes canonical visual attributes, 11.11.1 fails closed with `explicit_character_key_identity_conflict`. It does not silently rewrite the existing identity.
-
-## 11.11.2 contract
-
-`PersistentCharacterResolverV11` adds exact aliases and audited resolution without weakening the canonical registry.
+## 11.11.2 — Character Aliases + Resolver contract
 
 Resolution order is conservative:
 
 1. exact explicit `characterKey`;
 2. exact persisted alias;
 3. exact normalized canonical name/key;
-4. contextual generic reference only when exactly one compatible character remains;
+4. contextual generic reference only when exactly one compatible character exists;
 5. otherwise `ambiguous` or `unresolved`.
 
-No Levenshtein/fuzzy merge is used.
+Explicit aliases may come from `aliases`, `characterAliases`, `localizedNames` and `nicknames`. Contextual phrases such as `the bunny` may resolve when only one compatible character exists, but are not automatically made permanent aliases. Exact aliases/names also take precedence over species inferred from wording.
 
-### Alias sources
+## 11.11.3 — Canonical Character Assets contract
 
-The registry accepts explicit aliases from:
+`CanonicalCharacterAssetRegistryV11` promotes only explicitly declared canonical references already bound to one persistent character. Provider provenance is required by default, and generic/local/slideshow fallback images are not promoted.
 
-- `aliases`;
-- `characterAliases`;
-- `localizedNames`;
-- `nicknames`.
+The first valid `character_reference` is immutable by role and preserves its identity fingerprint, byte SHA-256, asset path, provider/model and source production/Character Bible provenance. Later episodes reuse it rather than silently replacing it.
 
-Canonical display name and `characterKey` are also persisted as aliases.
-
-### Generic references
-
-References such as `the bunny`, `o coelho` or `the character` may be resolved contextually only when exactly one compatible canonical character exists. A contextual generic match uses `character_context_unique`.
-
-A generic reference resolved this way is **not** automatically persisted as a permanent alias. If another compatible character appears later, the same generic phrase can become `character_context_ambiguous` instead of remaining silently pinned to the earlier character.
-
-### Exact alias vs inferred species
-
-Exact aliases/names take precedence over species inferred from the wording. This prevents names such as `Star` from being incorrectly treated only as a species/type token. Species inferred from the reference text is reserved for contextual generic matching; an explicitly declared species can still constrain exact alias/name resolution.
-
-### Canonical compatibility
-
-Alias resolution never authorizes canonical mutation. Incoming stable visual attributes are compared against the stored identity. An explicit key with incompatible canonical attributes returns a conflict; incompatible aliases are not silently merged.
-
-## 11.11.3 contract
-
-`CanonicalCharacterAssetRegistryV11` promotes only explicitly declared canonical character references that are already bound to one persistent `characterId` from 11.11.1/11.11.2.
-
-Supported declaration forms include nested `canonicalCharacterAsset`, `canonicalAsset`, `canonicalReference` / `characterReference`, or their explicit flat canonical path/provider fields.
-
-A declaration may bind by:
-
-1. exact `characterKey`;
-2. exact source Character Bible character id;
-3. explicit source reference;
-4. exact canonical display name plus compatible species.
-
-If the declaration matches zero or multiple persistent characters, promotion fails closed. Display-name fallback is only used when no stronger explicit source reference is present.
-
-### Provider requirement
-
-By default, promotion requires explicit non-local provider provenance. Providers/paths representing local renderer, generic fallback or slideshow output are rejected. Supported canonical image extensions are PNG, JPEG and WebP.
-
-A generic local keyframe or arbitrary scene image does **not** become a canonical character reference merely because it visually contains the character.
-
-### Immutability
-
-The canonical role is `character_reference`, with one role per `characterId`. The first valid provider-backed reference stores:
-
-- `identityFingerprint`;
-- byte SHA-256;
-- asset path;
-- provider and model;
-- source production;
-- source Character Bible;
-- source character id/reference.
-
-Later episodes reuse that asset. A later declaration with different bytes/provider/model does not overwrite the original reference. Identity-fingerprint disagreement or a missing previously persisted canonical file returns a conflict.
-
-Canonical files are copied into:
+Canonical files live at:
 
 `data/assets/character-library/<namespace>/<characterId>/character_reference.<ext>`
 
-This gives 11.11.5/11.11.6 a stable visual anchor without coupling the reference to one episode directory.
+## 11.11.4 — Wardrobe / Appearance State contract
 
-## 11.11.4 contract
+`PersistentCharacterAppearanceStateLayerV11` stores mutable visual/story state separately from the canonical character identity/reference.
 
-`PersistentCharacterAppearanceStateLayerV11` stores mutable visual/story state separately from the canonical character identity and canonical reference image.
+Supported dimensions include wardrobe/costume, footwear, hair state, condition, cleanliness, age appearance, injuries, carried items, temporary accessories, appearance notes and story state.
 
-Supported appearance dimensions include:
+Persistence modes:
 
-- `wardrobe` / `costume`;
-- `footwear`;
-- `hairState`;
-- `condition`;
-- `cleanliness`;
-- `ageAppearance`;
-- `injuries` / damage;
-- `carriedItems` / held items;
-- `temporaryAccessories`;
-- `appearanceNotes`;
-- `storyState`.
+- `scene` — current production/scene only;
+- `until_changed` — explicit durable state carried forward until replaced/reset.
 
-The canonical Character Bible `outfit` and stable `accessories` remain the base identity from 11.11.1. Episodic changes such as a raincoat, pajamas, a temporary hat or a carried backpack belong in `appearanceState`; changing the canonical `outfit` field would intentionally participate in identity matching instead.
+A durable reset becomes the new neutral durable state so an older costume/injury does not reappear later. Contradictory single-valued state dimensions fail closed. The base Character Bible `outfit` remains canonical identity; episodic costume changes belong in the appearance-state layer.
 
-### Persistence modes
+## 11.11.5 — Scene / Shot Character Binding contract
 
-- `scene` — default; applies only to the current production/scene declaration and is not inherited into later videos.
-- `until_changed` — explicit durable state; may carry into later productions for the same `characterId` until another durable declaration or reset replaces it.
+`PersistentCharacterBindingV11` converts the intended cast into exact persistent character identities before shot persistence/keyframe generation.
 
-Aliases `durable`, `persistent`, `carry_forward` and `carryforward` normalize to `until_changed`.
+Binding sources include scene/shot `characterBindings`, `persistentCharacterBindings`, `shotCharacterBindings` and Character Bible source IDs already placed in `shot.characters` by Shot Planner 11.2. Narrative text alone does not force visual presence.
 
-### Durable reset
+Presence semantics:
 
-`resetState`, `clearState` or `clearPreviousState` clears every appearance dimension. When the reset itself is `until_changed`, later videos inherit the neutral reset rather than resurrecting an older raincoat/injury/etc.
+- `visible` — render the exact character;
+- `occluded` — character is visually present but partly hidden;
+- `offscreen` — preserve narrative identity but do not render;
+- `mentioned` — reference-only; do not render.
 
-### Conflict handling
+Bindings resolve by exact `characterId`, exact `characterKey`, exact source Character Bible character id, exact alias, then exact canonical name/key. No fuzzy merge is introduced.
 
-Single-valued dimensions such as wardrobe, hair, condition and age appearance fail closed when one declaration supplies contradictory values. The conflicting dimension is omitted and the state row is marked `conflict` with an audit trail.
+Visible/occluded bindings enrich prompts with the 11.11.3 canonical asset and applicable 11.11.4 appearance state. Binding fingerprints include identity, visibility, placement/action/expression, appearance-state fingerprint and canonical asset hash, and therefore propagate into shot/scene/production fingerprints.
 
-An ambiguous new declaration also fails closed. It does not create a new explicit state, but it does not erase a previously confirmed durable state for an existing character.
+### 11.11.5 hardening
 
-### Identity protection
+Revalidation added replace-by-production persistence semantics. After the current resolved set is safely persisted, rows from an older plan that are absent from the new set are pruned. This prevents 11.11.6 from seeing ghost character presence after a cast removal or a newly conflicting declaration.
 
-Every state row stores the canonical identity fingerprint as provenance, but state fingerprints are separate. Appearance state never rewrites:
+Multiple compatible explicit declarations for the same character/shot now merge their non-conflicting fields and recompute the final fingerprint/prompt. Contradictory non-empty visibility, placement, action or expression values remain fail-closed.
 
-- `characterId`;
-- canonical identity fingerprint;
-- species/type;
-- canonical palette, proportions, face or silhouette;
-- 11.11.3 `character_reference` asset/hash/provider/origin.
+## 11.11.6 — Cross-Video Character Continuity Gate contract
 
-## 11.11.5 contract
+`CrossVideoCharacterContinuityGateV11` consumes only the hardened current binding set from 11.11.5. It evaluates resolved `visible` and `occluded` bindings. `offscreen`, `mentioned`, conflicted or unresolved bindings never create a visual continuity requirement.
 
-`PersistentCharacterBindingV11` converts the intended visual cast into exact persistent character identities before `scene_shots` are persisted.
+For a reused character, the gate compares two images:
 
-### Binding sources
+1. **IMAGE 1** — immutable canonical `character_reference` from 11.11.3;
+2. **IMAGE 2** — the newly generated full scene/keyframe.
 
-The binder accepts explicit scene/shot declarations through:
+The visual/semantic provider is instructed to judge the bound character rather than overall frame composition. Camera, crop, framing, scale, background, lighting, pose, action and expression are not identity mismatches by themselves.
 
-- `characterBindings`;
-- `persistentCharacterBindings`;
-- `shotCharacterBindings`;
-- per-shot `characterBindings`.
+### Canonical identity vs allowed appearance change
 
-It also consumes the Character Bible IDs already placed in `shot.characters` by Shot Planner 11.2. Those source Character Bible IDs resolve through the current production's persistent-character usage rows to exact `characterId` values.
+The gate protects the persistent character's canonical face, species/type, proportions, recognizable silhouette/shape language, stable markings and base palette.
 
-Raw narrative text by itself is not a binding. A character name mentioned in prose does not force visual presence unless Shot Planner placed it in the shot cast or an explicit binding declares it.
+The following may legitimately vary only when represented by the applicable 11.11.4 appearance state:
 
-### Presence semantics
+- wardrobe/costume;
+- footwear;
+- hair state;
+- condition/cleanliness;
+- apparent age;
+- injuries;
+- carried items;
+- temporary accessories;
+- appearance/story notes.
 
-- `visible` — render the exact persistent character.
-- `occluded` — the character is visually present but partly blocked; continuity still applies.
-- `offscreen` — preserve narrative identity but explicitly do not render the character.
-- `mentioned` — reference-only; explicitly do not render the character.
+The base canonical outfit may be visually replaced only when the state explicitly declares a wardrobe/costume override. Appearance state never authorizes a new face, body proportions, species, silhouette or replacement character.
 
-Explicit scene/shot declarations override the derived Shot Planner visibility for the same `characterId` and shot. Two contradictory explicit declarations for the same character/shot fail closed as a binding conflict.
+### Vision response and blocking rules
 
-### Resolution order
+The provider contract is:
 
-Bindings resolve conservatively by:
+```json
+{
+  "characterPresent": true,
+  "sameCanonicalCharacter": true,
+  "canonicalIdentityConsistent": true,
+  "appearanceStateConsistent": true,
+  "confidence": 0.9,
+  "identityMismatches": [],
+  "notes": "visible evidence only"
+}
+```
 
-1. exact `characterId`;
-2. exact `characterKey`;
-3. exact source Character Bible character id for the current production usage;
-4. exact persisted alias;
-5. exact canonical display name/key;
-6. otherwise `ambiguous` or `unresolved`.
+Explicit evidence creates fail-closed reasons:
 
-No fuzzy merge is introduced by the binding layer.
+- `CROSS_VIDEO_CHARACTER_MISSING`;
+- `CROSS_VIDEO_CHARACTER_REPLACED`;
+- `CROSS_VIDEO_CHARACTER_IDENTITY_DRIFT`;
+- `CROSS_VIDEO_CHARACTER_APPEARANCE_STATE_DRIFT`;
+- `CROSS_VIDEO_CHARACTER_CANONICAL_ASSET_MISSING`;
+- `CROSS_VIDEO_CHARACTER_KEYFRAME_MISSING`;
+- `CROSS_VIDEO_CHARACTER_RECORD_MISSING`.
 
-### Prompt and fingerprint integration
+A non-empty `identityMismatches` array forces canonical identity inconsistency even if another provider field incorrectly says `true`.
 
-For `visible`/`occluded` bindings the shot prompt receives:
+Characters originating in the current production are recorded as `origin_production`; the gate does not falsely claim cross-video verification for them.
 
-- exact `characterId` / `characterKey`;
-- 11.11.3 canonical character asset id/hash when ready;
-- applicable 11.11.4 appearance-state id/fingerprint;
-- placement/action/expression metadata when declared.
+### Provider policy
 
-For `offscreen`/`mentioned`, the prompt explicitly forbids rendering that character.
+Default mode is conservative but usable:
 
-The binding fingerprint includes character identity, visibility, placement/action/expression, appearance-state fingerprint and canonical-asset hash. Binding changes therefore propagate into shot, scene and production fingerprints so stale visual generations are not reused after a character-presence/state change.
+- explicit visual mismatch always blocks;
+- provider unavailable/invalid/low-confidence remains accepted but unverified;
+- canonical reference absence still blocks by default for a reused visible character.
+
+Strict mode is enabled by `CROSS_VIDEO_CHARACTER_CONTINUITY_REQUIRE_VISION=true`. The global `SEMANTIC_PROP_REQUIRE_VERIFICATION=true` also activates strict character verification. In strict mode, missing provider evidence, invalid response, provider error or insufficient confidence blocks the keyframe.
+
+The default confidence threshold is `0.72`.
+
+### Keyframe gate order
+
+The materialized keyframe pipeline runs the continuity gates in this order:
+
+1. cross-video location continuity;
+2. cross-video object continuity;
+3. cross-video character continuity;
+4. keyframe may become `ready`.
+
+A failed character check sets keyframe status `cross_video_character_continuity_failed` and throws code `CROSS_VIDEO_CHARACTER_CONTINUITY_FAILED`.
 
 ## Persistence
 
-11.11.1 adds:
+11.11.1:
 
 - `persistent_characters`
 - `persistent_character_usages`
 
-11.11.2 adds:
+11.11.2:
 
 - `persistent_character_aliases`
 - `persistent_character_resolutions`
 
-11.11.3 adds:
+11.11.3:
 
 - `persistent_character_assets`
 
-11.11.4 adds:
+11.11.4:
 
 - `persistent_character_appearance_states`
 
-11.11.5 adds:
+11.11.5:
 
 - `persistent_character_bindings`
 
-The production bundle exposes `persistentCharacters`, `persistentCharacterResolutions`, `persistentCharacterAssets`, `persistentCharacterAppearanceStates` and `persistentCharacterBindings`.
+11.11.6:
 
-## Prompt / pipeline integration
+- `cross_video_character_continuity_checks`
 
-After Phase 11.1 builds/loads the production Character Bible, the persistent registry/resolver runs before visual planning. 11.11.3 promotes/reuses canonical references after the persistent character plan is known. 11.11.4 resolves explicit/inherited appearance state before visual scene generation. After Shot Planner 11.2 creates the concrete per-shot cast, 11.11.5 resolves those cast IDs plus explicit overrides to persistent characters and updates shot fingerprints before shot persistence/keyframe generation.
-
-The original Phase 11.1 Character Bible database record/fingerprint remains unchanged.
+The production bundle exposes persistent characters, resolutions, canonical assets, appearance states, current bindings and character-continuity audit history.
 
 ## Environment
 
@@ -307,9 +241,17 @@ PERSISTENT_CHARACTER_APPEARANCE_STATES_ENABLED=true
 PERSISTENT_CHARACTER_APPEARANCE_STATE_INHERIT_DURABLE=true
 PERSISTENT_CHARACTER_BINDINGS_ENABLED=true
 PERSISTENT_CHARACTER_BINDINGS_USE_SHOT_PLANNER_CAST=true
+CROSS_VIDEO_CHARACTER_CONTINUITY_ENABLED=true
+CROSS_VIDEO_CHARACTER_CONTINUITY_REQUIRE_CANONICAL_ASSET=true
+CROSS_VIDEO_CHARACTER_CONTINUITY_REQUIRE_VISION=false
+CROSS_VIDEO_CHARACTER_CONTINUITY_MIN_CONFIDENCE=0.72
+CROSS_VIDEO_CHARACTER_VISION_BASE_URL=
+CROSS_VIDEO_CHARACTER_VISION_MODEL=
+CROSS_VIDEO_CHARACTER_VISION_API_KEY=
+CROSS_VIDEO_CHARACTER_VISION_TIMEOUT_MS=30000
 ```
 
-Use one namespace per channel/story universe where possible.
+When character-specific vision settings are blank, 11.11.6 may reuse the configured `SEMANTIC_PROP_VISION_*` provider settings.
 
 ## Regression commands
 
@@ -319,20 +261,23 @@ npm run test:persistent-character-resolver
 npm run test:canonical-character-assets
 npm run test:persistent-character-appearance-state
 npm run test:persistent-character-binding
+npm run test:cross-video-character-continuity
 ```
 
-Windows Server 2025 / Node 24 validation currently confirms:
+Windows Server 2025 / Node 24 validation confirms:
 
 - 11.11.1: 52 regression checks;
 - 11.11.2: 49 regression checks;
 - 11.11.3: 61 regression checks;
 - 11.11.4: 86 regression checks;
-- 11.11.5: 75 regression checks.
+- 11.11.5: 75 base regression checks;
+- 11.11.5 hardening: 29 regression checks;
+- 11.11.6: 66 regression checks.
 
-The same validation run also preserved the complete Phase 11.10 full suite.
+The same Windows validation also preserved the complete Phase 11.10 full suite.
 
 ## Completion boundary
 
-11.11.1 through 11.11.5 are implemented, materialized and Windows-validated after the fully validated 11.10 closeout.
+11.11.1 through 11.11.6 are implemented, materialized and Windows-validated after the fully validated 11.10 closeout.
 
-The current phase still does **not** claim visual cross-video character continuity gating, operator library controls or integrated cross-video character E2E; those remain 11.11.6–11.11.8.
+Phase 11.11 still does **not** claim Character Library/operator controls or the integrated cross-video character E2E closeout. Those remain 11.11.7 and 11.11.8.
