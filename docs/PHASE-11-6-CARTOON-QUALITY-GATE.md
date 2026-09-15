@@ -43,6 +43,18 @@ The Phase 11.6 fingerprint includes SHA-256 digests of the actual keyframe bytes
 
 The Phase 9 fingerprint also incorporates the Phase 11.6 fingerprint so approval review is sensitive to keyframe-byte changes, continuity changes and motion changes.
 
+## Fail-closed publication freshness
+
+For an active `kids_cartoon_2d` production, Phase 10 recomputes the current deterministic Phase 11.6 fingerprint when it evaluates publication state.
+
+Publication remains blocked when:
+
+- there is no persisted Phase 11.6 report: `cartoon_quality_required`;
+- the persisted report no longer matches the current keyframes/continuity/motion state: `cartoon_quality_stale`;
+- the current matching report is blocked: `cartoon_quality`.
+
+This prevents a previously passing review from being reused after a keyframe, continuity repair, motion segment, or scene composition changes.
+
 ## Repetition rules
 
 Within one shot:
@@ -94,10 +106,10 @@ npm run test:cartoon-quality
 Expected:
 
 ```text
-Phase 11.6 Cartoon Quality Gate OK: 31 regression checks passed.
+Phase 11.6 Cartoon Quality Gate OK: 32 regression checks passed.
 ```
 
-The regression is deterministic and does not call image, TTS, video or paid AI providers.
+The regression is deterministic and does not call image, TTS, video or paid AI providers. It also verifies fail-closed publication behavior for missing, stale, and blocked cartoon quality reports.
 
 ## Phase 11 completion boundary
 
@@ -110,7 +122,7 @@ Character Bible
 → accepted continuity checks
 → ready local motion segments
 → ready motion scene videos
-→ Phase 11.6 report not blocked
+→ current Phase 11.6 report not blocked
 → human review before approval/publication
 ```
 
