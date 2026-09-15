@@ -15,7 +15,7 @@ For cartoon productions the runtime creates and persists one `cartoon_visual_bib
 
 ## Cartoon routing
 
-Cartoon frames intentionally bypass the Phase 8 documentary real-source router. This prevents a children's story from silently receiving NASA/Wikimedia/documentary photography. Phase 8 remains active for non-cartoon productions.
+Cartoon frames intentionally bypass the Phase 8 documentary real-source router. This prevents a children's story from silently receiving NASA/Wikimedia/documentary photography. Phase 8 remains active for non-cartoon productions. The same exception is enforced in manual Scene Repair, so regenerating a cartoon frame cannot silently switch back to documentary source search.
 
 Generated cartoon prompts use the `kids_cartoon_2d` style in `AIVideoGenerator` and explicitly require original characters, stable proportions, clean outlines, rounded child-safe shapes, consistent palette, readable expressions, simple layered backgrounds, and no photorealism/generic stock illustration.
 
@@ -45,7 +45,7 @@ npm run test:cartoon-bible
 Expected result:
 
 ```text
-Phase 11.1 Cartoon Bible OK: 24 regression checks passed.
+Phase 11.1 Cartoon Bible OK: 29 regression checks passed.
 ```
 
 ## Completion boundary
