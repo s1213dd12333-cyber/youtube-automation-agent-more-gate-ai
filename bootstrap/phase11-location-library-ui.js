@@ -80,3 +80,20 @@ for (const rel of [
 }
 require('./phase11-canonical-world-object-assets.js');
 execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-canonical-world-object-assets.js')], { stdio: 'inherit' });
+
+// Phase 11.10.4 adds mutable scene/durable lifecycle state without rewriting canonical object identity or assets.
+for (const rel of [
+  'phase11-persistent-world-object-state.js',
+  'verify-phase11-persistent-world-object-state.js',
+  'templates/persistent-world-object-state-v11.js'
+]) {
+  execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+}
+for (const rel of [
+  'templates/persistent-world-object-state-db-tables-v11.txt',
+  'templates/persistent-world-object-state-db-methods-v11.txt'
+]) {
+  if (!fs.existsSync(path.join(__dirname, rel))) throw new Error(`Phase 11.10.4 prerequisite missing: ${rel}`);
+}
+require('./phase11-persistent-world-object-state.js');
+execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-persistent-world-object-state.js')], { stdio: 'inherit' });
