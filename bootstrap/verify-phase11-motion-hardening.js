@@ -24,17 +24,9 @@ for (const fn of checks) fn();
 console.log(`Phase 11.5 Motion Hardening OK: ${checks.length} regression checks passed.`);
 
 require('./verify-phase11-reference-quota-fallback.js');
-
-// The materializer already invokes this verifier directly, so chaining here makes
-// the full Phase 11.6 quality and audience-metadata boundary deterministic.
 require('./verify-phase11-cartoon-quality.js');
 require('./verify-phase11-made-for-kids.js');
-
-// Phase 11.7.1 establishes persistent environment identity.
 require('./verify-phase11-environment-bible.js');
-
-// Phase 11.7.2 establishes persistent furniture/object identity locks.
 require('./verify-phase11-prop-lock.js');
-
-// Phase 11.7.3 establishes canonical reusable visual references for environments.
 require('./verify-phase11-master-environment.js');
+require('./verify-phase11-scene-environment-mapping.js');
