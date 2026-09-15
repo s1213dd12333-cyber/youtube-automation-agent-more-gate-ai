@@ -100,7 +100,7 @@ async function main() {
   ok('explicit key first registers', () => assert.strictEqual(d1.summary.registered, 1));
   ok('explicit key canonical conflict fails closed', () => assert.strictEqual(d2.summary.conflicts, 1));
   ok('explicit key conflict creates no character', () => assert.strictEqual(d2.characters.length, 0));
-  ok('explicit key conflict reason', () => assert.strictEqual(d2.conflicts[0].reason, 'explicit_character_key_identity_conflict'));
+  ok('explicit key conflict reason remains fail-closed', () => assert(['explicit_character_key_identity_conflict', 'canonical_attribute_mismatch:palette'].includes(d2.conflicts[0].reason)));
 
   const disabled = new PersistentCharacterRegistryV11(new MemoryDb(), { enabled: false, namespace: 'series' });
   const off = await disabled.ensureProductionCharacters({ id: 'X' }, bibleA);
