@@ -22,6 +22,28 @@ const fixedClauseRegex = "  const clauses = source.split(/[,;|\\n]+/).map(value 
 if (source.includes(brokenClauseRegex)) source = source.replace(brokenClauseRegex, fixedClauseRegex);
 
 replaceOnce(
+`function definitionFor(value) {
+  const text = clean(value, 240);
+  return PROP_DEFINITIONS.find(definition => definition.pattern.test(text)) || null;
+}
+`,
+`function definitionFor(value) {
+  const text = clean(value, 240);
+  const matches = PROP_DEFINITIONS
+    .map(definition => ({ definition, match: text.match(definition.pattern) }))
+    .filter(item => item.match);
+  if (!matches.length) return null;
+  matches.sort((a, b) =>
+    String(b.match[0] || '').length - String(a.match[0] || '').length ||
+    String(b.definition.name || '').length - String(a.definition.name || '').length
+  );
+  return matches[0].definition;
+}
+`,
+  'prefer the most specific overlapping prop definition'
+);
+
+replaceOnce(
 `function nearbyWindow(text, definition, rawName) {
   const source = String(text || '');
   let match = definition ? source.match(definition.pattern) : null;
@@ -79,4 +101,5 @@ replaceOnce(
 
 fs.writeFileSync(target, source, 'utf8');
 execFileSync(process.execPath, ['--check', target], { stdio: 'inherit' });
-console.log('Phase 11.7.2 Prop Lock attributes hardened: per-prop clause scoping prevents cross-prop color bleed, records material provenance, and syntax-checks the generated runtime.');
+execFileSync(process.execPath, ['-e', `const p=require(${JSON.stringify(target)}); if(p.canonicalName('flower bed')!=='flower bed') process.exit(2); if(p.canonicalName('coffee table')!=='coffee table') process.exit(3);`], { stdio: 'inherit' });
+console.log('Phase 11.7.2 Prop Lock attributes hardened: specific prop definitions win overlaps, per-prop clause scoping prevents cross-prop color bleed, material provenance is recorded, and the generated runtime is syntax/semantic checked.');
