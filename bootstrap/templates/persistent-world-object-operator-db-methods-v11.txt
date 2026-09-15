@@ -1,0 +1,64 @@
+  async getPersistentWorldObjectResolution(id) {
+    return this.parsePersistentWorldObjectResolution(await this.getRow('SELECT * FROM persistent_world_object_resolutions WHERE id = ? LIMIT 1', [id]));
+  }
+
+  async listPendingPersistentWorldObjectResolutions(namespace = 'default', limit = 100) {
+    const safeLimit = Math.max(1, Math.min(1000, Number(limit || 100)));
+    const rows = await this.getAllRows("SELECT * FROM persistent_world_object_resolutions WHERE namespace = ? AND status IN ('unresolved','ambiguous') ORDER BY updated_at DESC, rowid DESC LIMIT ?", [namespace || 'default', safeLimit]);
+    return rows.map(row => this.parsePersistentWorldObjectResolution(row));
+  }
+
+  async listPersistentWorldObjectResolutionsByObject(objectId, limit = 250) {
+    const safeLimit = Math.max(1, Math.min(1000, Number(limit || 250)));
+    const rows = await this.getAllRows('SELECT * FROM persistent_world_object_resolutions WHERE object_id = ? ORDER BY updated_at DESC, rowid DESC LIMIT ?', [objectId, safeLimit]);
+    return rows.map(row => this.parsePersistentWorldObjectResolution(row));
+  }
+
+  async listPersistentWorldObjectBindingsByObject(objectId, limit = 250) {
+    const safeLimit = Math.max(1, Math.min(1000, Number(limit || 250)));
+    const rows = await this.getAllRows('SELECT * FROM persistent_world_object_bindings WHERE object_id = ? ORDER BY updated_at DESC, rowid DESC LIMIT ?', [objectId, safeLimit]);
+    return rows.map(row => this.parsePersistentWorldObjectBinding(row));
+  }
+
+  async listCrossVideoObjectContinuityChecksByObject(objectId, limit = 250) {
+    const safeLimit = Math.max(1, Math.min(1000, Number(limit || 250)));
+    const rows = await this.getAllRows('SELECT * FROM cross_video_object_continuity_checks WHERE object_id = ? ORDER BY created_at DESC, attempt DESC, rowid DESC LIMIT ?', [objectId, safeLimit]);
+    return rows.map(row => this.parseCrossVideoObjectContinuityCheck(row));
+  }
+
+  async savePersistentWorldObjectOperatorAction(input = {}) {
+    if (!input.actionType || !input.targetType || !input.status) return null;
+    const id = input.id || this.generateId('persistent_world_object_operator_action');
+    const createdAt = input.createdAt || new Date().toISOString();
+    await this.executeQuery(`INSERT INTO persistent_world_object_operator_actions (
+      id, namespace, action_type, object_id, target_type, target_id, production_id, status, actor, note, before_value, after_value, reason, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+      id, input.namespace || 'default', input.actionType, input.objectId || null, input.targetType, input.targetId || null,
+      input.productionId || null, input.status, input.actor || 'operator', input.note || null,
+      JSON.stringify(input.beforeValue || {}), JSON.stringify(input.afterValue || {}), input.reason || null, createdAt
+    ]);
+    return this.getPersistentWorldObjectOperatorAction(id);
+  }
+
+  async getPersistentWorldObjectOperatorAction(id) {
+    return this.parsePersistentWorldObjectOperatorAction(await this.getRow('SELECT * FROM persistent_world_object_operator_actions WHERE id = ? LIMIT 1', [id]));
+  }
+
+  async listPersistentWorldObjectOperatorActions(objectId = null, namespace = 'default', limit = 250) {
+    const safeLimit = Math.max(1, Math.min(1000, Number(limit || 250)));
+    const rows = objectId
+      ? await this.getAllRows('SELECT * FROM persistent_world_object_operator_actions WHERE namespace = ? AND object_id = ? ORDER BY created_at DESC, rowid DESC LIMIT ?', [namespace || 'default', objectId, safeLimit])
+      : await this.getAllRows('SELECT * FROM persistent_world_object_operator_actions WHERE namespace = ? ORDER BY created_at DESC, rowid DESC LIMIT ?', [namespace || 'default', safeLimit]);
+    return rows.map(row => this.parsePersistentWorldObjectOperatorAction(row));
+  }
+
+  parsePersistentWorldObjectOperatorAction(row) {
+    if (!row) return null;
+    return {
+      id: row.id, namespace: row.namespace || 'default', actionType: row.action_type, objectId: row.object_id,
+      targetType: row.target_type, targetId: row.target_id, productionId: row.production_id, status: row.status,
+      actor: row.actor || 'operator', note: row.note, beforeValue: JSON.parse(row.before_value || '{}'),
+      afterValue: JSON.parse(row.after_value || '{}'), reason: row.reason, createdAt: row.created_at
+    };
+  }
+
