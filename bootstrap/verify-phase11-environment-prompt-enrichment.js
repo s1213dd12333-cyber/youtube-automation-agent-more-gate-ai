@@ -5,6 +5,11 @@ const fs = require('fs');
 const path = require('path');
 
 const upstream = path.resolve(__dirname, '..', 'upstream');
+
+// Phase 11.7.5 imports Prop Lock. Repair/syntax-check an older materialized 11.7.2 runtime
+// before requiring the prompt enricher, so the regression boundary is self-healing.
+require('./fix-phase11-prop-lock-attributes.js');
+
 const runtimePath = path.join(upstream, 'utils', 'environment-prompt-enricher-v11.js');
 if (!fs.existsSync(runtimePath)) throw new Error('Phase 11.7.5 runtime is not materialized: utils/environment-prompt-enricher-v11.js');
 
@@ -61,6 +66,7 @@ const keyframeSource = fs.readFileSync(path.join(upstream, 'utils', 'cartoon-key
 const continuitySource = fs.readFileSync(path.join(upstream, 'utils', 'cartoon-continuity-engine-v11.js'), 'utf8');
 const environmentContinuityPath = path.join(upstream, 'utils', 'environment-continuity-validator-v11.js');
 const environmentContinuitySource = fs.existsSync(environmentContinuityPath) ? fs.readFileSync(environmentContinuityPath, 'utf8') : '';
+const propLockRuntimeSource = fs.readFileSync(path.join(upstream, 'utils', 'prop-lock-v11.js'), 'utf8');
 const dbSource = fs.readFileSync(path.join(upstream, 'database', 'db.js'), 'utf8');
 const dashboardSource = fs.readFileSync(path.join(upstream, 'dashboard', 'app.js'), 'utf8');
 const envSource = fs.readFileSync(path.join(upstream, '.env.example'), 'utf8');
@@ -70,6 +76,7 @@ const checks = [];
 const check = (name, fn) => checks.push({ name, fn });
 
 check('version is 11.7.5', () => assert.strictEqual(ENVIRONMENT_PROMPT_ENRICHER_VERSION, '11.7.5'));
+check('Prop Lock runtime keeps escaped newline inside clause regex', () => assert(propLockRuntimeSource.includes('source.split(/[,;|\\n]+/)')));
 check('environmentById resolves mapped environment', () => assert.strictEqual(environmentById(environmentBible, environment.environmentId)?.name, 'Wooden House'));
 check('environmentById does not invent unknown environment', () => assert.strictEqual(environmentById(environmentBible, 'missing'), null));
 check('locksFor filters environment locks', () => assert.strictEqual(locksFor([...propLocks, { environmentId: 'other' }], environment.environmentId).length, 3));
