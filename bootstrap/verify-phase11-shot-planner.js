@@ -4,11 +4,13 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 
-// Phase 11.3 deliberately chains after the 11.2 bootstrap so the main deterministic
-// materializer gains keyframes without changing the already-validated Phase 1-11.2 order.
-require('./phase11-keyframes.js');
-
 const upstream = path.resolve(__dirname, '..', 'upstream');
+const keyframeRuntimePath = path.join(upstream, 'utils', 'cartoon-keyframe-pipeline-v11.js');
+// Phase 11.2's materializer already chains Phase 11.3. Only bootstrap it here when
+// the runtime is genuinely absent (for isolated verifier use), never re-patch an
+// already materialized dashboard/runtime that may also contain Phase 11.4-11.6.
+if (!fs.existsSync(keyframeRuntimePath)) require('./phase11-keyframes.js');
+
 const plannerPath = path.join(upstream, 'utils', 'cartoon-shot-planner-v11.js');
 const biblePath = path.join(upstream, 'utils', 'cartoon-bible-v11.js');
 if (!fs.existsSync(plannerPath)) throw new Error('Phase 11.2 service is not materialized: utils/cartoon-shot-planner-v11.js');
