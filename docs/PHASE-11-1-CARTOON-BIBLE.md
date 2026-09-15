@@ -45,11 +45,11 @@ npm run test:cartoon-bible
 Expected result:
 
 ```text
-Phase 11.1 Cartoon Bible OK: 29 regression checks passed.
+Phase 11.1 Cartoon Bible OK: 31 regression checks passed.
 ```
 
 ## Completion boundary
 
 Phase 11.1 is complete when the Windows materializer passes the regression suite and a real children's production persists a Character Bible + Style Bible that appears in Review Studio and is present in every generated visual prompt.
 
-Phase 11.1 does **not** claim frame-by-frame animation. That starts in Phase 11.2 (Shot Planner) and Phase 11.3 (Keyframe Pipeline).
+Phase 11.1 does **not** claim frame-by-frame animation. Phase 11.2 now provides persistent per-scene shot planning, while Phase 11.3 introduces the multi-keyframe generation path.
