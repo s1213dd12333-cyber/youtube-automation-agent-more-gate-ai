@@ -91,3 +91,9 @@ syntax(['phase11-canonical-character-assets.js', 'verify-phase11-canonical-chara
 requireFiles(['templates/persistent-character-assets-db-tables-v11.txt', 'templates/persistent-character-assets-db-methods-v11.txt'], 'Phase 11.11.3');
 require('./phase11-canonical-character-assets.js');
 run('verify-phase11-canonical-character-assets.js');
+
+// 11.11.4 — Wardrobe / Appearance State Layers.
+syntax(['phase11-persistent-character-appearance-state.js', 'verify-phase11-persistent-character-appearance-state.js', 'templates/persistent-character-appearance-state-v11.js']);
+requireFiles(['templates/persistent-character-appearance-state-db-tables-v11.txt', 'templates/persistent-character-appearance-state-db-methods-v11.txt'], 'Phase 11.11.4');
+require('./phase11-persistent-character-appearance-state.js');
+run('verify-phase11-persistent-character-appearance-state.js');
