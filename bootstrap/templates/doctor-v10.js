@@ -23,7 +23,7 @@ async function main() {
     }
     if (process.argv.includes('--strict') && report.status === 'failed') process.exitCode = 1;
   } finally {
-    await db.close?.().catch?.(() => {});
+    if (typeof db.close === 'function') await db.close().catch(() => {});
   }
 }
 
