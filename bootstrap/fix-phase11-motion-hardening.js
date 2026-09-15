@@ -61,3 +61,14 @@ for (const rel of [
 }
 require('./phase11-cartoon-quality.js');
 require('./fix-phase11-made-for-kids.js');
+
+// Phase 11.7.1 adds persistent location identity only. It does not fabricate a master
+// environment frame or Prop Lock; those remain explicit later subphases.
+for (const rel of [
+  'phase11-environment-bible.js',
+  'verify-phase11-environment-bible.js',
+  'templates/environment-bible-v11.js'
+]) {
+  execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+}
+require('./phase11-environment-bible.js');
