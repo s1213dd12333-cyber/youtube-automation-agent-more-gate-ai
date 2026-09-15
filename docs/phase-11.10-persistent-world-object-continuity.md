@@ -13,8 +13,10 @@ Phase 11.10 extends the completed 11.9 reusable-location system from persistent 
    - explicit object-key identity conflicts fail closed.
 2. **11.10.2 — Object Aliases + Resolver**
    - safe aliases and narrative references (`family car`, `their car`, localized names);
-   - no broad fuzzy merge;
-   - ambiguity fails closed.
+   - exact object key / alias / normalized name precedence;
+   - generic references resolve only when exactly one compatible object remains;
+   - canonical attribute mismatches, duplicate aliases and multi-candidate context fail closed;
+   - no broad fuzzy merge.
 3. **11.10.3 — Canonical Object Assets**
    - provider-backed canonical object references;
    - provenance and immutable origin hash;
@@ -58,19 +60,56 @@ It also accepts Prop Locks only when explicitly marked persistent through fields
 
 Temporary props from Phase 11.9.5 are not an input source and are explicitly excluded from canonical world-object identity.
 
+## 11.10.2 resolution order
+
+The resolver keeps Phase 11.10.1 exact identity as the strongest source of truth. When an incoming persistent object does not have an exact identity fingerprint, resolution proceeds conservatively:
+
+1. explicit `objectKey` exact match;
+2. persisted alias exact match;
+3. normalized canonical name + compatible object type exact match;
+4. contextual generic resolution only when exactly one compatible canonical object remains;
+5. otherwise unresolved or ambiguous.
+
+Examples:
+
+- `Family Car` can persist aliases such as `family car` and `Carro da Família Miller` and later resolve those exact aliases to the same `objectId`.
+- `their car` / `o carro da família` are treated as generic vehicle references. They resolve only if there is exactly one compatible vehicle candidate in the permitted scope.
+- If two compatible cars exist, the result is `ambiguous`; the resolver never chooses the first row.
+- A location-scoped object cannot be reused from another location merely because its name/type match.
+- An explicit-key or alias candidate that supplies canonical attributes conflicting with the existing object is rejected instead of rewriting identity.
+
+There is intentionally no edit-distance, embedding-nearest-neighbor, or broad fuzzy-name merge in 11.10.2.
+
+## 11.10.2 aliases and audit
+
+Object declarations may now provide aliases through:
+
+- `aliases`
+- `objectAliases`
+- `localizedNames`
+
+Canonical display name and `objectKey` are also persisted as aliases. Multiple objects may legally share the same alias key; that situation is preserved and resolves as ambiguous rather than silently enforcing a false global uniqueness constraint.
+
+The phase adds:
+
+- `persistent_world_object_aliases`
+- `persistent_world_object_resolutions`
+- `persistentWorldObjectResolutions` in production bundles
+- `test:persistent-world-object-resolver`
+- `PERSISTENT_WORLD_OBJECT_RESOLVER_ENABLED=true`
+- `PERSISTENT_WORLD_OBJECT_RESOLVER_ALLOW_CONTEXTUAL_GENERIC=true`
+
+Resolution audits include final `status`, selected `objectId`, `matchMode`, confidence, candidate IDs and reason. When a resolver attempt legitimately ends by registering a new canonical object, the final row is overwritten to `registered_new` with `resolver_unresolved_register_new`, avoiding a stale provisional `unresolved` record.
+
 ## Runtime / persistence
 
-Materialization installs `utils/persistent-world-object-registry-v11.js` and adds:
+Materialization installs:
 
-- `persistent_world_objects`
-- `persistent_world_object_usages`
-- `persistentWorldObjects` in production bundles
-- `test:persistent-world-objects` in `package.json`
-- `PERSISTENT_WORLD_OBJECTS_ENABLED=true`
-- `PERSISTENT_WORLD_OBJECT_NAMESPACE=default`
+- `utils/persistent-world-object-registry-v11.js`
+- `utils/persistent-world-object-resolver-v11.js`
 
-The scene pipeline registers persistent objects after reusable locations/zones are resolved and before Temporary State Layers are applied.
+and keeps the object registry after reusable locations/zones but before Temporary State Layers. The 11.10.2 materializer runs only after the 11.10.1 verifier has passed.
 
 ## Current boundary
 
-11.10.1 establishes identity and provenance only. Alias resolution, canonical visual assets, lifecycle state, shot-level binding and visual continuity gates belong to 11.10.2–11.10.8 and must not be claimed as complete yet.
+11.10.1 and 11.10.2 now establish canonical object identity, provenance, aliases and conservative narrative resolution. Canonical visual assets, lifecycle/state layers, shot-level binding, visual cross-video object drift gates, operator correction UI and full object E2E coverage remain for 11.10.3–11.10.8 and must not be claimed as complete yet.
