@@ -43,56 +43,47 @@ fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
 
 console.log('Phase 11.5 motion hardening active: byte-exact fingerprints, stale-scene invalidation, failed-visual Resume safety, and dedicated hardening regression command.');
 
-// The reference-conditioned image path must honor the same Gemini image circuit breaker
-// as ordinary image generation. Apply this before Phase 11.6 so Resume never re-hits a known quota=0 provider.
 execFileSync(process.execPath, ['--check', path.join(__dirname, 'fix-phase11-reference-quota-fallback.js')], { stdio: 'inherit' });
 require('./fix-phase11-reference-quota-fallback.js');
 
-// Phase 11.6 is chained from the existing deterministic materializer. Syntax-check
-// all Phase 11.6 bootstrap artifacts here before allowing them to patch upstream.
 for (const rel of [
   'phase11-cartoon-quality.js',
   'fix-phase11-made-for-kids.js',
   'verify-phase11-cartoon-quality.js',
   'verify-phase11-made-for-kids.js',
   'templates/cartoon-quality-gate-v11.js'
-]) {
-  execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
-}
+]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
 require('./phase11-cartoon-quality.js');
 require('./fix-phase11-made-for-kids.js');
 
-// Phase 11.7.1 adds persistent location identity only. It does not fabricate a master
-// environment frame; canonical environment images remain a later subphase.
 for (const rel of [
   'phase11-environment-bible.js',
   'verify-phase11-environment-bible.js',
   'templates/environment-bible-v11.js'
-]) {
-  execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
-}
+]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
 require('./phase11-environment-bible.js');
 
-// Phase 11.7.2 turns signature furniture/objects into persistent locks. It records
-// identity and evidence-backed attributes now; master-frame placement anchoring remains 11.7.3.
 for (const rel of [
   'phase11-prop-lock.js',
   'fix-phase11-prop-lock-attributes.js',
   'verify-phase11-prop-lock.js',
   'templates/prop-lock-v11.js'
-]) {
-  execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
-}
+]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
 require('./phase11-prop-lock.js');
 require('./fix-phase11-prop-lock-attributes.js');
 
-// Phase 11.7.3 creates one persistent canonical visual reference per environment.
-// Generic local fallback remains auditable but non-canonical by default.
 for (const rel of [
   'phase11-master-environment.js',
   'verify-phase11-master-environment.js',
   'templates/master-environment-v11.js'
-]) {
-  execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
-}
+]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
 require('./phase11-master-environment.js');
+
+// Phase 11.7.4 maps each finalized production scene onto a persistent Environment ID.
+// Multi-environment ambiguity stays unresolved instead of inventing a location.
+for (const rel of [
+  'phase11-scene-environment-mapping.js',
+  'verify-phase11-scene-environment-mapping.js',
+  'templates/scene-environment-mapper-v11.js'
+]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+require('./phase11-scene-environment-mapping.js');
