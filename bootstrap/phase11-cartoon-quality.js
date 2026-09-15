@@ -183,6 +183,54 @@ function patchPublicationGate() {
   write(rel, s);
 }
 
+function patchPublishingAgent() {
+  const rel = 'agents/publishing-scheduling-agent.js';
+  let s = read(rel);
+  s = replaceOnce(
+    s,
+    "const { assertValidYouTubeMetadata } = require('../utils/youtube-metadata-validator');\n",
+    "const { assertValidYouTubeMetadata } = require('../utils/youtube-metadata-validator');\nconst { evaluateCartoonQualityV11 } = require('../utils/cartoon-quality-gate-v11');\n",
+    'Phase 11.6 publishing agent import'
+  );
+
+  const scheduleQualityBlock = [
+    "        if (!gateBundle.qualityAgentReport || gateBundle.qualityAgentReport.status === 'blocked') {",
+    "          const error = new Error(gateBundle.qualityAgentReport ? 'Scheduling is blocked by Phase 9 Quality Agents' : 'Scheduling requires a Phase 9 Quality Agents report');",
+    "          error.status = 409; error.code = gateBundle.qualityAgentReport ? 'QUALITY_BLOCKED' : 'QUALITY_REPORT_REQUIRED'; throw error;",
+    "        }"
+  ].join('\n');
+  const scheduleCartoonBlock = [
+    scheduleQualityBlock,
+    "        const cartoonQuality = evaluateCartoonQualityV11(gateBundle);",
+    "        if (cartoonQuality.active) {",
+    "          if (!gateBundle.cartoonQualityReport) { const error = new Error('Scheduling requires a current Phase 11.6 Cartoon Quality report'); error.status = 409; error.code = 'CARTOON_QUALITY_REQUIRED'; throw error; }",
+    "          if (gateBundle.cartoonQualityReport.fingerprint !== cartoonQuality.fingerprint) { const error = new Error('Scheduling is blocked because the Phase 11.6 Cartoon Quality report is stale'); error.status = 409; error.code = 'CARTOON_QUALITY_STALE'; throw error; }",
+    "          if (gateBundle.cartoonQualityReport.status === 'blocked') { const error = new Error('Scheduling is blocked by Phase 11.6 Cartoon Quality'); error.status = 409; error.code = 'CARTOON_QUALITY_BLOCKED'; throw error; }",
+    "        }"
+  ].join('\n');
+  s = replaceOnce(s, scheduleQualityBlock, scheduleCartoonBlock, 'Phase 11.6 schedule gate');
+
+  const publishQualityBlock = [
+    "        if (productionBundle && (!productionBundle.qualityAgentReport || productionBundle.qualityAgentReport.status === 'blocked')) {",
+    "          const error = new Error(productionBundle.qualityAgentReport ? 'Publishing is blocked by Phase 9 Quality Agents' : 'Publishing requires a Phase 9 Quality Agents report');",
+    "          error.status = 409; error.code = productionBundle.qualityAgentReport ? 'QUALITY_BLOCKED' : 'QUALITY_REPORT_REQUIRED'; throw error;",
+    "        }"
+  ].join('\n');
+  const publishCartoonBlock = [
+    publishQualityBlock,
+    "        if (productionBundle) {",
+    "          const cartoonQuality = evaluateCartoonQualityV11(productionBundle);",
+    "          if (cartoonQuality.active) {",
+    "            if (!productionBundle.cartoonQualityReport) { const error = new Error('Publishing requires a current Phase 11.6 Cartoon Quality report'); error.status = 409; error.code = 'CARTOON_QUALITY_REQUIRED'; throw error; }",
+    "            if (productionBundle.cartoonQualityReport.fingerprint !== cartoonQuality.fingerprint) { const error = new Error('Publishing is blocked because the Phase 11.6 Cartoon Quality report is stale'); error.status = 409; error.code = 'CARTOON_QUALITY_STALE'; throw error; }",
+    "            if (productionBundle.cartoonQualityReport.status === 'blocked') { const error = new Error('Publishing is blocked by Phase 11.6 Cartoon Quality'); error.status = 409; error.code = 'CARTOON_QUALITY_BLOCKED'; throw error; }",
+    "          }",
+    "        }"
+  ].join('\n');
+  s = replaceOnce(s, publishQualityBlock, publishCartoonBlock, 'Phase 11.6 upload gate');
+  write(rel, s);
+}
+
 function patchDashboard() {
   const rel = 'dashboard/app.js';
   let s = read(rel);
@@ -219,6 +267,7 @@ copyService();
 patchDatabase();
 patchQualityAgents();
 patchPublicationGate();
+patchPublishingAgent();
 patchDashboard();
 patchPackage();
 
