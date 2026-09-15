@@ -103,6 +103,8 @@ assert(dbSource.includes('async saveCartoonVisualBible(bible = {})'));
 assert(dbSource.includes('const cartoonBible = await this.getLatestCartoonVisualBible(productionId);'));
 assert(pipelineSource.includes("const { CartoonBibleV11 } = require('./cartoon-bible-v11');"));
 assert(pipelineSource.includes('this.cartoonBible = options.cartoonBible || new CartoonBibleV11'));
+assert(pipelineSource.includes('this.cartoonBible.buildProductionBible(production)'));
+assert(!pipelineSource.includes('this.cartoonBible.buildProductionBible(cleanProduction)'));
 assert(pipelineSource.includes("visualBrief?.visualType === 'kids_cartoon_2d'"));
 assert(repairSource.includes("visualBrief?.visualType === 'kids_cartoon_2d'"));
 assert(videoSource.includes('kids_cartoon_2d: "original polished 2D children'));
@@ -111,4 +113,4 @@ assert.strictEqual(pkg.scripts['test:cartoon-bible'], 'node ../bootstrap/verify-
 assert(envSource.includes('CARTOON_VISUAL_MODE=auto'));
 assert(envSource.includes('CARTOON_BIBLE_ENABLED=true'));
 
-console.log('Phase 11.1 Cartoon Bible OK: 29 regression checks passed.');
+console.log('Phase 11.1 Cartoon Bible OK: 31 regression checks passed.');
