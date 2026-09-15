@@ -24,5 +24,6 @@ for (const fn of checks) fn();
 console.log(`Phase 11.5 Motion Hardening OK: ${checks.length} regression checks passed.`);
 
 // The materializer already invokes this verifier directly, so chaining here makes
-// Phase 11.6 part of the deterministic materialization regression boundary.
+// the full Phase 11.6 quality and audience-metadata boundary deterministic.
 require('./verify-phase11-cartoon-quality.js');
+require('./verify-phase11-made-for-kids.js');
