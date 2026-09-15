@@ -59,6 +59,8 @@ const plan = service.enrichProduction(
 const pipelineSource = fs.readFileSync(path.join(upstream, 'utils', 'scene-pipeline-v2.js'), 'utf8');
 const keyframeSource = fs.readFileSync(path.join(upstream, 'utils', 'cartoon-keyframe-pipeline-v11.js'), 'utf8');
 const continuitySource = fs.readFileSync(path.join(upstream, 'utils', 'cartoon-continuity-engine-v11.js'), 'utf8');
+const environmentContinuityPath = path.join(upstream, 'utils', 'environment-continuity-validator-v11.js');
+const environmentContinuitySource = fs.existsSync(environmentContinuityPath) ? fs.readFileSync(environmentContinuityPath, 'utf8') : '';
 const dbSource = fs.readFileSync(path.join(upstream, 'database', 'db.js'), 'utf8');
 const dashboardSource = fs.readFileSync(path.join(upstream, 'dashboard', 'app.js'), 'utf8');
 const envSource = fs.readFileSync(path.join(upstream, '.env.example'), 'utf8');
@@ -107,11 +109,16 @@ check('production bundle exposes shot environment contexts', () => assert(dbSour
 check('scene pipeline imports environment prompt enricher', () => assert(pipelineSource.includes("const { EnvironmentPromptEnricherV11 } = require('./environment-prompt-enricher-v11');")));
 check('scene pipeline constructs environment prompt enricher', () => assert(pipelineSource.includes('this.environmentPromptEnricher = options.environmentPromptEnricher || new EnvironmentPromptEnricherV11')));
 check('scene pipeline enriches before keyframes', () => assert(pipelineSource.indexOf('this.environmentPromptEnricher.enrichProduction') < pipelineSource.indexOf('this.keyframePipeline.ensurePlan')));
-check('changed enriched shot invalidates old keyframes through replaceSceneShots', () => assert(pipelineSource.includes('if (changed) await this.db.replaceSceneShots(production.id, scenePlan.sceneId, scenePlan.shots);'));
+check('changed enriched shot invalidates old keyframes through replaceSceneShots', () => assert(pipelineSource.includes('if (changed) await this.db.replaceSceneShots(production.id, scenePlan.sceneId, scenePlan.shots);')));
 check('keyframe runtime can load Scene Environment mapping', () => assert(keyframeSource.includes('this.db?.getSceneEnvironment')));
 check('keyframe runtime uses canonical master for first start', () => assert(keyframeSource.includes("current.keyframeRole === 'start' && !current.referenceKeyframeId")));
 check('keyframe runtime verifies master file exists', () => assert(keyframeSource.includes('await this.pathExists(sceneEnvironment.masterFramePath)'));
-check('continuity engine does not auto-anchor when external master exists', () => assert(continuitySource.includes('if (!keyframe.referenceKeyframeId && !referenceAssetPath)'));
+check('character continuity keeps first character keyframe as its own anchor', () => assert(continuitySource.includes('if (!keyframe.referenceKeyframeId) {')));
+check('11.7.6 owns master environment comparison when materialized', () => {
+  if (!environmentContinuitySource) return;
+  assert(environmentContinuitySource.includes('masterFramePath'));
+  assert(environmentContinuitySource.includes('scoreEnvironment'));
+});
 check('dashboard renders environment prompt enrichment', () => assert(dashboardSource.includes('ENVIRONMENT PROMPT ENRICHMENT V11.7.5')));
 check('dashboard states master reference activity', () => assert(dashboardSource.includes('MASTER REFERENCE ACTIVE')));
 check('environment prompt enrichment enabled by default', () => assert(envSource.includes('ENVIRONMENT_PROMPT_ENRICHMENT_ENABLED=true')));
