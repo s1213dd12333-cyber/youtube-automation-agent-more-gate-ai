@@ -178,7 +178,11 @@ class PersistentWorldObjectResolverV11 {
 
   async ensureAliases(object = {}, candidate = {}, sourceKind = 'object_registration') {
     if (!object?.id || !this.db?.savePersistentWorldObjectAlias) return [];
-    const aliases = [...canonicalAliases(object), ...candidateAliases(candidate)];
+    const contextualGenericKey = sourceKind === 'object_context_unique' && referenceDescriptor(candidate.displayName || '', candidate.objectType || object.objectType || 'object').generic
+      ? normalize(candidate.displayName || '')
+      : '';
+    const incomingAliases = candidateAliases(candidate).filter(alias => !contextualGenericKey || alias.key !== contextualGenericKey);
+    const aliases = [...canonicalAliases(object), ...incomingAliases];
     const seen = new Set();
     const saved = [];
     for (const alias of aliases) {
