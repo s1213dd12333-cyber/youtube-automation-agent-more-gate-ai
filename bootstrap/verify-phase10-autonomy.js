@@ -161,10 +161,15 @@ check('automated topic generation has near-duplicate guard', () => {
   assert(source.includes('await this.observability.assertTopicNovel(validation.value.topic'));
   assert(source.includes("['scheduler', 'autonomous_operator'].includes(input.source)"));
 });
+check('completed jobs reopen only for explicit Phase 10 quality repair', () => {
+  const source = fs.readFileSync(path.join(upstream, 'index.js'), 'utf8');
+  assert(source.includes("const qualityRepair = job.status === 'completed' && options.qualityRepair === true && Boolean(options.stage);"));
+  assert(source.includes("!['failed', 'interrupted'].includes(job.status) && !qualityRepair"));
+});
 check('autonomous operator supports text repair and post-approval reconciliation', () => {
   const source = fs.readFileSync(path.join(upstream, 'utils', 'autonomous-channel-operator.js'), 'utf8');
   assert(source.includes('planAutomaticRepair(record.productionId'));
-  assert(source.includes('this.resumeGenerationJob(job.id, { stage: repair.stage })'));
+  assert(source.includes('this.resumeGenerationJob(job.id, { stage: repair.stage, qualityRepair: true })'));
   assert(source.includes('async reconcile(runId)'));
   assert(source.includes('async reconcileByProduction(productionId)'));
 });
