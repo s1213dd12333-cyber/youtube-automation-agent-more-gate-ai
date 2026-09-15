@@ -30,6 +30,8 @@ require('./verify-phase11-reference-quota-fallback.js');
 require('./verify-phase11-cartoon-quality.js');
 require('./verify-phase11-made-for-kids.js');
 
-// Phase 11.7.1 must materialize and validate the persistent Environment Bible
-// before later Prop Lock / Master Environment Frame work builds on it.
+// Phase 11.7.1 establishes persistent environment identity.
 require('./verify-phase11-environment-bible.js');
+
+// Phase 11.7.2 establishes persistent furniture/object identity locks.
+require('./verify-phase11-prop-lock.js');
