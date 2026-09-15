@@ -1,0 +1,44 @@
+name: Validate Phase 11.10 Full
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/validate-phase-11-10.yml'
+      - 'bootstrap/**'
+      - 'materialize.ps1'
+      - '.gitmodules'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-phase-11-10:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout overlay and pinned upstream
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Materialize and run all bootstrap regression gates
+        shell: pwsh
+        run: ./materialize.ps1
+
+      - name: Run Phase 11.10 full suite
+        shell: pwsh
+        working-directory: upstream
+        run: npm run test:persistent-world-object:full
