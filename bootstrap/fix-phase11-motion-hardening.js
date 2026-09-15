@@ -87,3 +87,12 @@ for (const rel of [
   'templates/scene-environment-mapper-v11.js'
 ]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
 require('./phase11-scene-environment-mapping.js');
+
+// Phase 11.7.5 injects the mapped Environment Bible + Prop Locks into every cartoon shot/keyframe.
+// When a canonical Master Environment exists, the first keyframe uses it as a real image reference.
+for (const rel of [
+  'phase11-environment-prompt-enrichment.js',
+  'verify-phase11-environment-prompt-enrichment.js',
+  'templates/environment-prompt-enricher-v11.js'
+]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+require('./phase11-environment-prompt-enrichment.js');
