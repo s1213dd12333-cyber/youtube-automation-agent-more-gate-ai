@@ -103,3 +103,8 @@ syntax(['phase11-persistent-character-binding.js', 'verify-phase11-persistent-ch
 requireFiles(['templates/persistent-character-binding-db-tables-v11.txt', 'templates/persistent-character-binding-db-methods-v11.txt'], 'Phase 11.11.5');
 require('./phase11-persistent-character-binding.js');
 run('verify-phase11-persistent-character-binding.js');
+
+// 11.11.5 hardening — merge complementary explicit declarations and prune stale production bindings.
+syntax(['fix-phase11-persistent-character-binding-hardening.js', 'verify-phase11-persistent-character-binding-hardening.js']);
+require('./fix-phase11-persistent-character-binding-hardening.js');
+run('verify-phase11-persistent-character-binding-hardening.js');
