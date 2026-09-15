@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 const upstream = path.resolve(__dirname, '..', 'upstream');
 const target = path.join(upstream, 'utils', 'prop-lock-v11.js');
@@ -13,6 +14,12 @@ function replaceOnce(from, to, label) {
   if (!source.includes(from)) throw new Error(`Phase 11.7.2 hardening anchor not found: ${label}`);
   source = source.replace(from, to);
 }
+
+// Self-heal runtimes produced by the original 11.7.2 hardener, where `\n`
+// inside a template literal became a literal line break inside the generated RegExp.
+const brokenClauseRegex = "  const clauses = source.split(/[,;|" + "\n" + "]+/).map(value => value.trim()).filter(Boolean);";
+const fixedClauseRegex = "  const clauses = source.split(/[,;|\\n]+/).map(value => value.trim()).filter(Boolean);";
+if (source.includes(brokenClauseRegex)) source = source.replace(brokenClauseRegex, fixedClauseRegex);
 
 replaceOnce(
 `function nearbyWindow(text, definition, rawName) {
@@ -29,7 +36,7 @@ replaceOnce(
 `,
 `function nearbyWindow(text, definition, rawName) {
   const source = String(text || '');
-  const clauses = source.split(/[,;|\n]+/).map(value => value.trim()).filter(Boolean);
+  const clauses = source.split(/[,;|\\n]+/).map(value => value.trim()).filter(Boolean);
   if (definition) {
     const clause = clauses.find(value => definition.pattern.test(value));
     if (clause) return clause.slice(0, 260);
@@ -71,4 +78,5 @@ replaceOnce(
 );
 
 fs.writeFileSync(target, source, 'utf8');
-console.log('Phase 11.7.2 Prop Lock attributes hardened: per-prop clause scoping prevents cross-prop color bleed and records material provenance.');
+execFileSync(process.execPath, ['--check', target], { stdio: 'inherit' });
+console.log('Phase 11.7.2 Prop Lock attributes hardened: per-prop clause scoping prevents cross-prop color bleed, records material provenance, and syntax-checks the generated runtime.');
