@@ -209,7 +209,7 @@ async function main() {
   ok('G occluded remains visual', () => assert(gBind.summary.visible === 1 && gBind.bindings[0].visibility === 'occluded'));
   const gg = await evalGate('G', F.lunaFrameG);
   ok('G occluded continuity passes', () => assert(gg.accepted && gg.verified));
-  ok('G gate carries appearance state', () => assert.strictEqual(gg.checks[0].stateFingerprint, stateG.stateFingerprint));
+  ok('G gate carries appearance state', () => assert.strictEqual(gg.checks[0].state?.stateFingerprint, stateG.stateFingerprint));
 
   const H = { id: 'H' };
   const hBible = bible('bible_H', [{ id: 'luna_h', name: 'the bunny', species: 'rabbit', appearanceState: { clearState: true, statePersistence: 'until_changed' } }]);
