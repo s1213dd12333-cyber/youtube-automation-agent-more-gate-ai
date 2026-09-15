@@ -95,7 +95,7 @@ check('scene pipeline generates environment frames', () => assert(pipelineSource
 check('Review Studio renders master frames', () => assert(dashboardSource.includes('function renderMasterEnvironmentFrames(item)')));
 check('Review Studio distinguishes noncanonical generic fallback', () => assert(dashboardSource.includes('GENERIC FALLBACK — NOT CANONICAL')));
 check('package exposes master environment test', () => assert.strictEqual(pkg.scripts['test:master-environment'], 'node ../bootstrap/verify-phase11-master-environment.js'));
-check('master generation enabled in env example', () => assert(envSource.includes('MASTER_ENVIRONMENT_GENERATION_ENABLED=true'));
+check('master generation enabled in env example', () => assert(envSource.includes('MASTER_ENVIRONMENT_GENERATION_ENABLED=true')));
 check('provider-backed canonical reference is required by default', () => assert(envSource.includes('MASTER_ENVIRONMENT_REQUIRE_PROVIDER=true')));
 
 async function runtimeChecks() {
