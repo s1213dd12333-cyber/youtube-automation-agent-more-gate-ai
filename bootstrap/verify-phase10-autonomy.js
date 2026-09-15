@@ -174,10 +174,13 @@ check('autonomous operator supports cost-safe repair and post-approval reconcili
   assert(source.includes('async reconcile(runId)'));
   assert(source.includes('async reconcileByProduction(productionId)'));
 });
-check('publishing is fail-closed on approval and Quality Agents', () => {
+check('publishing is fail-closed on approval and mandatory Quality Agents review', () => {
   const source = fs.readFileSync(path.join(upstream, 'agents', 'publishing-scheduling-agent.js'), 'utf8');
   assert(source.includes("error.code = 'PUBLISH_APPROVAL_REQUIRED'"));
-  assert(source.includes("error.code = 'QUALITY_BLOCKED'"));
+  assert(source.includes("'QUALITY_BLOCKED'"));
+  assert(source.includes("'QUALITY_REPORT_REQUIRED'"));
+  assert(source.includes("gateBundle.qualityAgentReport ? 'QUALITY_BLOCKED' : 'QUALITY_REPORT_REQUIRED'"));
+  assert(source.includes("productionBundle.qualityAgentReport ? 'QUALITY_BLOCKED' : 'QUALITY_REPORT_REQUIRED'"));
 });
 check('Phase 10 CLI commands are materialized', () => {
   assert(fs.existsSync(path.join(upstream, 'scripts', 'doctor-v10.js')));
