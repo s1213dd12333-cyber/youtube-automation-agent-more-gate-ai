@@ -120,3 +120,8 @@ syntax(['phase11-persistent-character-library-ui.js', 'verify-phase11-persistent
 requireFiles(['templates/persistent-character-operator-db-tables-v11.txt', 'templates/persistent-character-operator-db-methods-v11.txt', 'templates/persistent-character-library-dashboard-v11.css'], 'Phase 11.11.7');
 require('./phase11-persistent-character-library-ui.js');
 run('verify-phase11-persistent-character-library-ui.js');
+
+// 11.11.8 — deterministic integrated multi-episode closeout for 11.11.1–11.11.7.
+syntax(['phase11-persistent-character-e2e.js', 'verify-phase11-persistent-character-e2e.js', 'e2e/character-system-memory-db.js', 'e2e/character-system-fixtures.js']);
+require('./phase11-persistent-character-e2e.js');
+run('verify-phase11-persistent-character-e2e.js');
