@@ -25,6 +25,20 @@ const upstream = path.join(__dirname, '..', 'upstream');
   fs.writeFileSync(file, source, 'utf8');
 }
 
+// A scene must never reach a paid/generated visual provider without a persisted,
+// accepted VisualBrief. Missing quality metadata is a hard failure, not a bypass.
+{
+  const file = path.join(upstream, 'utils', 'scene-pipeline-v2.js');
+  let source = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const from = "        if (visualBrief && visualBrief.quality?.accepted !== true) {\n";
+  const to = "        if (visualBrief?.quality?.accepted !== true) {\n";
+  if (!source.includes(to)) {
+    if (!source.includes(from)) throw new Error('Phase 7 visual quality gate anchor not found');
+    source = source.replace(from, to);
+  }
+  fs.writeFileSync(file, source, 'utf8');
+}
+
 // Phase 6 allows 4000 characters of per-video direction. A structured v7 prompt
 // also carries subject, evidence context, composition and avoid rules, so the scene
 // editor needs headroom beyond the instruction field itself.
@@ -45,4 +59,4 @@ const upstream = path.join(__dirname, '..', 'upstream');
   fs.writeFileSync(file, source, 'utf8');
 }
 
-console.log('Phase 7 visual prompts preserve Phase 6 direction, structured-prompt headroom, and scene-first visual routing.');
+console.log('Phase 7 visual prompts preserve Phase 6 direction, scene-first routing, and fail-closed VisualBrief quality gates.');
