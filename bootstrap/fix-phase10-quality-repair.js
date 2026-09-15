@@ -173,6 +173,30 @@ function replaceOnce(source, from, to, label) {
 }
 
 {
+  const rel = 'database/db.js';
+  let source = read(rel);
+  source = replaceOnce(
+    source,
+    "       SUM(COALESCE(estimated_cost, 0)) AS estimated_cost, AVG(latency_ms) AS avg_latency_ms",
+    "       SUM(estimated_cost) AS estimated_cost, SUM(CASE WHEN estimated_cost IS NOT NULL THEN 1 ELSE 0 END) AS cost_reports, AVG(latency_ms) AS avg_latency_ms",
+    'global AI usage total cost evidence count'
+  );
+  source = replaceOnce(
+    source,
+    "       SUM(input_units) AS input_units, SUM(output_units) AS output_units, AVG(latency_ms) AS avg_latency_ms",
+    "       SUM(input_units) AS input_units, SUM(output_units) AS output_units, SUM(estimated_cost) AS estimated_cost, SUM(CASE WHEN estimated_cost IS NOT NULL THEN 1 ELSE 0 END) AS cost_reports, AVG(latency_ms) AS avg_latency_ms",
+    'global AI usage provider cost evidence count'
+  );
+  source = replaceOnce(
+    source,
+    "      estimatedCost: Number(row?.estimated_cost || 0), avgLatencyMs: Math.round(Number(row?.avg_latency_ms || 0))",
+    "      costReports: Number(row?.cost_reports || 0), estimatedCost: Number(row?.cost_reports || 0) > 0 ? Number(row.estimated_cost || 0) : null, avgLatencyMs: Math.round(Number(row?.avg_latency_ms || 0))",
+    'global unknown estimated cost stays null'
+  );
+  write(rel, source);
+}
+
+{
   const rel = 'agents/publishing-scheduling-agent.js';
   let source = read(rel);
   const from = [
@@ -205,4 +229,4 @@ function replaceOnce(source, from, to, label) {
   write(rel, source);
 }
 
-console.log('Phase 10 hardened: scoped quality repair, cost-safe defaults, blocker-aware completion, honest cost evidence, and mandatory Phase 9 review before schedule/upload.');
+console.log('Phase 10 hardened: scoped quality repair, cost-safe defaults, blocker-aware completion, honest global/per-video cost evidence, and mandatory Phase 9 review before schedule/upload.');
