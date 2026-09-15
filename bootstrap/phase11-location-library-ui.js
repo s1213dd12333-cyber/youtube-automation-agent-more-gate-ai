@@ -149,4 +149,15 @@ for (const rel of [
   if (!fs.existsSync(path.join(__dirname, rel))) throw new Error(`Phase 11.10.7 prerequisite missing: ${rel}`);
 }
 require('./phase11-persistent-world-object-library-ui.js');
+
+// Phase 11.10.7 hardening: operator alias/link actions use atomic compare-and-set guards so
+// concurrent dashboard actions cannot silently assign one alias/reference to different objects.
+for (const rel of [
+  'fix-phase11-persistent-world-object-operator-atomicity.js',
+  'verify-phase11-persistent-world-object-operator-atomicity.js'
+]) {
+  execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+}
+require('./fix-phase11-persistent-world-object-operator-atomicity.js');
+execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-persistent-world-object-operator-atomicity.js')], { stdio: 'inherit' });
 execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-persistent-world-object-library-ui.js')], { stdio: 'inherit' });
