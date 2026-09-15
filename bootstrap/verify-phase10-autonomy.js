@@ -68,10 +68,11 @@ check('SEO blockers map to safe automatic SEO retry', () => {
   const result = repairDecision({ blockingFindings: [{ id: 'seo_false_freshness', agentId: 'seo' }] }, { enabled: true, attempts: 0, maxAttempts: 1 });
   assert.deepStrictEqual({ automatic: result.automatic, stage: result.stage }, { automatic: true, stage: 'seo' });
 });
-check('retention blockers map to safe script retry', () => {
+check('retention blockers require manual script repair because script changes can regenerate media', () => {
   const result = repairDecision({ blockingFindings: [{ id: 'retention_missing_hook', agentId: 'retention' }] }, { enabled: true, attempts: 0, maxAttempts: 1 });
   assert.strictEqual(result.stage, 'script');
-  assert.strictEqual(result.automatic, true);
+  assert.strictEqual(result.automatic, false);
+  assert.strictEqual(result.reason, 'script_change_requires_media_regeneration');
 });
 check('thumbnail repair stays manual because media can cost credits', () => {
   const result = repairDecision({ blockingFindings: [{ id: 'thumbnail_missing_asset', agentId: 'thumbnail' }] }, { enabled: true, attempts: 0, maxAttempts: 1 });
@@ -166,7 +167,7 @@ check('completed jobs reopen only for explicit Phase 10 quality repair', () => {
   assert(source.includes("const qualityRepair = job.status === 'completed' && options.qualityRepair === true && Boolean(options.stage);"));
   assert(source.includes("!['failed', 'interrupted'].includes(job.status) && !qualityRepair"));
 });
-check('autonomous operator supports text repair and post-approval reconciliation', () => {
+check('autonomous operator supports cost-safe repair and post-approval reconciliation', () => {
   const source = fs.readFileSync(path.join(upstream, 'utils', 'autonomous-channel-operator.js'), 'utf8');
   assert(source.includes('planAutomaticRepair(record.productionId'));
   assert(source.includes('this.resumeGenerationJob(job.id, { stage: repair.stage, qualityRepair: true })'));
