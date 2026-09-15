@@ -97,3 +97,9 @@ syntax(['phase11-persistent-character-appearance-state.js', 'verify-phase11-pers
 requireFiles(['templates/persistent-character-appearance-state-db-tables-v11.txt', 'templates/persistent-character-appearance-state-db-methods-v11.txt'], 'Phase 11.11.4');
 require('./phase11-persistent-character-appearance-state.js');
 run('verify-phase11-persistent-character-appearance-state.js');
+
+// 11.11.5 — Scene / Shot Character Binding.
+syntax(['phase11-persistent-character-binding.js', 'verify-phase11-persistent-character-binding.js', 'templates/persistent-character-binding-v11.js']);
+requireFiles(['templates/persistent-character-binding-db-tables-v11.txt', 'templates/persistent-character-binding-db-methods-v11.txt'], 'Phase 11.11.5');
+require('./phase11-persistent-character-binding.js');
+run('verify-phase11-persistent-character-binding.js');
