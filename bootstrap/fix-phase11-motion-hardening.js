@@ -49,6 +49,7 @@ for (const rel of [
   'phase11-cartoon-quality.js',
   'fix-phase11-made-for-kids.js',
   'verify-phase11-cartoon-quality.js',
+  'verify-phase11-made-for-kids.js',
   'templates/cartoon-quality-gate-v11.js'
 ]) {
   execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
