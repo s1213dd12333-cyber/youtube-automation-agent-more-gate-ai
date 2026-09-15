@@ -73,3 +73,9 @@ run('verify-phase11-persistent-world-object-library-ui.js');
 syntax(['phase11-persistent-world-object-e2e.js', 'verify-phase11-persistent-world-object-e2e.js', 'e2e/object-system-memory-db.js', 'e2e/object-system-fixtures.js']);
 require('./phase11-persistent-world-object-e2e.js');
 run('verify-phase11-persistent-world-object-e2e.js');
+
+// 11.11.1 — Persistent Character Registry starts only after the fully validated 11.10 closeout.
+syntax(['phase11-persistent-characters.js', 'verify-phase11-persistent-characters.js', 'templates/persistent-character-registry-v11.js']);
+requireFiles(['templates/persistent-character-db-tables-v11.txt', 'templates/persistent-character-db-methods-v11.txt'], 'Phase 11.11.1');
+require('./phase11-persistent-characters.js');
+run('verify-phase11-persistent-characters.js');
