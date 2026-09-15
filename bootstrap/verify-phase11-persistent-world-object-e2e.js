@@ -68,7 +68,7 @@ ok('C gate has no blocked checks',()=>assert.strictEqual(gc.summary.blocked,0));
 ok('D canonical color blue',()=>assert.strictEqual(objD.canonicalIdentity.color,'blue'));
 ok('D origin production recorded',()=>assert.strictEqual(objD.createdFromProductionId,'D'));
 ok('D alias seeded',()=>assert(db.aliases.some(x=>x.objectId===objD.id&&x.aliasKey==='jones car')));
-ok('D asset provenance recorded',()=>assert(db.assets.some(x=>x.objectId===objD.id&&x.sourceProductionId==='D'));
+ok('D asset provenance recorded',()=>assert(db.assets.some(x=>x.objectId===objD.id&&x.sourceProductionId==='D')));
 ok('E ambiguity mode is contextual',()=>assert.strictEqual(re.matchMode,'object_context_ambiguous'));
 ok('E ambiguity reason is multiple candidates',()=>assert.strictEqual(re.reason,'multiple_compatible_generic_candidates'));
 ok('E operator link targets Miller',()=>assert.strictEqual(link.resolution.objectId,oid));
