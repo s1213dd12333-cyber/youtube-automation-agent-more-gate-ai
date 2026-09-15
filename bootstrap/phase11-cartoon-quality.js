@@ -99,75 +99,56 @@ function patchDatabase() {
     ""
   ].join('\n');
   s = insertBefore(s, '  // Content Strategy methods\n', methods, 'Phase 11.6 quality DB methods');
-
   s = replaceOnce(
     s,
     "    const motionScenes = await this.listCartoonMotionScenes(productionId);\n",
     "    const motionScenes = await this.listCartoonMotionScenes(productionId);\n    const cartoonQualityReport = await this.getLatestCartoonQualityReport(productionId);\n",
     'load Phase 11.6 cartoon quality report'
   );
-  s = replaceOnce(
-    s,
-    "      motionScenes,\n",
-    "      motionScenes,\n      cartoonQualityReport,\n",
-    'expose Phase 11.6 cartoon quality report'
-  );
+  s = replaceOnce(s, "      motionScenes,\n", "      motionScenes,\n      cartoonQualityReport,\n", 'expose Phase 11.6 cartoon quality report');
   write(rel, s);
 }
 
 function patchQualityAgents() {
   const rel = 'utils/quality-agents-v9.js';
   let s = read(rel);
-
   s = replaceOnce(
     s,
     "const crypto = require('crypto');\n",
     "const crypto = require('crypto');\nconst { evaluateCartoonQualityV11 } = require('./cartoon-quality-gate-v11');\n",
     'Phase 11.6 cartoon gate import'
   );
-
   s = replaceOnce(
     s,
     "  const duplicateAssets = paths.length - new Set(paths).size;\n  const findings = [];\n  let score = 100;\n",
     "  const duplicateAssets = paths.length - new Set(paths).size;\n  const cartoonQuality = evaluateCartoonQualityV11(production);\n  const findings = [];\n  let score = 100;\n",
     'evaluate Phase 11.6 inside Visual Quality Agent'
   );
-
   s = replaceOnce(
     s,
     "  return finalizeAgent('visual', 'Visual Quality Agent', score, findings, {\n    sceneCount: scenes.length, missingAssets: missingAssets.length, rejectedBriefs,\n    averageSpecificity: avgSpecificity === null ? null : Math.round(avgSpecificity),\n    averageGenericAiRisk: avgGenericRisk === null ? null : Math.round(avgGenericRisk),\n    sourceScenes: sourceCount, localRendererScenes: localCount, unresolvedRights: unresolvedRights.length, duplicateAssets\n  }, 60);\n",
     "  if (cartoonQuality.active) {\n    score = Math.min(score, cartoonQuality.score);\n    findings.push(...cartoonQuality.findings);\n  }\n\n  const result = finalizeAgent('visual', 'Visual Quality Agent', score, findings, {\n    sceneCount: scenes.length, missingAssets: missingAssets.length, rejectedBriefs,\n    averageSpecificity: avgSpecificity === null ? null : Math.round(avgSpecificity),\n    averageGenericAiRisk: avgGenericRisk === null ? null : Math.round(avgGenericRisk),\n    sourceScenes: sourceCount, localRendererScenes: localCount, unresolvedRights: unresolvedRights.length, duplicateAssets,\n    cartoonQualityActive: cartoonQuality.active, cartoonQualityScore: cartoonQuality.active ? cartoonQuality.score : null,\n    cartoonQualityMetrics: cartoonQuality.active ? cartoonQuality.metrics : null\n  }, 60);\n  if (cartoonQuality.active) result.cartoonQuality = cartoonQuality;\n  return result;\n",
     'merge Phase 11.6 into Visual Quality Agent'
   );
-
   s = replaceOnce(
     s,
     "      provenance: production.provenance || {}, visualManifest: production.assets?.sceneManifest || {}\n",
     "      provenance: production.provenance || {}, visualManifest: production.assets?.sceneManifest || {},\n      cartoonBible: production.cartoonBible ? { version: production.cartoonBible.version, mode: production.cartoonBible.mode, fingerprint: production.cartoonBible.fingerprint } : null,\n      shots: (production.shots || []).map(item => ({ id: item.id, fingerprint: item.fingerprint, status: item.status, duration: item.duration })),\n      keyframes: (production.keyframes || []).map(item => ({ id: item.id, fingerprint: item.fingerprint, status: item.status, assetPath: item.assetPath, generatedAt: item.generatedAt })),\n      continuityChecks: (production.continuityChecks || []).map(item => ({ keyframeId: item.keyframe_id || item.keyframeId, attempt: item.attempt, status: item.status, score: item.score, threshold: item.threshold })),\n      motionSegments: (production.motionSegments || []).map(item => ({ shotId: item.shotId, fingerprint: item.fingerprint, status: item.status, outputPath: item.outputPath })),\n      motionScenes: (production.motionScenes || []).map(item => ({ sceneId: item.sceneId, fingerprint: item.fingerprint, status: item.status, outputPath: item.outputPath })),\n      cartoonQualityFingerprint: evaluateCartoonQualityV11(production).fingerprint\n",
     'include Phase 11 state in Phase 9 fingerprint'
   );
-
   s = replaceOnce(
     s,
     "    const agents = [\n      retentionAgent(production), thumbnailAgent(production), seoAgent(production), visualAgent(production), factAgent(production)\n    ];\n",
     "    const visualReview = visualAgent(production);\n    const cartoonQuality = visualReview.cartoonQuality || null;\n    const agents = [\n      retentionAgent(production), thumbnailAgent(production), seoAgent(production), visualReview, factAgent(production)\n    ];\n",
     'retain five Phase 9 agents while exposing Phase 11.6 report'
   );
-
-  s = replaceOnce(
-    s,
-    "      weights: { ...WEIGHTS },\n      agents,\n",
-    "      weights: { ...WEIGHTS },\n      cartoonQuality,\n      agents,\n",
-    'embed Phase 11.6 report in quality report'
-  );
-
+  s = replaceOnce(s, "      weights: { ...WEIGHTS },\n      agents,\n", "      weights: { ...WEIGHTS },\n      cartoonQuality,\n      agents,\n", 'embed Phase 11.6 report in quality report');
   s = replaceOnce(
     s,
     "    if (this.db?.saveQualityAgentReport && production.id) await this.db.saveQualityAgentReport(report);\n",
     "    if (this.db?.saveCartoonQualityReport && cartoonQuality?.active && production.id) await this.db.saveCartoonQualityReport(cartoonQuality);\n    if (this.db?.saveQualityAgentReport && production.id) await this.db.saveQualityAgentReport(report);\n",
     'persist Phase 11.6 report with Phase 9 review'
   );
-
   write(rel, s);
 }
 
@@ -180,11 +161,18 @@ function patchPublicationGate() {
     "const crypto = require('crypto');\nconst { evaluateCartoonQualityV11 } = require('./cartoon-quality-gate-v11');\n",
     'Phase 11.6 publication gate import'
   );
+  const qualityGateAnchor = "  if (!bundle.qualityAgentReport || bundle.qualityAgentReport.status === 'blocked') blockers.push('quality_agents');\n";
   s = replaceOnce(
     s,
-    "  if (bundle.qualityAgentReport?.status === 'blocked') blockers.push('quality_agents');\n",
-    "  if (bundle.qualityAgentReport?.status === 'blocked') blockers.push('quality_agents');\n  const currentCartoonQuality = evaluateCartoonQualityV11(bundle);\n  if (currentCartoonQuality.active) {\n    if (!bundle.cartoonQualityReport) blockers.push('cartoon_quality_required');\n    else if (bundle.cartoonQualityReport.fingerprint !== currentCartoonQuality.fingerprint) blockers.push('cartoon_quality_stale');\n    else if (bundle.cartoonQualityReport.status === 'blocked') blockers.push('cartoon_quality');\n  }\n",
-    'Phase 11.6 fail-closed publication blockers'
+    qualityGateAnchor,
+    qualityGateAnchor +
+      "  const currentCartoonQuality = evaluateCartoonQualityV11(bundle);\n" +
+      "  if (currentCartoonQuality.active) {\n" +
+      "    if (!bundle.cartoonQualityReport) blockers.push('cartoon_quality_required');\n" +
+      "    else if (bundle.cartoonQualityReport.fingerprint !== currentCartoonQuality.fingerprint) blockers.push('cartoon_quality_stale');\n" +
+      "    else if (bundle.cartoonQualityReport.status === 'blocked') blockers.push('cartoon_quality');\n" +
+      "  }\n",
+    'Phase 11.6 fail-closed publication blockers after mandatory Phase 9 gate'
   );
   s = replaceOnce(
     s,
@@ -210,7 +198,6 @@ function patchDashboard() {
     ""
   ].join('\n');
   s = insertBefore(s, 'function qualityScore(checks) {\n', helper, 'Phase 11.6 dashboard quality gate renderer');
-
   s = replaceOnce(
     s,
     "        ${renderCartoonMotion(item)}\n        ${renderSceneEditor(item, canReview)}\n",
