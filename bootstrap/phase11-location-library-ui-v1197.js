@@ -142,7 +142,10 @@ function patchDashboard() {
   html = replaceOnce(html, '  <script src="/enhance.js" defer></script>\n', '  <script src="/enhance.js" defer></script>\n  <script src="/location-library-v11.js" defer></script>\n', 'Location Library browser runtime');
   write('dashboard/index.html', html);
   let app = read('dashboard/app.js');
-  app = replaceOnce(app, "    readiness: ['PRODUCTION READINESS', 'Verify before autonomy runs.'],\n    settings: ['CHANNEL GUARDRAILS', 'Make every agent sound like you.']\n", "    locations: ['LOCATION LIBRARY', 'Reuse the same places across every video.'],\n    readiness: ['PRODUCTION READINESS', 'Verify before autonomy runs.'],\n    settings: ['CHANNEL GUARDRAILS', 'Make every agent sound like you.']\n", 'Location Library title');
+  app = replaceOnce(app,
+    "    readiness: ['PRODUCTION READINESS', 'Verify before autonomy runs.'],\n",
+    "    locations: ['LOCATION LIBRARY', 'Reuse the same places across every video.'],\n    readiness: ['PRODUCTION READINESS', 'Verify before autonomy runs.'],\n",
+    'Location Library title');
   write('dashboard/app.js', app);
 }
 function patchPackageAndEnv() {
