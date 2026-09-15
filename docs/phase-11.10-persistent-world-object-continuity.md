@@ -24,8 +24,12 @@ Phase 11.10 extends the completed 11.9 reusable-location system from persistent 
    - generic/local fallback never becomes canonical;
    - ambiguous or unresolved asset-to-object bindings fail closed.
 4. **11.10.4 — Object State / Lifecycle Layers**
-   - temporary damage, cleanliness, open/closed, contents, ownership-in-use and story state;
-   - state changes never silently rewrite canonical identity.
+   - mutable condition, damage, cleanliness, open/closed, operational state, contents, possession-in-use, placement and story state;
+   - explicit `scene` vs `until_changed` persistence;
+   - only durable `until_changed` state may carry across videos;
+   - explicit durable reset prevents stale prior state from reappearing;
+   - conflicting dimensions fail closed and remain audited;
+   - state never rewrites canonical identity or canonical assets.
 5. **11.10.5 — Scene / Shot Object Binding**
    - bind persistent objects to scenes and shots;
    - explicit visibility / possession / placement semantics.
@@ -84,73 +88,66 @@ There is intentionally no edit-distance, embedding-nearest-neighbor, or broad fu
 
 ## 11.10.2 aliases and audit
 
-Object declarations may now provide aliases through:
+Object declarations may provide aliases through `aliases`, `objectAliases` and `localizedNames`. Canonical display name and `objectKey` are also persisted as aliases. Multiple objects may legally share the same alias key; that situation is preserved and resolves as ambiguous instead of enforcing false global uniqueness.
 
-- `aliases`
-- `objectAliases`
-- `localizedNames`
+The phase adds `persistent_world_object_aliases`, `persistent_world_object_resolutions`, `persistentWorldObjectResolutions` in production bundles, `test:persistent-world-object-resolver`, `PERSISTENT_WORLD_OBJECT_RESOLVER_ENABLED=true` and `PERSISTENT_WORLD_OBJECT_RESOLVER_ALLOW_CONTEXTUAL_GENERIC=true`.
 
-Canonical display name and `objectKey` are also persisted as aliases. Multiple objects may legally share the same alias key; that situation is preserved and resolves as ambiguous rather than silently enforcing a false global uniqueness constraint.
-
-The phase adds:
-
-- `persistent_world_object_aliases`
-- `persistent_world_object_resolutions`
-- `persistentWorldObjectResolutions` in production bundles
-- `test:persistent-world-object-resolver`
-- `PERSISTENT_WORLD_OBJECT_RESOLVER_ENABLED=true`
-- `PERSISTENT_WORLD_OBJECT_RESOLVER_ALLOW_CONTEXTUAL_GENERIC=true`
-
-Resolution audits include final `status`, selected `objectId`, `matchMode`, confidence, candidate IDs and reason. When a resolver attempt legitimately ends by registering a new canonical object, the final row is overwritten to `registered_new` with `resolver_unresolved_register_new`, avoiding a stale provisional `unresolved` record.
+Resolution audits include final `status`, selected `objectId`, `matchMode`, confidence, candidate IDs and reason. When a resolver attempt legitimately ends by registering a new canonical object, the final row becomes `registered_new` with `resolver_unresolved_register_new`.
 
 ## 11.10.3 canonical asset contracts
 
 Phase 11.10.3 gives a persistent `objectId` an immutable canonical visual reference without guessing object presence inside arbitrary scene images.
 
-Accepted explicit declarations include nested metadata:
-
-```js
-canonicalAsset: {
-  path: '/path/to/provider-output.png',
-  provider: 'provider-name',
-  model: 'model-name'
-}
-```
-
-or equivalent explicit fields:
-
-- `canonicalAssetPath`
-- `canonicalReferencePath`
-- `objectReferencePath`
-- `canonicalAssetProvider` / `canonicalReferenceProvider`
-- `canonicalAssetModel` / `canonicalReferenceModel`
-
-A plain generic `assetPath` is intentionally not treated as canonical evidence.
+Accepted explicit declarations include nested `canonicalAsset` / `canonicalReference` metadata or explicit `canonicalAssetPath`, `canonicalReferencePath`, `objectReferencePath` plus provider/model fields. A plain generic `assetPath` is intentionally not treated as canonical evidence.
 
 Default policy requires provider provenance. `local-renderer`, local/generic/fallback providers and local fallback filenames such as `visual_local_*`, `thumbnail_local_*` and `object_local_*` are rejected. Supported canonical image formats are PNG, JPG/JPEG and WEBP.
 
-Asset declarations are bound to an already-resolved persistent object by the strongest available evidence: explicit `objectKey`, persistent Prop Lock ID, explicit source reference, or an otherwise unique environment/name/type binding. Multiple matching objects produce `ambiguous`; no asset is promoted.
+Asset declarations are bound to an already-resolved persistent object by explicit `objectKey`, persistent Prop Lock ID, explicit source reference, or an otherwise unique environment/name/type binding. Multiple matching objects produce `ambiguous`; no asset is promoted.
 
-The first valid provider-backed reference is copied to:
+The first valid provider-backed reference is copied to `data/assets/object-library/<namespace>/<objectId>/object_reference.<ext>` and persisted with SHA-256, provider/model, source production/environment/reference/Prop Lock and the object identity fingerprint. Once ready, later videos cannot silently overwrite it.
 
-`data/assets/object-library/<namespace>/<objectId>/object_reference.<ext>`
+The phase adds `persistent_world_object_assets`, `persistentWorldObjectAssets`, `utils/canonical-world-object-assets-v11.js`, `test:canonical-world-object-assets`, `CANONICAL_WORLD_OBJECT_ASSETS_ENABLED=true` and `CANONICAL_WORLD_OBJECT_ASSET_REQUIRE_PROVIDER=true`.
 
-and persisted with SHA-256, provider/model, source production/environment/reference/Prop Lock and the object identity fingerprint. Once ready, a later video cannot silently overwrite it with a different reference. Existing origin hash, provider and source production remain immutable. An on-disk target hash conflict or a stored asset whose identity fingerprint no longer matches the object fails closed.
+Scene/shot-level knowledge of whether a persistent object is actually visible belongs to 11.10.5, so 11.10.3 does not auto-promote arbitrary keyframes.
+
+## 11.10.4 state / lifecycle contracts
+
+Phase 11.10.4 adds mutable state on top of a stable canonical `objectId`. Supported state dimensions include:
+
+- `condition` / `conditions`;
+- `damage` / `damages`;
+- `cleanliness`;
+- `openState` / `openness` / `openStates`;
+- `operationalState`;
+- `contents`;
+- `holderKey`, `holder`, `possessedBy` or `inUseBy`;
+- `placement`;
+- `storyState` / `storyStates`.
+
+State may be supplied through nested `objectState`, `lifecycleState` or `state`, through equivalent inline fields on persistent object declarations, or through `objectStates`, `persistentObjectStates` and `worldObjectStates` collections.
+
+Two persistence modes exist:
+
+- `scene` — default. It is local to that production/scene and is never inherited automatically by later videos.
+- `until_changed` — explicitly durable. Aliases such as `durable`, `persistent` and `carry_forward` normalize to this mode. A later production that reuses the same object and supplies no replacement state may inherit the latest durable state.
+
+Durable inheritance is therefore opt-in, not an assumption. A state can be explicitly cleared with `resetState`, `clearState` or `clearPreviousState`; when combined with durable persistence this writes a neutral durable state, so later videos inherit neutral instead of resurrecting an older damaged/dirty/open state.
+
+Conflicting single-value dimensions fail closed. For example, `openStates: ['open', 'closed']` yields `status=conflict`; that disputed dimension is omitted and the conflict remains auditable rather than choosing one value arbitrarily.
+
+Every state row stores the canonical object identity fingerprint for audit, but the state fingerprint is separate. The state prompt explicitly forbids rewriting `objectId`, canonical identity fingerprint, object type, brand/model, canonical color/material or the 11.10.3 canonical object asset.
 
 The phase adds:
 
-- `persistent_world_object_assets`
-- `persistentWorldObjectAssets` in production bundles
-- `utils/canonical-world-object-assets-v11.js`
-- `test:canonical-world-object-assets`
-- `CANONICAL_WORLD_OBJECT_ASSETS_ENABLED=true`
-- `CANONICAL_WORLD_OBJECT_ASSET_REQUIRE_PROVIDER=true`
+- `persistent_world_object_states`;
+- `persistentWorldObjectStates` in production bundles;
+- parent-state lineage through `parent_state_id`;
+- `utils/persistent-world-object-state-v11.js`;
+- `test:persistent-world-object-state`;
+- `PERSISTENT_WORLD_OBJECT_STATES_ENABLED=true`;
+- `PERSISTENT_WORLD_OBJECT_STATE_INHERIT_DURABLE=true`.
 
-Canonical object assets are materialized after the persistent object registry/resolver and before Temporary State Layers.
-
-## Why 11.10.3 does not auto-promote arbitrary keyframes
-
-Scene/shot-level knowledge of whether a persistent object is actually visible, possessed, occluded or merely mentioned belongs to Phase 11.10.5. Promoting arbitrary keyframes in 11.10.3 would risk turning a same-type object or background occurrence into the canonical identity reference. Therefore 11.10.3 accepts only explicitly canonical provider-backed references; later phases may safely add verified shot-derived promotion once object binding exists.
+Object state runs after identity/resolution and canonical object assets, and before the existing location Temporary State Layer. Scene/shot visibility semantics remain reserved for 11.10.5.
 
 ## Runtime / persistence
 
@@ -159,9 +156,10 @@ Materialization installs:
 - `utils/persistent-world-object-registry-v11.js`
 - `utils/persistent-world-object-resolver-v11.js`
 - `utils/canonical-world-object-assets-v11.js`
+- `utils/persistent-world-object-state-v11.js`
 
-The object registry remains after reusable locations/zones and before Temporary State Layers. The 11.10.2 materializer runs only after the 11.10.1 verifier passes, and the 11.10.3 materializer/verifier run only after 11.10.2 passes.
+The gates execute sequentially: 11.10.1 registry, 11.10.2 resolver, 11.10.3 canonical assets, then 11.10.4 state/lifecycle. Each verifier must pass before the next stage is applied.
 
 ## Current boundary
 
-11.10.1–11.10.3 now establish canonical object identity, provenance, aliases, conservative narrative resolution and immutable provider-backed canonical visual references. Lifecycle/state layers, scene/shot binding, visual cross-video object drift gates, operator correction UI and full object E2E coverage remain for 11.10.4–11.10.8 and must not be claimed as complete yet.
+11.10.1–11.10.4 now establish canonical object identity, provenance, aliases, conservative narrative resolution, immutable provider-backed visual anchors and explicit mutable lifecycle state with controlled durable inheritance. Scene/shot binding, visual cross-video object drift gates, operator correction UI and full object E2E coverage remain for 11.10.5–11.10.8 and must not be claimed as complete yet.
