@@ -171,6 +171,30 @@ function patchQualityAgents() {
   write(rel, s);
 }
 
+function patchPublicationGate() {
+  const rel = 'utils/autonomy-observability-v10.js';
+  let s = read(rel);
+  s = replaceOnce(
+    s,
+    "const crypto = require('crypto');\n",
+    "const crypto = require('crypto');\nconst { evaluateCartoonQualityV11 } = require('./cartoon-quality-gate-v11');\n",
+    'Phase 11.6 publication gate import'
+  );
+  s = replaceOnce(
+    s,
+    "  if (bundle.qualityAgentReport?.status === 'blocked') blockers.push('quality_agents');\n",
+    "  if (bundle.qualityAgentReport?.status === 'blocked') blockers.push('quality_agents');\n  const currentCartoonQuality = evaluateCartoonQualityV11(bundle);\n  if (currentCartoonQuality.active) {\n    if (!bundle.cartoonQualityReport) blockers.push('cartoon_quality_required');\n    else if (bundle.cartoonQualityReport.fingerprint !== currentCartoonQuality.fingerprint) blockers.push('cartoon_quality_stale');\n    else if (bundle.cartoonQualityReport.status === 'blocked') blockers.push('cartoon_quality');\n  }\n",
+    'Phase 11.6 fail-closed publication blockers'
+  );
+  s = replaceOnce(
+    s,
+    "      qualityStatus: bundle.qualityAgentReport?.status || null,\n",
+    "      qualityStatus: bundle.qualityAgentReport?.status || null,\n      cartoonQualityStatus: bundle.cartoonQualityReport?.status || null,\n",
+    'expose Phase 11.6 publication quality status'
+  );
+  write(rel, s);
+}
+
 function patchDashboard() {
   const rel = 'dashboard/app.js';
   let s = read(rel);
@@ -207,6 +231,7 @@ function patchPackage() {
 copyService();
 patchDatabase();
 patchQualityAgents();
+patchPublicationGate();
 patchDashboard();
 patchPackage();
 
