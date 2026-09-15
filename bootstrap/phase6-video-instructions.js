@@ -23,6 +23,18 @@ function insertBefore(text, anchor, block, label) {
   return text.slice(0, index) + block + text.slice(index);
 }
 
+function insertAfterAny(text, anchors, block, label) {
+  if (text.includes(block.trim())) return text;
+  for (const anchor of anchors) {
+    const index = text.indexOf(anchor);
+    if (index !== -1) {
+      const insertAt = index + anchor.length;
+      return text.slice(0, insertAt) + block + text.slice(insertAt);
+    }
+  }
+  throw new Error(`Anchor not found for ${label}`);
+}
+
 function copyService() {
   const template = path.join(root, 'bootstrap', 'templates', 'video-instructions-v6.js');
   if (!fs.existsSync(template)) throw new Error('Missing bootstrap/templates/video-instructions-v6.js');
@@ -83,10 +95,14 @@ function patchIndex() {
     'run job forwards video instructions'
   );
 
-  s = replaceOnce(
+  const instructionBootstrap = "    const videoInstructions = normalizeVideoInstructions(options.instructions || strategyContext.videoInstructions || '');\n    const instructionContext = instructionEnvelope(videoInstructions);\n";
+  s = insertAfterAny(
     s,
-    '    const { jobId = null, strategyContext = {} } = options;\n',
-    "    const { jobId = null, strategyContext = {} } = options;\n    const videoInstructions = normalizeVideoInstructions(options.instructions || strategyContext.videoInstructions || '');\n    const instructionContext = instructionEnvelope(videoInstructions);\n",
+    [
+      "    const { jobId = null } = options;\n    const strategyContext = options.strategyContext || {};\n",
+      "    const { jobId = null, strategyContext = {} } = options;\n"
+    ],
+    instructionBootstrap,
     'normalize instructions at pipeline boundary'
   );
 
