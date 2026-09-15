@@ -146,3 +146,11 @@ for (const rel of [
   'templates/location-resolver-v11.js'
 ]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
 require('./phase11-location-resolver.js');
+
+// Phase 11.9.5 overlays scene-only time/weather/lighting/temporary props without mutating canonical location identity.
+for (const rel of [
+  'phase11-temporary-location-state.js',
+  'verify-phase11-temporary-location-state.js',
+  'templates/temporary-location-state-v11.js'
+]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+require('./phase11-temporary-location-state.js');
