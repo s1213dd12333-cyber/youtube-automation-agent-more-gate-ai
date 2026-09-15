@@ -60,6 +60,8 @@ assert(bible.characters.some(character => character.name === 'Luna'));
 assert(bible.characters.some(character => character.name === 'Milo'));
 assert(bible.characters.some(character => character.name === 'Tico'));
 assert.strictEqual(bible.characters.find(character => character.name === 'Luna').role, 'main');
+assert.strictEqual(bible.characters.find(character => character.name === 'Milo').speciesType, 'cloud');
+assert.strictEqual(bible.characters.find(character => character.name === 'Tico').speciesType, 'bird');
 assert.strictEqual(bible.style.mode, 'kids_cartoon_2d');
 
 const rebuilt = service.buildProductionBible(cartoonProduction);
@@ -90,6 +92,7 @@ assert.strictEqual(applied.identity.name, 'Lumen Kids Cartoon Bible v11.1');
 
 const dbSource = fs.readFileSync(path.join(upstream, 'database', 'db.js'), 'utf8');
 const pipelineSource = fs.readFileSync(path.join(upstream, 'utils', 'scene-pipeline-v2.js'), 'utf8');
+const repairSource = fs.readFileSync(path.join(upstream, 'utils', 'scene-repair-service.js'), 'utf8');
 const videoSource = fs.readFileSync(path.join(upstream, 'utils', 'ai-video-generator.js'), 'utf8');
 const dashboardSource = fs.readFileSync(path.join(upstream, 'dashboard', 'app.js'), 'utf8');
 const envSource = fs.readFileSync(path.join(upstream, '.env.example'), 'utf8');
@@ -101,9 +104,11 @@ assert(dbSource.includes('const cartoonBible = await this.getLatestCartoonVisual
 assert(pipelineSource.includes("const { CartoonBibleV11 } = require('./cartoon-bible-v11');"));
 assert(pipelineSource.includes('this.cartoonBible = options.cartoonBible || new CartoonBibleV11'));
 assert(pipelineSource.includes("visualBrief?.visualType === 'kids_cartoon_2d'"));
+assert(repairSource.includes("visualBrief?.visualType === 'kids_cartoon_2d'"));
 assert(videoSource.includes('kids_cartoon_2d: "original polished 2D children'));
 assert(dashboardSource.includes('function renderCartoonBible(bible)'));
 assert.strictEqual(pkg.scripts['test:cartoon-bible'], 'node ../bootstrap/verify-phase11-cartoon-bible.js');
 assert(envSource.includes('CARTOON_VISUAL_MODE=auto'));
+assert(envSource.includes('CARTOON_BIBLE_ENABLED=true'));
 
-console.log('Phase 11.1 Cartoon Bible OK: 24 regression checks passed.');
+console.log('Phase 11.1 Cartoon Bible OK: 29 regression checks passed.');
