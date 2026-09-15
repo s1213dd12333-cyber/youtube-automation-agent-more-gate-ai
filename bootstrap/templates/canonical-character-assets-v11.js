@@ -76,7 +76,7 @@ function declarationFromRaw(raw = {}, context = {}) {
     speciesType: clean(raw.speciesType || raw.species || raw.type || 'character', 160) || 'character',
     sourceCharacterId: clean(raw.id || raw.sourceCharacterId || '', 240) || null,
     sourceBibleId: clean(context.sourceBibleId || raw.sourceBibleId || '', 240) || null,
-    sourceRef: clean(raw.sourceRef || raw.id || raw.name || '', 240) || null
+    sourceRef: clean(raw.sourceRef || '', 240) || null
   };
 }
 
