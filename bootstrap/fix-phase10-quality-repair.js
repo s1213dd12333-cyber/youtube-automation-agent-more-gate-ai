@@ -70,7 +70,7 @@ function replaceOnce(source, from, to, label) {
     "        record.publicationBlockers = publication.blockers || [];",
     "      }",
     "      const needsReview = completed.filter(job => ['needs_review', 'needs_attention'].includes(job.reviewStatus));",
-    "      const publicationIssues = completed.filter(job => job.reviewStatus === 'approved' && !['scheduled', 'paused', 'uploaded', 'published'].includes(job.scheduleStatus));",
+    "      const publicationIssues = completed.filter(job => job.reviewStatus === 'approved' && ((job.publicationBlockers || []).length > 0 || !['scheduled', 'paused', 'uploaded', 'published'].includes(job.scheduleStatus)));",
     "      const failed = generatedJobs.filter(job => job.status !== 'completed');",
     "      const allFailed = completed.length === 0 && failed.length > 0;",
     "      const status = allFailed ? 'failed' : needsReview.length ? 'waiting_review' : (publicationIssues.length || failed.length) ? 'completed_with_issues' : 'completed';",
@@ -84,6 +84,13 @@ function replaceOnce(source, from, to, label) {
   ].join('\n');
   source = replaceOnce(source, summaryFrom, summaryTo, 'operator completion publication state');
 
+  source = replaceOnce(
+    source,
+    "      record.qualityStatus = bundle.qualityAgentReport?.status || null;",
+    "      record.qualityStatus = bundle.qualityAgentReport?.status || null;\n      const publication = this.observability ? await this.observability.publicationState(record.productionId) : null;\n      record.publicationBlockers = publication?.blockers || [];",
+    'operator reconciliation blocker refresh'
+  );
+
   const reconcileFrom = [
     "    const completed = generatedJobs.filter(item => item.status === 'completed');",
     "    const waiting = completed.filter(item => ['needs_review', 'needs_attention'].includes(item.reviewStatus));",
@@ -96,7 +103,7 @@ function replaceOnce(source, from, to, label) {
   const reconcileTo = [
     "    const completed = generatedJobs.filter(item => item.status === 'completed');",
     "    const waiting = completed.filter(item => ['needs_review', 'needs_attention'].includes(item.reviewStatus));",
-    "    const publicationIssues = completed.filter(item => item.reviewStatus === 'approved' && !['scheduled', 'paused', 'uploaded', 'published'].includes(item.scheduleStatus));",
+    "    const publicationIssues = completed.filter(item => item.reviewStatus === 'approved' && ((item.publicationBlockers || []).length > 0 || !['scheduled', 'paused', 'uploaded', 'published'].includes(item.scheduleStatus)));",
     "    const failed = generatedJobs.filter(item => item.status !== 'completed');",
     "    const status = waiting.length ? 'waiting_review' : (publicationIssues.length || failed.length) ? 'completed_with_issues' : 'completed';",
     "    const updated = await this.update(runId, {",
@@ -173,4 +180,4 @@ function replaceOnce(source, from, to, label) {
   write(rel, source);
 }
 
-console.log('Phase 10 hardened: scoped quality repair, cost-safe defaults, publication-aware completion, and mandatory Phase 9 review before schedule/upload.');
+console.log('Phase 10 hardened: scoped quality repair, cost-safe defaults, blocker-aware completion, and mandatory Phase 9 review before schedule/upload.');
