@@ -53,7 +53,7 @@ Publication remains blocked when:
 - the persisted report no longer matches the current keyframes/continuity/motion state: `cartoon_quality_stale`;
 - the current matching report is blocked: `cartoon_quality`.
 
-This prevents a previously passing review from being reused after a keyframe, continuity repair, motion segment, or scene composition changes.
+The direct scheduling and YouTube upload guards enforce the same freshness contract with `CARTOON_QUALITY_REQUIRED`, `CARTOON_QUALITY_STALE`, and `CARTOON_QUALITY_BLOCKED`. This prevents a previously passing review from being reused after a keyframe, continuity repair, motion segment, or scene composition changes, even if a caller bypasses the observability API.
 
 ## Repetition rules
 
@@ -106,10 +106,10 @@ npm run test:cartoon-quality
 Expected:
 
 ```text
-Phase 11.6 Cartoon Quality Gate OK: 32 regression checks passed.
+Phase 11.6 Cartoon Quality Gate OK: 34 regression checks passed.
 ```
 
-The regression is deterministic and does not call image, TTS, video or paid AI providers. It also verifies fail-closed publication behavior for missing, stale, and blocked cartoon quality reports.
+The regression is deterministic and does not call image, TTS, video or paid AI providers. It verifies fail-closed publication behavior for missing, stale, and blocked cartoon quality reports and confirms that both direct scheduling and direct YouTube upload routes recompute the current cartoon quality state.
 
 ## Phase 11 completion boundary
 
