@@ -32,3 +32,4 @@ require('./verify-phase11-master-environment.js');
 require('./verify-phase11-scene-environment-mapping.js');
 require('./verify-phase11-environment-prompt-enrichment.js');
 require('./verify-phase11-environment-continuity.js');
+require('./verify-phase11-semantic-prop-verification.js');
