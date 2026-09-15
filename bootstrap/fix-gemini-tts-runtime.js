@@ -253,7 +253,7 @@ const sapiMethod = `  async generateWindowsSapiTTS(text, outputPath) {
       await fs.unlink(scriptPath).catch(() => {});
     }
 
-    this.logger.info(\`Windows SAPI TTS generation complete\${voiceName ? ` (voice: \${voiceName})` : ''}.\`);
+    this.logger.info('Windows SAPI TTS generation complete' + (voiceName ? ' (voice: ' + voiceName + ')' : '') + '.');
     return outputPath;
   }
 
