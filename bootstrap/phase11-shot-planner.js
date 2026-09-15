@@ -181,14 +181,14 @@ function patchScenePipeline() {
   s = replaceOnce(
     s,
     "    await this.persistManifest(bundle, production, scenes, fingerprint, scriptChanged, visualPlan);\n",
-    "    await this.persistManifest(bundle, production, scenes, fingerprint, scriptChanged, visualPlan, shotPlan);\n",
-    'pass Phase 11.2 shot plan to manifest'
+    "    await this.persistManifest(bundle, production, scenes, fingerprint, scriptChanged, visualPlan, cartoonBible, shotPlan);\n",
+    'pass active Bible and Phase 11.2 shot plan to manifest'
   );
   s = replaceOnce(
     s,
     '  async persistManifest(bundle, production, scenes, fingerprint, resetMedia, visualPlan = null) {\n',
-    '  async persistManifest(bundle, production, scenes, fingerprint, resetMedia, visualPlan = null, shotPlan = null) {\n',
-    'Phase 11.2 manifest signature'
+    '  async persistManifest(bundle, production, scenes, fingerprint, resetMedia, visualPlan = null, cartoonBible = null, shotPlan = null) {\n',
+    'Phase 11.2 manifest signature with scoped cartoon bible'
   );
   s = replaceOnce(
     s,
