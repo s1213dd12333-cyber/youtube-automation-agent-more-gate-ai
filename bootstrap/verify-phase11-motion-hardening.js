@@ -29,3 +29,7 @@ require('./verify-phase11-reference-quota-fallback.js');
 // the full Phase 11.6 quality and audience-metadata boundary deterministic.
 require('./verify-phase11-cartoon-quality.js');
 require('./verify-phase11-made-for-kids.js');
+
+// Phase 11.7.1 must materialize and validate the persistent Environment Bible
+// before later Prop Lock / Master Environment Frame work builds on it.
+require('./verify-phase11-environment-bible.js');
