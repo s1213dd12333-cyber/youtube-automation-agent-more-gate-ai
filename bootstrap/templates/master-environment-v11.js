@@ -90,9 +90,9 @@ function planMasterFrame(production = {}, environment = {}, propLocks = []) {
   };
 }
 
-function isGenericLocalFallback(filePath, videoGenerator) {
+function isGenericLocalFallback(filePath) {
   const base = path.basename(String(filePath || '')).toLowerCase();
-  return base.startsWith('visual_local_') || base.startsWith('thumbnail_local_') || Boolean(videoGenerator?.geminiImageDisabledReason);
+  return base.startsWith('visual_local_') || base.startsWith('thumbnail_local_');
 }
 
 class MasterEnvironmentGeneratorV11 {
@@ -149,7 +149,7 @@ class MasterEnvironmentGeneratorV11 {
       const sourcePath = Array.isArray(assets) ? assets[0] : null;
       if (!sourcePath || !await exists(sourcePath)) throw new Error('Master environment generator returned no readable image asset');
 
-      const localFallback = isGenericLocalFallback(sourcePath, this.videoGenerator);
+      const localFallback = isGenericLocalFallback(sourcePath);
       if (this.requireProvider && localFallback) {
         const record = {
           ...plan,
