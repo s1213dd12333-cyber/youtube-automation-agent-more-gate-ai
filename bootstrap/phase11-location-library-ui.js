@@ -114,3 +114,9 @@ syntax(['phase11-cross-video-character-continuity.js', 'verify-phase11-cross-vid
 requireFiles(['templates/cross-video-character-continuity-db-tables-v11.txt', 'templates/cross-video-character-continuity-db-methods-v11.txt'], 'Phase 11.11.6');
 require('./phase11-cross-video-character-continuity.js');
 run('verify-phase11-cross-video-character-continuity.js');
+
+// 11.11.7 — Character Library UI + audited, atomic operator controls.
+syntax(['phase11-persistent-character-library-ui.js', 'verify-phase11-persistent-character-library-ui.js', 'templates/persistent-character-library-manager-v11.js', 'templates/persistent-character-library-dashboard-v11.js']);
+requireFiles(['templates/persistent-character-operator-db-tables-v11.txt', 'templates/persistent-character-operator-db-methods-v11.txt', 'templates/persistent-character-library-dashboard-v11.css'], 'Phase 11.11.7');
+require('./phase11-persistent-character-library-ui.js');
+run('verify-phase11-persistent-character-library-ui.js');
