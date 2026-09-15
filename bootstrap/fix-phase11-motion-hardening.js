@@ -105,3 +105,12 @@ for (const rel of [
   'templates/environment-continuity-validator-v11.js'
 ]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
 require('./phase11-environment-continuity.js');
+
+// Phase 11.8 adds truthful semantic object/layout verification using a real vision-capable endpoint.
+// Verification is audit-only by default and becomes fail-closed only when SEMANTIC_PROP_REQUIRE_VERIFICATION=true.
+for (const rel of [
+  'phase11-semantic-prop-verification.js',
+  'verify-phase11-semantic-prop-verification.js',
+  'templates/semantic-prop-verifier-v11.js'
+]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+require('./phase11-semantic-prop-verification.js');
