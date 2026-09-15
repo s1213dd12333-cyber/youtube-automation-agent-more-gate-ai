@@ -92,6 +92,7 @@ function patchDatabase() {
 function patchGenerator() {
   const rel = 'utils/ai-video-generator.js';
   let s = read(rel);
+  if (s.includes('  async generateVisualAssetsWithReference(')) return;
   const block = [
     '  async generateVisualAssetsWithReference(prompt, referenceAssetPath, style = "kids_cartoon_2d", count = 1) {',
     '    if (!referenceAssetPath) return this.generateVisualAssets(prompt, style, count);',
