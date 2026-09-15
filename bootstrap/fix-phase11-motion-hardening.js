@@ -43,6 +43,11 @@ fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
 
 console.log('Phase 11.5 motion hardening active: byte-exact fingerprints, stale-scene invalidation, failed-visual Resume safety, and dedicated hardening regression command.');
 
+// The reference-conditioned image path must honor the same Gemini image circuit breaker
+// as ordinary image generation. Apply this before Phase 11.6 so Resume never re-hits a known quota=0 provider.
+execFileSync(process.execPath, ['--check', path.join(__dirname, 'fix-phase11-reference-quota-fallback.js')], { stdio: 'inherit' });
+require('./fix-phase11-reference-quota-fallback.js');
+
 // Phase 11.6 is chained from the existing deterministic materializer. Syntax-check
 // all Phase 11.6 bootstrap artifacts here before allowing them to patch upstream.
 for (const rel of [
