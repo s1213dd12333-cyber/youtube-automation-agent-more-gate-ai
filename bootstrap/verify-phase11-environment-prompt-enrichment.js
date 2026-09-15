@@ -112,7 +112,7 @@ check('scene pipeline enriches before keyframes', () => assert(pipelineSource.in
 check('changed enriched shot invalidates old keyframes through replaceSceneShots', () => assert(pipelineSource.includes('if (changed) await this.db.replaceSceneShots(production.id, scenePlan.sceneId, scenePlan.shots);')));
 check('keyframe runtime can load Scene Environment mapping', () => assert(keyframeSource.includes('this.db?.getSceneEnvironment')));
 check('keyframe runtime uses canonical master for first start', () => assert(keyframeSource.includes("current.keyframeRole === 'start' && !current.referenceKeyframeId")));
-check('keyframe runtime verifies master file exists', () => assert(keyframeSource.includes('await this.pathExists(sceneEnvironment.masterFramePath)'));
+check('keyframe runtime verifies master file exists', () => assert(keyframeSource.includes('await this.pathExists(sceneEnvironment.masterFramePath)')));
 check('character continuity keeps first character keyframe as its own anchor', () => assert(continuitySource.includes('if (!keyframe.referenceKeyframeId) {')));
 check('11.7.6 owns master environment comparison when materialized', () => {
   if (!environmentContinuitySource) return;
