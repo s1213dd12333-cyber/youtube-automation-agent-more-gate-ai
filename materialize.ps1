@@ -39,6 +39,8 @@ $BootstrapPreflight = @(
     '.\bootstrap\phase9-quality-agents.js',
     '.\bootstrap\phase10-autonomy-observability.js',
     '.\bootstrap\fix-phase10-quality-repair.js',
+    '.\bootstrap\phase11-cartoon-bible.js',
+    '.\bootstrap\fix-phase11-cartoon-repair.js',
     '.\bootstrap\verify-phase1-contracts.js',
     '.\bootstrap\verify-phase2-scenes.js',
     '.\bootstrap\verify-phase2-scenes-v3.js',
@@ -51,6 +53,7 @@ $BootstrapPreflight = @(
     '.\bootstrap\verify-phase8-visual-router.js',
     '.\bootstrap\verify-phase9-quality-agents.js',
     '.\bootstrap\verify-phase10-autonomy.js',
+    '.\bootstrap\verify-phase11-cartoon-bible.js',
     '.\bootstrap\templates\content-contracts.js',
     '.\bootstrap\templates\scene-pipeline-v2.js',
     '.\bootstrap\templates\scene-narration-v3.js',
@@ -62,7 +65,8 @@ $BootstrapPreflight = @(
     '.\bootstrap\templates\quality-agents-v9.js',
     '.\bootstrap\templates\autonomy-observability-v10.js',
     '.\bootstrap\templates\doctor-v10.js',
-    '.\bootstrap\templates\e2e-safe-v10.js'
+    '.\bootstrap\templates\e2e-safe-v10.js',
+    '.\bootstrap\templates\cartoon-bible-v11.js'
 )
 foreach ($script in $BootstrapPreflight) {
     node --check $script
@@ -92,7 +96,9 @@ $PatchScripts = @(
     '.\bootstrap\fix-phase8-source-audit.js',
     '.\bootstrap\phase9-quality-agents.js',
     '.\bootstrap\phase10-autonomy-observability.js',
-    '.\bootstrap\fix-phase10-quality-repair.js'
+    '.\bootstrap\fix-phase10-quality-repair.js',
+    '.\bootstrap\phase11-cartoon-bible.js',
+    '.\bootstrap\fix-phase11-cartoon-repair.js'
 )
 foreach ($script in $PatchScripts) {
     node $script
@@ -152,6 +158,7 @@ try {
         'utils\visual-router-v8.js',
         'utils\quality-agents-v9.js',
         'utils\autonomy-observability-v10.js',
+        'utils\cartoon-bible-v11.js',
         'utils\provenance-service.js',
         'scripts\doctor-v10.js',
         'scripts\e2e-safe-v10.js',
@@ -175,7 +182,8 @@ try {
         @{ Path = '..\bootstrap\verify-phase7-visual-director.js'; Error = 'Phase 7 Visual Director regression checks failed' },
         @{ Path = '..\bootstrap\verify-phase8-visual-router.js'; Error = 'Phase 8 Visual Router regression checks failed' },
         @{ Path = '..\bootstrap\verify-phase9-quality-agents.js'; Error = 'Phase 9 Quality Agents regression checks failed' },
-        @{ Path = '..\bootstrap\verify-phase10-autonomy.js'; Error = 'Phase 10 autonomy/observability regression checks failed' }
+        @{ Path = '..\bootstrap\verify-phase10-autonomy.js'; Error = 'Phase 10 autonomy/observability regression checks failed' },
+        @{ Path = '..\bootstrap\verify-phase11-cartoon-bible.js'; Error = 'Phase 11.1 Cartoon Bible regression checks failed' }
     )
     foreach ($check in $RegressionChecks) {
         node $check.Path
@@ -197,11 +205,12 @@ try {
     Write-Host 'FASE 8 ativa: Visual Router source-first, licencas fail-closed, cache local, creditos e proveniencia de midia.' -ForegroundColor Green
     Write-Host 'FASE 9 ativa: Retention, Thumbnail, SEO, Visual e Fact Quality Agents com scores, blockers e repair plan.' -ForegroundColor Green
     Write-Host 'FASE 10 ativa: tracing persistente, doctor/E2E seguro, near-duplicate guard, auto-repair textual, reconciliacao e publicacao approval-safe.' -ForegroundColor Green
+    Write-Host 'FASE 11.1 ativa: Character Bible + Style Bible persistentes, identidade cartoon original e consistencia de prompt por cena.' -ForegroundColor Green
     Write-Host 'Production hardening ativo: provenance, anti-hallucination, local visuals, quota breaker e duplicate guard.' -ForegroundColor Green
     Write-Host 'DarkzSEO 1.4 pinned e validado localmente.' -ForegroundColor Green
     Write-Host 'sqlite3 install scripts approved for this project.' -ForegroundColor Green
     Write-Host 'Execute: npm install' -ForegroundColor Cyan
-    Write-Host 'Depois execute: npm run test:contracts; npm run test:scenes; npm run test:audio-scenes; npm run test:tts-hardening; npm run test:ai-usage; npm run test:evidence; npm run test:instructions; npm run test:visual-director; npm run test:visual-router; npm run test:quality-agents; npm run test:autonomy' -ForegroundColor Cyan
+    Write-Host 'Depois execute: npm run test:contracts; npm run test:scenes; npm run test:audio-scenes; npm run test:tts-hardening; npm run test:ai-usage; npm run test:evidence; npm run test:instructions; npm run test:visual-director; npm run test:visual-router; npm run test:quality-agents; npm run test:autonomy; npm run test:cartoon-bible' -ForegroundColor Cyan
     Write-Host 'Diagnostico seguro: npm run doctor; npm run e2e:safe' -ForegroundColor Cyan
     Write-Host 'Depois execute: npx playwright install chromium' -ForegroundColor Cyan
 } finally {
