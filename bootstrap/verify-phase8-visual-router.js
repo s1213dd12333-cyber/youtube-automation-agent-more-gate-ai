@@ -160,19 +160,25 @@ check('database persists a dedicated visual source and rights audit trail', () =
   assert(source.includes('sourceAsset: latestByScene.get(scene.id) || null'));
 });
 
-check('scene pipeline runs the real-source router before generated image fallback', () => {
+check('scene pipeline runs the real-source router before generated image fallback for non-cartoon briefs', () => {
   const source = fs.readFileSync(path.join(upstream, 'utils', 'scene-pipeline-v2.js'), 'utf8');
   const route = source.indexOf('await this.visualRouter.resolve({ productionId, scene');
   const generated = source.indexOf('await this.videoGenerator.generateVisualAssets(', route);
   assert(route >= 0 && generated > route);
   assert(source.includes("assetOrigin: routed?.path ? 'licensed-source' : 'generated'"));
   assert(source.includes('visualRouterVersion: 8'));
+  if (source.includes("visualBrief?.visualType === 'kids_cartoon_2d'")) {
+    assert(source.includes("? null\n          : await this.visualRouter.resolve({ productionId, scene"));
+  }
 });
 
-check('scene repair uses the same source-first router', () => {
+check('scene repair uses source-first routing except the explicit original-cartoon mode', () => {
   const source = fs.readFileSync(path.join(upstream, 'utils', 'scene-repair-service.js'), 'utf8');
   assert(source.includes("const { VisualAssetRouterV8 } = require('./visual-router-v8');"));
-  assert(source.includes('const routed = await this.visualRouter.resolve({ productionId, scene, brief: visualBrief });'));
+  const legacy = source.includes('const routed = await this.visualRouter.resolve({ productionId, scene, brief: visualBrief });');
+  const cartoonAware = source.includes("visualBrief?.visualType === 'kids_cartoon_2d'") &&
+    source.includes(': await this.visualRouter.resolve({ productionId, scene, brief: visualBrief });');
+  assert(legacy || cartoonAware);
   assert(source.includes("assetOrigin: 'licensed-source'"));
 });
 
