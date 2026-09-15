@@ -154,3 +154,11 @@ for (const rel of [
   'templates/temporary-location-state-v11.js'
 ]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
 require('./phase11-temporary-location-state.js');
+
+// Phase 11.9.6 gates reused cross-video locations/zones against canonical visual anchors while tolerating explicit temporary appearance state.
+for (const rel of [
+  'phase11-cross-video-continuity.js',
+  'verify-phase11-cross-video-continuity.js',
+  'templates/cross-video-continuity-gate-v11.js'
+]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+require('./phase11-cross-video-continuity.js');
