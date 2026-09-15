@@ -46,3 +46,20 @@ for (const rel of [
 }
 require('./phase11-persistent-world-objects.js');
 execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-persistent-world-objects.js')], { stdio: 'inherit' });
+
+// Phase 11.10.2 adds conservative aliases and narrative object resolution on top of the proven registry.
+for (const rel of [
+  'phase11-persistent-world-object-resolver.js',
+  'verify-phase11-persistent-world-object-resolver.js',
+  'templates/persistent-world-object-resolver-v11.js'
+]) {
+  execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+}
+for (const rel of [
+  'templates/persistent-world-object-resolver-db-tables-v11.txt',
+  'templates/persistent-world-object-resolver-db-methods-v11.txt'
+]) {
+  if (!fs.existsSync(path.join(__dirname, rel))) throw new Error(`Phase 11.10.2 prerequisite missing: ${rel}`);
+}
+require('./phase11-persistent-world-object-resolver.js');
+execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-persistent-world-object-resolver.js')], { stdio: 'inherit' });
