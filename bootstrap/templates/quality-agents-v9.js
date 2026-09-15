@@ -105,7 +105,7 @@ function classifyContent(production = {}) {
   if (/\b(how to|tutorial|guide|step by step|steps)\b/.test(text)) return 'tutorial';
   if (/\b(vs\.?|versus|compare|comparison|difference between)\b/.test(text)) return 'comparison';
   if (/\b(history|historical|ancient|century|archive|war|dynasty|empire)\b/.test(text)) return 'historical';
-  if (/\b(science|scientific|physics|biology|chemistry|astronomy|space|relativity|experiment|research|psychology)\b/.test(text)) return 'scientific';
+  if (/\b(science|scientific|physics|biology|chemistry|astronomy|space|relativity|experiment|research|psychology|gravity|gravitational|quantum|particle|molecule|atomic|atom|clock|clocks|gps|satellite|satellites|geology|climate|neuroscience|genetics|evolution)\b|\btime dilation\b|\batomic clocks?\b/.test(text)) return 'scientific';
   return 'evergreen';
 }
 
@@ -268,96 +268,86 @@ function visualAgent(production = {}) {
 
   if (!scenes.length) {
     score -= 60;
-    findings.push(finding('visual_no_scenes', 'CRITICAL', 'No scene manifest is available for visual review.', 'Build the scene manifest and media before approval.', { blocking: true }));
+    findings.push(finding('visual_no_scenes', 'CRITICAL', 'No production scenes are available for visual review.', 'Build the scene manifest before approval.', { blocking: true }));
   }
   if (missingAssets.length) {
-    score -= Math.min(55, 20 + missingAssets.length * 8);
-    findings.push(finding('visual_missing_assets', 'CRITICAL', `${missingAssets.length} scene${missingAssets.length === 1 ? '' : 's'} have missing, failed, or stale visuals.`, 'Repair or regenerate each affected scene before approval.', { blocking: true, evidence: missingAssets.map(scene => scene.id) }));
+    score -= Math.min(60, 20 + missingAssets.length * 8);
+    findings.push(finding('visual_missing_assets', 'CRITICAL', `${missingAssets.length} scene(s) have missing/stale/failed visuals.`, 'Repair the affected scene visuals and rebuild the video.', { blocking: true, evidence: missingAssets.map(scene => scene.id) }));
+  }
+  if (rejectedBriefs) {
+    score -= Math.min(35, rejectedBriefs * 12);
+    findings.push(finding('visual_rejected_briefs', 'HIGH', `${rejectedBriefs} Visual Director brief(s) are below the acceptance floor.`, 'Revise the affected scene prompts or use a more concrete real-source/diagram representation.', { blocking: true }));
+  }
+  if (avgSpecificity !== null && avgSpecificity < 70) {
+    score -= 18;
+    findings.push(finding('visual_specificity', 'HIGH', `Average Visual Director specificity is ${Math.round(avgSpecificity)}/100.`, 'Make visual subjects, objects, location, relationships, and viewer takeaway more concrete.'));
+  }
+  if (avgGenericRisk !== null && avgGenericRisk > 50) {
+    const severe = avgGenericRisk >= 65;
+    score -= severe ? 30 : 18;
+    findings.push(finding('visual_generic_risk', severe ? 'HIGH' : 'MEDIUM', `Average Generic-AI risk is ${Math.round(avgGenericRisk)}/100.`, 'Replace generic imagery with relevant real sources, diagrams, or more specific prompts.', { blocking: severe }));
   }
   if (unresolvedRights.length) {
-    score -= 35;
-    findings.push(finding('visual_rights', 'CRITICAL', `${unresolvedRights.length} external/uploaded asset${unresolvedRights.length === 1 ? '' : 's'} lack a confirmed reuse basis.`, 'Resolve the media license/rights record or replace the asset.', { blocking: true, evidence: unresolvedRights.map(scene => scene.id) }));
-  }
-  if (!briefList.length && scenes.length) {
-    score -= 12;
-    findings.push(finding('visual_no_briefs', 'MEDIUM', 'No Visual Director briefs are attached to this production.', 'Regenerate visual planning with Visual Director v7 before assessing visual specificity.'));
-  } else {
-    if (rejectedBriefs) {
-      score -= Math.min(35, rejectedBriefs * 12);
-      findings.push(finding('visual_rejected_briefs', 'HIGH', `${rejectedBriefs} VisualBrief${rejectedBriefs === 1 ? '' : 's'} failed the v7 quality gate.`, 'Repair the affected VisualBriefs before generating final media.', { blocking: true }));
-    }
-    if (avgSpecificity !== null && avgSpecificity < 70) {
-      score -= 18;
-      findings.push(finding('visual_specificity', 'HIGH', `Average visual specificity is ${Math.round(avgSpecificity)}/100.`, 'Make scene subjects, objects, relationships, and shot purpose more concrete.', { blocking: avgSpecificity < 60 }));
-    }
-    if (avgGenericRisk !== null && avgGenericRisk > 50) {
-      score -= 18;
-      findings.push(finding('visual_generic_risk', 'HIGH', `Average Generic-AI risk is ${Math.round(avgGenericRisk)}/100.`, 'Replace generic mood imagery with scene-specific real assets, diagrams, or concrete prompts.', { blocking: avgGenericRisk > 60 }));
-    }
+    score -= 45;
+    findings.push(finding('visual_rights', 'CRITICAL', `${unresolvedRights.length} external/uploaded scene asset(s) do not have confirmed rights.`, 'Resolve media rights or replace the assets before approval.', { blocking: true, evidence: unresolvedRights.map(scene => scene.id) }));
   }
   if (duplicateAssets > 0) {
-    score -= Math.min(15, duplicateAssets * 5);
-    findings.push(finding('visual_duplicate_assets', 'MEDIUM', `${duplicateAssets} scene asset path${duplicateAssets === 1 ? '' : 's'} are reused.`, 'Use intentionally distinct visuals unless repetition is editorially justified.'));
+    score -= Math.min(18, duplicateAssets * 6);
+    findings.push(finding('visual_duplicates', 'MEDIUM', `${duplicateAssets} duplicate scene asset path(s) were detected.`, 'Use distinct visuals when the narration changes subject or explanatory purpose.'));
   }
-  if (scenes.length >= 4 && localCount === scenes.length) {
+  if (localCount && localCount === scenes.length) {
     score -= 8;
-    findings.push(finding('visual_all_local', 'LOW', 'Every scene uses the local explanatory renderer.', 'Where rights-safe real media is available, mix it with diagrams to improve visual variety.'));
+    findings.push(finding('visual_all_local_renderer', 'LOW', 'Every scene currently uses the local explanatory renderer.', 'Where rights permit, mix in relevant real-source assets or provider imagery for visual variety.'));
   }
 
   return finalizeAgent('visual', 'Visual Quality Agent', score, findings, {
-    sceneCount: scenes.length, briefCount: briefList.length, averageSpecificity: avgSpecificity === null ? null : Math.round(avgSpecificity),
-    averageGenericAiRisk: avgGenericRisk === null ? null : Math.round(avgGenericRisk), rejectedBriefs, missingAssets: missingAssets.length,
-    unresolvedRights: unresolvedRights.length, realSourceScenes: sourceCount, localRendererScenes: localCount, duplicateAssets
-  }, 55);
+    sceneCount: scenes.length, missingAssets: missingAssets.length, rejectedBriefs,
+    averageSpecificity: avgSpecificity === null ? null : Math.round(avgSpecificity),
+    averageGenericAiRisk: avgGenericRisk === null ? null : Math.round(avgGenericRisk),
+    sourceScenes: sourceCount, localRendererScenes: localCount, unresolvedRights: unresolvedRights.length, duplicateAssets
+  }, 60);
 }
 
 function factAgent(production = {}) {
   const provenance = production.provenance || {};
-  const summary = provenance.summary || {};
-  const script = production.script || {};
-  const declaredClaims = Array.isArray(script.claims) ? script.claims : [];
-  const evidencePack = production.strategy?.evidencePack || {};
-  const verifiedSources = (Array.isArray(evidencePack.sources) ? evidencePack.sources : []).filter(source => source.status === 'verified');
-  const evidenceReview = production.evidenceReview || production.strategy?.evidenceReview || script.evidenceReview || null;
-  const unresolved = Number(summary.unresolvedClaims || 0);
-  const unsupportedDeclared = declaredClaims.filter(claim => {
-    if (!claim || typeof claim !== 'object') return false;
-    if (claim.verified === false || claim.supported === false || claim.status === 'unsupported') return true;
-    const urls = Array.isArray(claim.sourceUrls) ? claim.sourceUrls.filter(Boolean) : [];
-    return urls.length === 0;
-  });
+  const evidenceReview = production.script?.evidenceReview || production.evidenceReview || null;
+  const evidencePack = production.strategy?.evidencePack || production.researchEvidence || null;
+  const claims = Array.isArray(production.script?.claims) ? production.script.claims : [];
+  const unresolved = Number(provenance.summary?.unresolvedClaims || 0);
+  const resolved = Number(provenance.summary?.resolvedClaims || 0);
+  const verifiedSources = Number(provenance.summary?.verifiedSources || (evidencePack?.sources || []).filter(source => source.status === 'verified').length || 0);
+  const unsupportedDeclared = claims.filter(claim => !Array.isArray(claim.sourceUrls) || !claim.sourceUrls.length || claim.verified === false);
   const findings = [];
   let score = 100;
 
-  const provenanceStatus = provenance.status || 'not_required';
-  if (!['verified', 'not_required'].includes(provenanceStatus)) {
-    score -= 45;
-    findings.push(finding('fact_provenance', 'CRITICAL', `Provenance status is ${provenanceStatus}.`, 'Resolve every factual claim against reviewed evidence before approval.', { blocking: true }));
+  if (provenance.status && provenance.status !== 'verified') {
+    score -= 35;
+    findings.push(finding('fact_provenance', 'CRITICAL', `Provenance status is ${provenance.status}, not verified.`, 'Resolve or remove unsupported claims and rerun provenance verification.', { blocking: true }));
+  }
+  if (evidenceReview?.status === 'blocked') {
+    score -= 40;
+    findings.push(finding('fact_evidence_desk', 'CRITICAL', 'Evidence Desk reports unsupported or uncited claims.', 'Repair the blocked claims against retrieved evidence before approval.', { blocking: true }));
   }
   if (unresolved > 0) {
-    score -= Math.min(45, 15 + unresolved * 8);
-    findings.push(finding('fact_unresolved_claims', 'CRITICAL', `${unresolved} factual claim${unresolved === 1 ? '' : 's'} remain unresolved.`, 'Repair or remove unsupported claims and rerun the Evidence Desk.', { blocking: true }));
+    score -= Math.min(50, 20 + unresolved * 10);
+    findings.push(finding('fact_unresolved_claims', 'CRITICAL', `${unresolved} provenance claim(s) remain unresolved.`, 'Provide verified evidence or remove/reframe the claims.', { blocking: true }));
   }
   if (unsupportedDeclared.length) {
-    score -= Math.min(40, unsupportedDeclared.length * 10);
-    findings.push(finding('fact_declared_claims', 'HIGH', `${unsupportedDeclared.length} declared claim${unsupportedDeclared.length === 1 ? '' : 's'} lack support URLs or are marked unsupported.`, 'Attach evidence URLs from the verified evidence pack or remove the claims.', { blocking: true }));
+    score -= Math.min(45, 15 + unsupportedDeclared.length * 8);
+    findings.push(finding('fact_declared_claims', 'HIGH', `${unsupportedDeclared.length} declared claim(s) lack an accepted evidence URL or verification marker.`, 'Repair each claim against the Evidence Pack or remove it from the script.', { blocking: true }));
   }
-  if (evidenceReview && ['blocked', 'failed', 'rejected'].includes(String(evidenceReview.status || '').toLowerCase())) {
-    score -= 35;
-    findings.push(finding('fact_evidence_desk', 'CRITICAL', `Evidence Desk status is ${evidenceReview.status}.`, 'Resolve Evidence Desk failures before producing/publishing.', { blocking: true }));
-  }
-  if (provenanceStatus === 'verified' && verifiedSources.length === 0 && Number(summary.claimCount || 0) > 0) {
-    score -= 18;
-    findings.push(finding('fact_source_traceability', 'HIGH', 'Claims are marked verified but the current evidence pack exposes no verified source text.', 'Refresh research/evidence so the source trail is inspectable.'));
-  }
-  if (provenanceStatus === 'not_required' && declaredClaims.length > 0) {
+  if (verifiedSources === 0 && claims.length) {
     score -= 25;
-    findings.push(finding('fact_not_required_mismatch', 'HIGH', 'The script declares factual claims while provenance says fact checking is not required.', 'Re-run provenance/evidence review so the status matches the script.', { blocking: true }));
+    findings.push(finding('fact_no_verified_sources', 'HIGH', 'No verified evidence source is associated with the factual claims.', 'Research the topic again and attach retrievable evidence before approval.', { blocking: true }));
+  }
+  if (claims.length === 0) {
+    score -= 10;
+    findings.push(finding('fact_no_declared_claims', 'MEDIUM', 'The script has no declared factual claims to audit.', 'For factual videos, declare the externally verifiable claims and their source URLs.'));
   }
 
   return finalizeAgent('fact', 'Fact Quality Agent', score, findings, {
-    provenanceStatus, claimCount: Number(summary.claimCount || declaredClaims.length || 0), unresolvedClaims: unresolved,
-    declaredClaims: declaredClaims.length, unsupportedDeclaredClaims: unsupportedDeclared.length, verifiedEvidenceSources: verifiedSources.length,
+    provenanceStatus: provenance.status || null, resolvedClaims: resolved, unresolvedClaims: unresolved,
+    declaredClaims: claims.length, unsupportedDeclaredClaims: unsupportedDeclared.length, verifiedEvidenceSources: verifiedSources,
     evidenceDeskStatus: evidenceReview?.status || null
   }, 60);
 }
