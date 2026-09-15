@@ -34,9 +34,12 @@ Phase 11.11 closes that gap without changing the Phase 11.1 Character Bible cont
    - `scene` or explicit `until_changed` persistence;
    - durable reset prevents stale appearance state from resurfacing;
    - canonical identity and 11.11.3 reference remain immutable.
-5. **11.11.5 — Scene / Shot Character Binding**
-   - explicit visible/occluded/offscreen/mentioned character bindings;
-   - shot prompt + fingerprint integration.
+5. **11.11.5 — Scene / Shot Character Binding** — implemented and Windows-validated.
+   - exact `characterId` binding for the Shot Planner cast;
+   - explicit `visible`, `occluded`, `offscreen` and `mentioned` semantics;
+   - explicit per-scene/per-shot overrides take precedence over derived Shot Planner visibility;
+   - canonical character asset and 11.11.4 appearance state enrich visual bindings;
+   - binding fingerprints participate in shot/scene/production fingerprints.
 6. **11.11.6 — Cross-Video Character Continuity Gate**
    - compare visible reused characters against canonical reference assets;
    - tolerate declared appearance state while blocking replacement/identity drift.
@@ -207,6 +210,58 @@ Every state row stores the canonical identity fingerprint as provenance, but sta
 - canonical palette, proportions, face or silhouette;
 - 11.11.3 `character_reference` asset/hash/provider/origin.
 
+## 11.11.5 contract
+
+`PersistentCharacterBindingV11` converts the intended visual cast into exact persistent character identities before `scene_shots` are persisted.
+
+### Binding sources
+
+The binder accepts explicit scene/shot declarations through:
+
+- `characterBindings`;
+- `persistentCharacterBindings`;
+- `shotCharacterBindings`;
+- per-shot `characterBindings`.
+
+It also consumes the Character Bible IDs already placed in `shot.characters` by Shot Planner 11.2. Those source Character Bible IDs resolve through the current production's persistent-character usage rows to exact `characterId` values.
+
+Raw narrative text by itself is not a binding. A character name mentioned in prose does not force visual presence unless Shot Planner placed it in the shot cast or an explicit binding declares it.
+
+### Presence semantics
+
+- `visible` — render the exact persistent character.
+- `occluded` — the character is visually present but partly blocked; continuity still applies.
+- `offscreen` — preserve narrative identity but explicitly do not render the character.
+- `mentioned` — reference-only; explicitly do not render the character.
+
+Explicit scene/shot declarations override the derived Shot Planner visibility for the same `characterId` and shot. Two contradictory explicit declarations for the same character/shot fail closed as a binding conflict.
+
+### Resolution order
+
+Bindings resolve conservatively by:
+
+1. exact `characterId`;
+2. exact `characterKey`;
+3. exact source Character Bible character id for the current production usage;
+4. exact persisted alias;
+5. exact canonical display name/key;
+6. otherwise `ambiguous` or `unresolved`.
+
+No fuzzy merge is introduced by the binding layer.
+
+### Prompt and fingerprint integration
+
+For `visible`/`occluded` bindings the shot prompt receives:
+
+- exact `characterId` / `characterKey`;
+- 11.11.3 canonical character asset id/hash when ready;
+- applicable 11.11.4 appearance-state id/fingerprint;
+- placement/action/expression metadata when declared.
+
+For `offscreen`/`mentioned`, the prompt explicitly forbids rendering that character.
+
+The binding fingerprint includes character identity, visibility, placement/action/expression, appearance-state fingerprint and canonical-asset hash. Binding changes therefore propagate into shot, scene and production fingerprints so stale visual generations are not reused after a character-presence/state change.
+
 ## Persistence
 
 11.11.1 adds:
@@ -227,13 +282,17 @@ Every state row stores the canonical identity fingerprint as provenance, but sta
 
 - `persistent_character_appearance_states`
 
-The production bundle exposes `persistentCharacters`, `persistentCharacterResolutions`, `persistentCharacterAssets` and `persistentCharacterAppearanceStates`.
+11.11.5 adds:
+
+- `persistent_character_bindings`
+
+The production bundle exposes `persistentCharacters`, `persistentCharacterResolutions`, `persistentCharacterAssets`, `persistentCharacterAppearanceStates` and `persistentCharacterBindings`.
 
 ## Prompt / pipeline integration
 
-After Phase 11.1 builds/loads the production Character Bible, the persistent registry/resolver runs before visual planning. 11.11.3 promotes/reuses canonical references after the persistent character plan is known. 11.11.4 then resolves explicit/inherited appearance state before visual scene generation begins.
+After Phase 11.1 builds/loads the production Character Bible, the persistent registry/resolver runs before visual planning. 11.11.3 promotes/reuses canonical references after the persistent character plan is known. 11.11.4 resolves explicit/inherited appearance state before visual scene generation. After Shot Planner 11.2 creates the concrete per-shot cast, 11.11.5 resolves those cast IDs plus explicit overrides to persistent characters and updates shot fingerprints before shot persistence/keyframe generation.
 
-The original Phase 11.1 Character Bible database record/fingerprint remains unchanged. State prompt fragments explicitly instruct later shot/keyframe layers to apply appearance as an overlay rather than mutate canonical identity.
+The original Phase 11.1 Character Bible database record/fingerprint remains unchanged.
 
 ## Environment
 
@@ -246,6 +305,8 @@ CANONICAL_CHARACTER_ASSETS_ENABLED=true
 CANONICAL_CHARACTER_ASSET_REQUIRE_PROVIDER=true
 PERSISTENT_CHARACTER_APPEARANCE_STATES_ENABLED=true
 PERSISTENT_CHARACTER_APPEARANCE_STATE_INHERIT_DURABLE=true
+PERSISTENT_CHARACTER_BINDINGS_ENABLED=true
+PERSISTENT_CHARACTER_BINDINGS_USE_SHOT_PLANNER_CAST=true
 ```
 
 Use one namespace per channel/story universe where possible.
@@ -257,6 +318,7 @@ npm run test:persistent-characters
 npm run test:persistent-character-resolver
 npm run test:canonical-character-assets
 npm run test:persistent-character-appearance-state
+npm run test:persistent-character-binding
 ```
 
 Windows Server 2025 / Node 24 validation currently confirms:
@@ -264,12 +326,13 @@ Windows Server 2025 / Node 24 validation currently confirms:
 - 11.11.1: 52 regression checks;
 - 11.11.2: 49 regression checks;
 - 11.11.3: 61 regression checks;
-- 11.11.4: 86 regression checks.
+- 11.11.4: 86 regression checks;
+- 11.11.5: 75 regression checks.
 
 The same validation run also preserved the complete Phase 11.10 full suite.
 
 ## Completion boundary
 
-11.11.1 through 11.11.4 are implemented, materialized and Windows-validated after the fully validated 11.10 closeout.
+11.11.1 through 11.11.5 are implemented, materialized and Windows-validated after the fully validated 11.10 closeout.
 
-The current phase still does **not** claim per-shot character bindings, visual character continuity gating, operator library controls or integrated cross-video character E2E; those remain 11.11.5–11.11.8.
+The current phase still does **not** claim visual cross-video character continuity gating, operator library controls or integrated cross-video character E2E; those remain 11.11.6–11.11.8.
