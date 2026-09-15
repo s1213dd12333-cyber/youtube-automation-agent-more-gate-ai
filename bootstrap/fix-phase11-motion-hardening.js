@@ -162,3 +162,12 @@ for (const rel of [
   'templates/cross-video-continuity-gate-v11.js'
 ]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
 require('./phase11-cross-video-continuity.js');
+
+// Phase 11.9.7 exposes the reusable location library to operators and safely auto-selects generic references when one candidate clearly wins.
+for (const rel of [
+  'phase11-location-library-ui.js',
+  'verify-phase11-location-library-ui.js',
+  'templates/location-library-manager-v11.js',
+  'templates/location-library-dashboard-v11.js'
+]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+require('./phase11-location-library-ui.js');
