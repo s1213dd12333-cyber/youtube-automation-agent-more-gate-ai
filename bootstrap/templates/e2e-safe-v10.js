@@ -30,7 +30,7 @@ async function main() {
     console.log(JSON.stringify(result, null, 2));
     if (doctor.status === 'failed') process.exitCode = 1;
   } finally {
-    await db.close?.().catch?.(() => {});
+    if (typeof db.close === 'function') await db.close().catch(() => {});
   }
 }
 
