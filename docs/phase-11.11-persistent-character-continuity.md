@@ -22,10 +22,12 @@ Phase 11.11 closes that gap without changing the Phase 11.1 Character Bible cont
    - contextual generic resolution only when one compatible character exists;
    - contextual generic references are not auto-promoted into permanent aliases;
    - no broad fuzzy matching.
-3. **11.11.3 — Canonical Character Assets**
+3. **11.11.3 — Canonical Character Assets** — implemented and Windows-validated.
    - provider-backed canonical character reference images;
-   - immutable hash/provenance;
-   - no generic/local fallback promotion.
+   - immutable hash/provider/model/origin provenance;
+   - one `character_reference` role per persistent character;
+   - no generic/local fallback promotion;
+   - unresolved or ambiguous declarations fail closed.
 4. **11.11.4 — Wardrobe / Appearance State Layers**
    - temporary and durable costume, age/condition, carried-item and appearance state;
    - canonical identity remains immutable.
@@ -114,6 +116,47 @@ Exact aliases/names take precedence over species inferred from the wording. This
 
 Alias resolution never authorizes canonical mutation. Incoming stable visual attributes are compared against the stored identity. An explicit key with incompatible canonical attributes returns a conflict; incompatible aliases are not silently merged.
 
+## 11.11.3 contract
+
+`CanonicalCharacterAssetRegistryV11` promotes only explicitly declared canonical character references that are already bound to one persistent `characterId` from 11.11.1/11.11.2.
+
+Supported declaration forms include nested `canonicalCharacterAsset`, `canonicalAsset`, `canonicalReference` / `characterReference`, or their explicit flat canonical path/provider fields.
+
+A declaration may bind by:
+
+1. exact `characterKey`;
+2. exact source Character Bible character id;
+3. explicit source reference;
+4. exact canonical display name plus compatible species.
+
+If the declaration matches zero or multiple persistent characters, promotion fails closed. Display-name fallback is only used when no stronger explicit source reference is present.
+
+### Provider requirement
+
+By default, promotion requires explicit non-local provider provenance. Providers/paths representing local renderer, generic fallback or slideshow output are rejected. Supported canonical image extensions are PNG, JPEG and WebP.
+
+A generic local keyframe or arbitrary scene image does **not** become a canonical character reference merely because it visually contains the character.
+
+### Immutability
+
+The canonical role is `character_reference`, with one role per `characterId`. The first valid provider-backed reference stores:
+
+- `identityFingerprint`;
+- byte SHA-256;
+- asset path;
+- provider and model;
+- source production;
+- source Character Bible;
+- source character id/reference.
+
+Later episodes reuse that asset. A later declaration with different bytes/provider/model does not overwrite the original reference. Identity-fingerprint disagreement or a missing previously persisted canonical file returns a conflict.
+
+Canonical files are copied into:
+
+`data/assets/character-library/<namespace>/<characterId>/character_reference.<ext>`
+
+This gives 11.11.5/11.11.6 a stable visual anchor without coupling the reference to one episode directory.
+
 ## Persistence
 
 11.11.1 adds:
@@ -126,11 +169,17 @@ Alias resolution never authorizes canonical mutation. Incoming stable visual att
 - `persistent_character_aliases`
 - `persistent_character_resolutions`
 
-The production bundle exposes both `persistentCharacters` and `persistentCharacterResolutions`, including status, match mode, confidence, candidates and reason.
+11.11.3 adds:
 
-## Prompt integration
+- `persistent_character_assets`
 
-After Phase 11.1 builds/loads the production Character Bible, the persistent registry/resolver is evaluated before visual planning. The in-memory Character Bible prompt receives the persistent canonical character context while the original Phase 11.1 database record and fingerprint remain unchanged.
+The production bundle exposes `persistentCharacters`, `persistentCharacterResolutions` and `persistentCharacterAssets`.
+
+## Prompt / pipeline integration
+
+After Phase 11.1 builds/loads the production Character Bible, the persistent registry/resolver runs before visual planning. 11.11.3 then promotes/reuses canonical references after the persistent character plan is known and still before visual scene generation begins.
+
+The original Phase 11.1 Character Bible database record/fingerprint remains unchanged.
 
 ## Environment
 
@@ -139,6 +188,8 @@ PERSISTENT_CHARACTERS_ENABLED=true
 PERSISTENT_CHARACTER_NAMESPACE=default
 PERSISTENT_CHARACTER_RESOLVER_ENABLED=true
 PERSISTENT_CHARACTER_RESOLVER_ALLOW_CONTEXTUAL_GENERIC=true
+CANONICAL_CHARACTER_ASSETS_ENABLED=true
+CANONICAL_CHARACTER_ASSET_REQUIRE_PROVIDER=true
 ```
 
 Use one namespace per channel/story universe where possible.
@@ -148,15 +199,19 @@ Use one namespace per channel/story universe where possible.
 ```bash
 npm run test:persistent-characters
 npm run test:persistent-character-resolver
+npm run test:canonical-character-assets
 ```
 
-Windows validation currently confirms:
+Windows Server 2025 / Node 24 validation currently confirms:
 
 - 11.11.1: 52 regression checks;
-- 11.11.2: 49 regression checks.
+- 11.11.2: 49 regression checks;
+- 11.11.3: 61 regression checks.
+
+The same validation run also preserved the complete Phase 11.10 full suite.
 
 ## Completion boundary
 
-11.11.1 and 11.11.2 are complete when the materialized Windows runtime passes their verifiers after the fully validated 11.10 closeout.
+11.11.1 through 11.11.3 are complete when the materialized Windows runtime passes their verifiers after the fully validated 11.10 closeout.
 
-The current phase still does **not** claim canonical character image references, wardrobe/appearance state, per-shot character bindings, visual character continuity gating, operator library controls or integrated cross-video E2E; those remain 11.11.3–11.11.8.
+The current phase still does **not** claim wardrobe/appearance state, per-shot character bindings, visual character continuity gating, operator library controls or integrated cross-video character E2E; those remain 11.11.4–11.11.8.
