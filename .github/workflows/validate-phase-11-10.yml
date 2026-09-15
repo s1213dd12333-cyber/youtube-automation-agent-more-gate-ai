@@ -34,6 +34,13 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install pinned upstream dependencies for bootstrap verifiers
+        shell: pwsh
+        working-directory: upstream
+        run: |
+          npm pkg set "allowScripts.sqlite3=true" --json
+          npm install
+
       - name: Materialize and run all bootstrap regression gates
         shell: pwsh
         run: ./materialize.ps1
