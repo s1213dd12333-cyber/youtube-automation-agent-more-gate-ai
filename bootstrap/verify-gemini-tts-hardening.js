@@ -19,9 +19,13 @@ assert(video.includes("process.env.GEMINI_TTS_RETRIES || 3"));
 assert(video.includes("process.env.GEMINI_TTS_RETRY_MS || 750"));
 assert(video.includes('Synthesize speech only from the transcript below.'));
 assert(video.includes("error.code = 'GEMINI_TTS_RETRY_EXHAUSTED'"));
-assert(video.includes("'GEMINI_TTS_QUOTA_ZERO'"));
+assert(video.includes("error.code = 'GEMINI_TTS_DAILY_QUOTA_EXHAUSTED'"));
+assert(video.includes('this.geminiTTSDailyQuotaExhausted = true'));
+assert(video.includes("process.env.LOCAL_TTS_FALLBACK_ENABLED || 'true'"));
+assert(video.includes('async generateWindowsSapiTTS(text, outputPath)'));
+assert(video.includes("provider = 'windows-sapi'"));
 assert(video.includes('TTS generation failed via ${provider}/${model'));
-assert(narration.includes("if (error?.code === 'GEMINI_TTS_RETRY_EXHAUSTED') return false;"));
+assert(narration.includes("error?.code === 'GEMINI_TTS_DAILY_QUOTA_EXHAUSTED'"));
 assert.strictEqual(pkg.scripts['test:tts-hardening'], 'node ../bootstrap/verify-gemini-tts-hardening.js');
 
-console.log('Gemini TTS hardening OK: 8 regression checks passed.');
+console.log('Gemini TTS hardening OK: 12 regression checks passed.');
