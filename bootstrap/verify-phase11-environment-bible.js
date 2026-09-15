@@ -5,6 +5,10 @@ const fs = require('fs');
 const path = require('path');
 
 const upstream = path.resolve(__dirname, '..', 'upstream');
+
+// Repair older materialized 11.7.1 runtimes before loading the module.
+require('./fix-phase11-environment-bible-signatures.js');
+
 const runtimePath = path.join(upstream, 'utils', 'environment-bible-v11.js');
 if (!fs.existsSync(runtimePath)) throw new Error('Phase 11.7.1 runtime is not materialized: utils/environment-bible-v11.js');
 
@@ -46,7 +50,7 @@ check('furnished house captures sofa as signature element', () => assert(bibleA.
 check('furnished house captures table as signature element', () => assert(bibleA.environments[0].signatureElements.includes('table')));
 check('furnished house captures bookshelf as signature element', () => assert(bibleA.environments[0].signatureElements.includes('bookshelf')));
 check('furnished house captures rug as signature element', () => assert(bibleA.environments[0].signatureElements.includes('rug')));
-check('furnished house captures windows as signature element', () => assert(bibleA.environments[0].signatureElements.includes('window')));
+check('furnished house captures windows as canonical window signature element', () => assert(bibleA.environments[0].signatureElements.includes('window')));
 check('environment includes forbidden redesign rules', () => assert(bibleA.environments[0].forbiddenChanges.length >= 3));
 check('environment records source evidence', () => assert.strictEqual(bibleA.environments[0].sourceEvidence[0].source, 'explicit_instruction'));
 check('master frame is intentionally not generated in 11.7.1', () => assert.strictEqual(bibleA.environments[0].masterFramePath, null));
