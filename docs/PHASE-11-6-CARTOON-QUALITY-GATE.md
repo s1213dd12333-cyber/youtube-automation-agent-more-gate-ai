@@ -55,6 +55,17 @@ Publication remains blocked when:
 
 The direct scheduling and YouTube upload guards enforce the same freshness contract with `CARTOON_QUALITY_REQUIRED`, `CARTOON_QUALITY_STALE`, and `CARTOON_QUALITY_BLOCKED`. This prevents a previously passing review from being reused after a keyframe, continuity repair, motion segment, or scene composition changes, even if a caller bypasses the observability API.
 
+## YouTube audience metadata
+
+The upstream uploader previously hard-coded `selfDeclaredMadeForKids: false`. Phase 11.6 changes that behavior only for the explicit `kids_cartoon_2d` mode:
+
+```text
+kids_cartoon_2d → madeForKids=true → selfDeclaredMadeForKids=true
+other modes      → madeForKids=false
+```
+
+The audience value is persisted in the schedule metadata and then mapped into the YouTube upload status. This avoids silently treating an explicitly child-directed cartoon as non-child-directed content.
+
 ## Repetition rules
 
 Within one shot:
@@ -101,15 +112,17 @@ Review Studio displays the latest persisted report or the report embedded in the
 
 ```bash
 npm run test:cartoon-quality
+npm run test:made-for-kids
 ```
 
 Expected:
 
 ```text
 Phase 11.6 Cartoon Quality Gate OK: 34 regression checks passed.
+Phase 11.6 Made-for-Kids Mapping OK: 4 regression checks passed.
 ```
 
-The regression is deterministic and does not call image, TTS, video or paid AI providers. It verifies fail-closed publication behavior for missing, stale, and blocked cartoon quality reports and confirms that both direct scheduling and direct YouTube upload routes recompute the current cartoon quality state.
+Both regressions are deterministic and do not call image, TTS, video or paid AI providers. They verify fail-closed publication behavior for missing, stale, and blocked cartoon quality reports, direct scheduling/upload freshness checks, and explicit YouTube audience mapping for `kids_cartoon_2d`.
 
 ## Phase 11 completion boundary
 
@@ -123,6 +136,7 @@ Character Bible
 → ready local motion segments
 → ready motion scene videos
 → current Phase 11.6 report not blocked
+→ made-for-kids audience metadata for kids_cartoon_2d
 → human review before approval/publication
 ```
 
