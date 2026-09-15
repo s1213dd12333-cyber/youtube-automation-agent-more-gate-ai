@@ -30,3 +30,4 @@ require('./verify-phase11-environment-bible.js');
 require('./verify-phase11-prop-lock.js');
 require('./verify-phase11-master-environment.js');
 require('./verify-phase11-scene-environment-mapping.js');
+require('./verify-phase11-environment-prompt-enrichment.js');
