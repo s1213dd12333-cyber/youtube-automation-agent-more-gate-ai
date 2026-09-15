@@ -1,0 +1,54 @@
+  async saveCrossVideoObjectContinuityCheck(input = {}) {
+    if (!input.productionId || !input.sceneId || !input.shotId || !input.keyframeId || !input.status) return null;
+    const id = input.id || this.generateId('cross_video_object_continuity');
+    const createdAt = input.createdAt || new Date().toISOString();
+    const boolOrNull = value => value == null ? null : (value ? 1 : 0);
+    await this.executeQuery(`INSERT INTO cross_video_object_continuity_checks (
+      id, production_id, scene_id, shot_id, keyframe_id, binding_id, object_id, canonical_asset_id, canonical_asset_path, canonical_asset_sha256,
+      canonical_source_production_id, current_production_id, reused_across_videos, state_id, state_fingerprint, version, attempt, status, accepted,
+      required_binding, visibility, provider_used, provider_mode, model, vision_confidence, object_present, same_canonical_object,
+      canonical_identity_consistent, state_consistent, reasons, identity_mismatches, prompt_fingerprint, response_fingerprint, notes, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+      id, input.productionId, input.sceneId, input.shotId, input.keyframeId, input.bindingId || null, input.objectId || null,
+      input.canonicalAssetId || null, input.canonicalAssetPath || null, input.canonicalAssetSha256 || null, input.canonicalSourceProductionId || null,
+      input.currentProductionId || input.productionId, input.reusedAcrossVideos ? 1 : 0, input.stateId || null, input.stateFingerprint || null,
+      String(input.version || '11.10.6'), Number(input.attempt || 0), input.status, input.accepted ? 1 : 0, input.requiredBinding === false ? 0 : 1,
+      input.visibility || null, input.providerUsed ? 1 : 0, input.providerMode || null, input.model || null, Number(input.visionConfidence || 0),
+      boolOrNull(input.objectPresent), boolOrNull(input.sameCanonicalObject), boolOrNull(input.canonicalIdentityConsistent), boolOrNull(input.stateConsistent),
+      JSON.stringify(input.reasons || []), JSON.stringify(input.identityMismatches || []), input.promptFingerprint || null,
+      input.responseFingerprint || null, input.notes || null, createdAt
+    ]);
+    return this.getLatestCrossVideoObjectContinuityCheck(input.productionId, input.keyframeId, input.objectId || null);
+  }
+
+  async getLatestCrossVideoObjectContinuityCheck(productionId, keyframeId, objectId = null) {
+    const row = objectId
+      ? await this.getRow('SELECT * FROM cross_video_object_continuity_checks WHERE production_id = ? AND keyframe_id = ? AND object_id = ? ORDER BY attempt DESC, created_at DESC, rowid DESC LIMIT 1', [productionId, keyframeId, objectId])
+      : await this.getRow('SELECT * FROM cross_video_object_continuity_checks WHERE production_id = ? AND keyframe_id = ? ORDER BY attempt DESC, created_at DESC, rowid DESC LIMIT 1', [productionId, keyframeId]);
+    return this.parseCrossVideoObjectContinuityCheck(row);
+  }
+
+  async listCrossVideoObjectContinuityChecks(productionId) {
+    const rows = await this.getAllRows('SELECT * FROM cross_video_object_continuity_checks WHERE production_id = ? ORDER BY created_at, attempt, rowid', [productionId]);
+    return rows.map(row => this.parseCrossVideoObjectContinuityCheck(row));
+  }
+
+  parseCrossVideoObjectContinuityCheck(row) {
+    if (!row) return null;
+    const nullableBool = value => value == null ? null : Number(value) === 1;
+    return {
+      id: row.id, productionId: row.production_id, sceneId: row.scene_id, shotId: row.shot_id, keyframeId: row.keyframe_id,
+      bindingId: row.binding_id, objectId: row.object_id, canonicalAssetId: row.canonical_asset_id,
+      canonicalAssetPath: row.canonical_asset_path, canonicalAssetSha256: row.canonical_asset_sha256,
+      canonicalSourceProductionId: row.canonical_source_production_id, currentProductionId: row.current_production_id,
+      reusedAcrossVideos: Number(row.reused_across_videos || 0) === 1, stateId: row.state_id, stateFingerprint: row.state_fingerprint,
+      version: row.version || '11.10.6', attempt: Number(row.attempt || 0), status: row.status, accepted: Number(row.accepted || 0) === 1,
+      requiredBinding: Number(row.required_binding || 0) === 1, visibility: row.visibility, providerUsed: Number(row.provider_used || 0) === 1,
+      providerMode: row.provider_mode, model: row.model, visionConfidence: Number(row.vision_confidence || 0),
+      objectPresent: nullableBool(row.object_present), sameCanonicalObject: nullableBool(row.same_canonical_object),
+      canonicalIdentityConsistent: nullableBool(row.canonical_identity_consistent), stateConsistent: nullableBool(row.state_consistent),
+      reasons: JSON.parse(row.reasons || '[]'), identityMismatches: JSON.parse(row.identity_mismatches || '[]'),
+      promptFingerprint: row.prompt_fingerprint, responseFingerprint: row.response_fingerprint, notes: row.notes, createdAt: row.created_at
+    };
+  }
+
