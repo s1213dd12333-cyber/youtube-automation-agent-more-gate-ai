@@ -47,9 +47,11 @@ console.log('Phase 11.5 motion hardening active: byte-exact fingerprints, stale-
 // all Phase 11.6 bootstrap artifacts here before allowing them to patch upstream.
 for (const rel of [
   'phase11-cartoon-quality.js',
+  'fix-phase11-made-for-kids.js',
   'verify-phase11-cartoon-quality.js',
   'templates/cartoon-quality-gate-v11.js'
 ]) {
   execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
 }
 require('./phase11-cartoon-quality.js');
+require('./fix-phase11-made-for-kids.js');
