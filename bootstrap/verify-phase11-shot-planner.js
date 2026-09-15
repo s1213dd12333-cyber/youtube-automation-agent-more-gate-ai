@@ -150,6 +150,7 @@ check('environment documents six-shot default maximum', () => assert(envSource.i
   for (const item of checks) await item.fn();
   console.log(`Phase 11.2 Shot Planner OK: ${checks.length} regression checks passed.`);
   require('./verify-phase11-keyframes.js');
+  require('./verify-phase11-continuity.js');
 })().catch(error => {
   console.error(error.stack || error.message || error);
   process.exit(1);
