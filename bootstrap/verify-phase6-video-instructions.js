@@ -103,6 +103,18 @@ check('script generation refuses a generic fallback when instructions would be i
   assert(source.includes('refusing generic template fallback'));
 });
 
+check('reasoning-model length exhaustion retries once with a bounded larger script budget', () => {
+  const source = fs.readFileSync(path.join(upstream, 'agents', 'script-writer-agent.js'), 'utf8');
+  const env = fs.readFileSync(path.join(upstream, '.env.example'), 'utf8');
+  assert(source.includes('SCRIPT_AI_MAX_TOKENS || 6144'));
+  assert(source.includes('SCRIPT_AI_RETRY_MAX_TOKENS || 12288'));
+  assert(source.includes("error?.code === 'AI_EMPTY_RESPONSE'"));
+  assert(source.includes('/finish_reason=length/i.test'));
+  assert(source.includes("operation: 'script_retry_length'"));
+  assert(env.includes('SCRIPT_AI_MAX_TOKENS=6144'));
+  assert(env.includes('SCRIPT_AI_RETRY_MAX_TOKENS=12288'));
+});
+
 check('SEO prompt receives the same per-video instructions', () => {
   const source = fs.readFileSync(path.join(upstream, 'agents', 'seo-optimizer-agent.js'), 'utf8');
   assert(source.includes("promptInstructionBlock(strategy.videoInstructions)"));
