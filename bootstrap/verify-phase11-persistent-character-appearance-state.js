@@ -162,7 +162,8 @@ async function runtimeChecks() {
   ] };
   const amb = await layer.ensureProductionStates({ id: 'video_amb' }, { id: 'bible_x', mode: 'kids_cartoon_2d', characterStates: [{ species: 'rabbit', appearanceState: { cleanliness: 'dusty' } }] }, ambiguousPlan);
   check('ambiguous appearance declaration fails closed', () => assert.strictEqual(amb.summary.ambiguous, 1));
-  check('ambiguous declaration creates no state', () => assert.strictEqual(amb.states.length, 0));
+  check('ambiguous declaration creates no explicit state', () => assert(amb.states.every(row => row.inherited === true)));
+  check('ambiguous declaration preserves durable inheritance only', () => assert.strictEqual(amb.states.filter(row => row.inherited !== true).length, 0));
 
   const conflicting = await layer.ensureProductionStates({ id: 'video_conflict' }, { id: 'bible_conflict', mode: 'kids_cartoon_2d', characters: [{ id: 'luna_conflict', characterKey: 'luna_main', name: 'Luna', appearanceState: { wardrobes: ['coat', 'pajamas'] } }] }, { active: true, characters: [{ character: luna, usage: { sourceBibleId: 'bible_conflict', sourceCharacterId: 'luna_conflict' } }] });
   check('runtime preserves state conflict', () => assert.strictEqual(conflicting.summary.conflicts, 1));
