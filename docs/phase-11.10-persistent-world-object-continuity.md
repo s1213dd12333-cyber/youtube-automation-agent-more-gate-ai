@@ -1,93 +1,72 @@
 # Phase 11.10 — Persistent World Objects / Cross-Video Object Continuity
 
-Phase 11.10 extends the completed reusable-location system into persistent story-world objects. A recurring object must keep the same canonical identity across videos while lifecycle state, scene presence and camera/framing remain separate concerns.
+Phase 11.10 extends the reusable-location system into persistent story-world objects. A recurring car, phone, weapon, book, piece of furniture or other explicitly persistent prop keeps one canonical identity across videos while location, lifecycle state, scene presence and camera/framing remain separate concerns.
 
-## Roadmap
+## Roadmap status
 
-1. **11.10.1 — Persistent World Object Registry**
+1. **11.10.1 — Persistent World Object Registry — complete**
    - production-independent `objectId` / `objectKey`;
    - stable canonical identity fingerprint and provenance;
-   - reusable location/zone and Prop Lock context;
    - temporary scene props excluded;
    - explicit-key identity conflicts fail closed.
-2. **11.10.2 — Object Aliases + Resolver**
-   - exact key / persisted alias / normalized exact-name precedence;
-   - generic contextual reference only when one compatible object remains;
-   - ambiguous aliases and canonical-attribute conflicts fail closed;
+2. **11.10.2 — Object Aliases + Resolver — complete**
+   - exact key / alias / normalized exact-name precedence;
+   - generic contextual references resolve only when one compatible object remains;
    - no broad fuzzy merge.
-3. **11.10.3 — Canonical Object Assets**
+3. **11.10.3 — Canonical Object Assets — complete**
    - one immutable provider-backed `object_reference` per object;
-   - SHA-256, provider/model and origin provenance persisted;
-   - local/generic fallback never canonical;
-   - later videos cannot silently overwrite the first ready anchor.
-4. **11.10.4 — Object State / Lifecycle Layers**
-   - mutable condition, damage, cleanliness, open/closed, operational state, contents, holder/use, placement and story state;
-   - `scene` vs `until_changed` persistence;
-   - durable reset prevents stale state resurrection;
-   - lifecycle state never rewrites canonical identity or asset.
-5. **11.10.5 — Scene / Shot Object Binding**
-   - explicit per-scene/per-shot presence;
-   - `visible`, `occluded`, `offscreen`, `mentioned`;
-   - interaction, holder and placement semantics;
+   - SHA-256/provider/model/origin persisted;
+   - later videos cannot silently replace the anchor.
+4. **11.10.4 — Object State / Lifecycle — complete**
+   - `scene` versus `until_changed` state;
+   - durable state inheritance and explicit durable reset;
+   - state never rewrites canonical identity/assets.
+5. **11.10.5 — Scene / Shot Object Binding — complete**
+   - explicit `visible`, `occluded`, `offscreen`, `mentioned` semantics;
    - narrative mention alone never creates visual presence;
-   - binding changes propagate into shot/scene/production fingerprints.
-6. **11.10.6 — Cross-Video Object Continuity Gate**
-   - only resolved `visible` / `occluded` bindings are evaluated;
-   - reused objects are checked against immutable canonical references;
-   - declared lifecycle overlays are tolerated without relaxing canonical identity;
-   - explicit missing/replacement/identity/state drift blocks the keyframe;
-   - origin-production objects are audited, not falsely called cross-video verified.
-7. **11.10.7 — Object Library UI + Operator Controls**
-   - inspect identity, aliases, canonical assets, state, usage, shot bindings and continuity audits;
-   - canonical identity and asset hashes are read-only in the operator UI;
-   - safe alias creation with collision detection;
-   - explicit linking of unresolved/ambiguous resolver decisions to an existing object;
-   - every operator mutation is audited and dangerous silent retargeting is rejected.
-8. **11.10.8 — E2E Cross-Video Object Tests**
-   - deterministic multi-video scenarios covering reuse, movement, state, visibility, ambiguity, operator corrections and drift blocking.
+   - binding changes participate in shot/scene fingerprints.
+6. **11.10.6 — Cross-Video Object Continuity Gate — complete**
+   - only resolved visual bindings are checked;
+   - explicit missing/replacement/identity/state drift blocks before `ready`.
+7. **11.10.7 — Object Library UI + Operator Controls — complete + hardened**
+   - read-only canonical identity/asset surface;
+   - audited alias creation and explicit resolver linking;
+   - atomic compare-and-set hardening prevents concurrent operator races.
+8. **11.10.8 — E2E Cross-Video Object Tests — implemented**
+   - deterministic integrated test over the materialized runtimes from 11.10.1 through 11.10.7;
+   - 93 regression assertions across eight productions A–H;
+   - automatically executed as the final 11.10 bootstrap gate.
 
-## Canonical identity boundary
+## Identity boundary
 
-11.10.1 owns canonical object identity. Location and zone are usage context when a stable key/owner already anchors identity. Temporary damage, contents, open/closed state, lighting and momentary placement are not canonical identity fields. Reusing an explicit key with incompatible canonical attributes returns a conflict instead of mutating the object.
+Canonical identity is owned by 11.10.1. Location/zone is usage context for an explicitly keyed or owner-anchored object. Damage, cleanliness, open/closed state, contents, current holder, temporary placement and story state never become canonical identity fields.
 
-11.10.2 resolves aliases conservatively. Multiple matching objects remain ambiguous. A generic phrase such as `their car` resolves only when exactly one compatible object is available in the permitted scope.
+11.10.2 resolves narrative references conservatively. Multiple compatible objects stay ambiguous. An existing `objectKey` with incompatible canonical attributes returns a conflict rather than mutating the original object.
 
-## Canonical visual reference boundary
+## Canonical visual boundary
 
-11.10.3 accepts only explicitly canonical provider-backed references. The first accepted file is copied under:
+11.10.3 accepts only explicitly canonical provider-backed references. The first accepted file is stored under:
 
 `data/assets/object-library/<namespace>/<objectId>/object_reference.<ext>`
 
-with SHA-256 and provider/source provenance. Local/generic fallback sources are rejected. Arbitrary scene keyframes are not auto-promoted into object anchors.
+Its hash and source provenance remain immutable across later videos. Local/generic fallback sources are never promoted.
 
-## Lifecycle state boundary
+## Lifecycle and presence boundary
 
-11.10.4 treats state as an overlay over the stable `objectId`. `scene` state expires with the scene/production. `until_changed` may carry cross-video until another durable state or reset replaces it. Conflicting single-value dimensions remain audited and fail closed.
+11.10.4 treats state as an overlay. `scene` expires locally; `until_changed` may cross videos until another durable state/reset replaces it.
 
-## Scene / shot presence boundary
+11.10.5 separately decides whether that object is present in each generated shot:
 
-11.10.5 answers whether an object belongs in a particular generated frame. Object existence and visual presence are different facts.
+- `visible` — render the exact object;
+- `occluded` — present but partly hidden;
+- `offscreen` — relevant but must not be rendered;
+- `mentioned` — reference-only and must not be hallucinated into frame.
 
-Accepted binding collections include `objectBindings`, `worldObjectBindings`, `persistentObjectBindings` and `shotObjectBindings`.
+## Cross-video visual gate
 
-Visibility semantics:
+11.10.6 checks reused `visible` / `occluded` objects against the immutable canonical object reference. The semantic contract distinguishes framing/background changes from object identity changes.
 
-- `visible` — render the exact persistent object;
-- `occluded` — object is present but may be partly hidden;
-- `offscreen` — relevant to the beat but must not be rendered;
-- `mentioned` — reference-only and must not be hallucinated into view.
-
-Resolved bindings participate in shot, scene-plan and production shot-plan fingerprints. Contradictory declarations for the same object/shot fail closed.
-
-## 11.10.6 — Cross-Video Object Continuity Gate
-
-The gate reads the current shot bindings and checks only resolved `visible` / `occluded` objects. `offscreen`, `mentioned`, unresolved and conflict rows are not visual checks.
-
-For reused objects, IMAGE 1 is the immutable 11.10.3 object reference and IMAGE 2 is the newly generated keyframe. Vision is instructed to judge the object only: framing, crop, camera angle, background, scale, pose and lighting differences are not identity drift by themselves.
-
-The semantic response covers `objectPresent`, `sameCanonicalObject`, `canonicalIdentityConsistent`, `stateConsistent`, confidence and explicit `identityMismatches`. A non-empty mismatch list forces identity inconsistency even if another provider field says otherwise.
-
-Explicit failures block with reasons such as:
+Known failures include:
 
 - `CROSS_VIDEO_OBJECT_MISSING`;
 - `CROSS_VIDEO_OBJECT_REPLACED`;
@@ -95,116 +74,60 @@ Explicit failures block with reasons such as:
 - `CROSS_VIDEO_OBJECT_STATE_DRIFT`;
 - `CROSS_VIDEO_OBJECT_CANONICAL_ASSET_MISSING`.
 
-The gate runs after 11.9.6 location continuity and before a keyframe may become `ready`.
+A blocking result occurs before a keyframe becomes `ready`.
 
-## 11.10.7 — Object Library UI + Operator Controls
+## Operator controls and atomicity
 
-### Read model
+11.10.7 exposes Object Library inspection for canonical identity, aliases, asset, lifecycle history, usages, shot bindings, continuity decisions and resolver/operator audits.
 
-The Object Library exposes a namespace-scoped snapshot and per-object detail including:
+Canonical identity fields and canonical asset provenance remain read-only. Operator mutation is limited to safe alias creation and explicit linking of an unresolved/ambiguous resolver decision to an existing object.
 
-- canonical object identity and fingerprint;
-- aliases;
-- canonical object assets with guarded asset URLs;
-- lifecycle states;
-- usage history across productions/locations/zones;
-- scene/shot bindings;
-- cross-video object continuity decisions;
-- resolver decisions linked to the object;
-- operator audit history;
-- unresolved/ambiguous resolver decisions awaiting review.
+The 11.10.7 hardening adds atomic guards specifically for operator actions. The regular 11.10.2 resolver may still preserve genuinely ambiguous aliases, but two concurrent dashboard actions cannot silently assign the same operator-confirmed alias/reference to different objects.
 
-The dashboard provides search/type/status filters plus counts for total objects, canonical-ready objects, cross-video objects and latest blocked continuity decisions.
+## 11.10.8 — integrated E2E matrix
 
-### Canonical identity is read-only
+The final verifier uses the real materialized 11.10 runtimes plus an in-memory persistence adapter and local fixture files. It performs no network/provider call; the semantic vision contract is supplied through the runtime's injected analyzer seam so gate orchestration is deterministic.
 
-The UI deliberately does **not** expose mutations for:
+The eight-production matrix is:
 
-- `identityFingerprint`;
-- `canonicalIdentity`;
-- canonical asset SHA/provider/origin;
-- `createdFromProductionId`;
-- `objectKey` reassignment;
-- object merge/delete.
+- **A — origin:** register `miller_family_car`, seed EN/PT aliases, promote provider-backed canonical reference and audit origin binding.
+- **B — alias + durable state:** `family car` resolves to the same `objectId`; a durable rear-dent state is added; a later canonical declaration cannot overwrite A's hash/provenance; continuity passes.
+- **C — object movement:** the same explicit-key object moves to another location, keeps canonical identity, inherits durable damage and passes while `occluded`.
+- **D — same-type isolation:** `jones_family_car` creates a second independent vehicle with its own canonical asset.
+- **E — ambiguity/operator correction:** generic `their car` sees two compatible vehicles and fails closed; an audited operator explicitly links the reference to Miller's car; conflicting alias assignment to Jones is rejected.
+- **F — reset/offscreen:** corrected alias reuses Miller's car; durable reset returns lifecycle state to neutral; `offscreen` is explicitly excluded from visual continuity checking.
+- **G — replacement drift:** the neutral reset carries forward, but a different visible vehicle triggers replacement + identity-drift blocking.
+- **H — canonical conflict:** reuse of `miller_family_car` with an incompatible canonical color is rejected without changing the original fingerprint or asset.
 
-Those values remain owned by earlier deterministic phases and cannot be silently rewritten by an operator click.
+The suite additionally checks Object Library summaries, histories/audits, cross-video usage count, immutable hash/origin, resolver match modes and origin/pass/block continuity records.
 
-### Safe alias control
+## Commands
 
-`POST /api/object-library/:objectId/aliases` is protected. The manager normalizes the alias and checks existing persisted aliases in the namespace.
+- `npm run test:persistent-world-object:e2e`
+- `npm run test:persistent-world-object:full`
 
-- alias already linked to the same object -> `no_change`;
-- alias unused -> persisted as `operator_confirmed_alias`;
-- alias already points to another object -> rejected with `alias_key_already_points_to_other_object`.
+`test:persistent-world-object:full` runs the 11.10.1–11.10.7 dedicated verifiers and then the 11.10.8 integrated E2E verifier.
 
-The rejected attempt is also audited.
+## Final materialization order
 
-### Explicit resolver linking
+The final wrapper now requires, in order:
 
-`POST /api/object-library/resolutions/:resolutionId/link` is protected and can link an existing `unresolved` or `ambiguous` resolver decision to an existing canonical object.
+1. completed 11.9 location-system gate;
+2. 11.10.1 registry + verifier;
+3. 11.10.2 resolver + verifier;
+4. 11.10.3 canonical assets + verifier;
+5. 11.10.4 state/lifecycle + verifier;
+6. 11.10.5 scene/shot binding + verifier;
+7. 11.10.6 cross-video object gate + verifier;
+8. 11.10.7 Object Library;
+9. 11.10.7 operator atomicity hardening + verifier;
+10. 11.10.7 main UI verifier;
+11. 11.10.8 E2E materializer + integrated verifier.
 
-The resulting resolution is persisted as:
+A failure at any step prevents the closeout gate from completing.
 
-- `status=resolved`;
-- `matchMode=operator_explicit_link`;
-- `confidence=1`;
-- `candidateObjectIds=[selectedObjectId]`;
-- `reason=operator_confirmed_reference_link`;
-- canonical target `identityFingerprint` copied only for audit consistency.
+## Closure status
 
-Optional alias persistence is allowed only if that alias is not already owned by a different object. A resolution already resolved to another object cannot be silently retargeted through this control.
+The implementation of **11.10.1–11.10.8 is complete and the final E2E gate is wired into materialization**.
 
-### Operator audit
-
-11.10.7 adds `persistent_world_object_operator_actions`. Every alias/link attempt can record:
-
-- action type;
-- object/target ids;
-- production id when relevant;
-- applied/no-change/rejected status;
-- actor/note;
-- before/after snapshots;
-- reason and timestamp.
-
-This keeps manual intervention visible rather than converting it into hidden canonical mutation.
-
-### API / dashboard surface
-
-11.10.7 adds:
-
-- `GET /api/object-library`;
-- `GET /api/object-library/:objectId`;
-- `GET /api/object-library/assets/:assetId`;
-- `POST /api/object-library/:objectId/aliases`;
-- `POST /api/object-library/resolutions/:resolutionId/link`;
-- dashboard `Object library` view;
-- `test:persistent-world-object-library-ui`.
-
-Canonical asset serving is restricted to `data/assets/object-library` and requires `canonical=true` plus `status=ready`.
-
-Feature flags:
-
-- `PERSISTENT_WORLD_OBJECT_LIBRARY_ENABLED=true`;
-- `PERSISTENT_WORLD_OBJECT_OPERATOR_CONTROLS_ENABLED=true`;
-- `PERSISTENT_WORLD_OBJECT_OPERATOR_ALIAS_ENABLED=true`;
-- `PERSISTENT_WORLD_OBJECT_OPERATOR_LINK_ENABLED=true`.
-
-## Materialization order
-
-The final chain now installs and verifies, in order:
-
-1. 11.10.1 registry;
-2. 11.10.2 resolver;
-3. 11.10.3 canonical assets;
-4. 11.10.4 state/lifecycle;
-5. 11.10.5 scene/shot binding;
-6. 11.10.6 cross-video object continuity gate;
-7. 11.10.7 Object Library UI + audited operator controls.
-
-Each verifier must pass before the next stage is applied.
-
-## Current boundary
-
-11.10.1–11.10.7 now provide persistent identity, conservative alias resolution, immutable canonical visual anchors, lifecycle state, explicit frame presence, cross-video object drift blocking, and an operator-visible/audited correction surface.
-
-The remaining phase is **11.10.8 — deterministic E2E Cross-Video Object Tests**. Until that integrated multi-video suite is complete, Phase 11.10 as a whole must not be declared closed.
+The 11.10.8 source, fixtures, Memory DB and final wrapper were syntax-checked during implementation. A full materialized execution of the 93-check integrated verifier was not available from the connected GitHub editing environment itself, so its pass result must come from an actual materialization run rather than being inferred from static inspection.
