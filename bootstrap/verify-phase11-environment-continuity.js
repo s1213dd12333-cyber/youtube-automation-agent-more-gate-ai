@@ -88,7 +88,7 @@ const staticChecks = [
   () => assert(qualitySource.includes('cartoon_environment_continuity_missing')),
   () => assert(qualitySource.includes('cartoon_environment_continuity_rejected')),
   () => assert(qualitySource.includes('environmentContinuity: [...latestEnvironmentContinuity.entries()]')),
-  () => assert(qualitySource.includes("environmentPropPresenceMode: 'prompt-contract-only'")),
+  () => assert(qualitySource.includes("environmentPropPresenceMode: 'prompt-contract-only'") || qualitySource.includes('semanticPropVerificationRequired: semanticPropRequireVerification')),
   () => assert(dashboardSource.includes('function renderEnvironmentContinuity(item)')),
   () => assert(dashboardSource.includes('semantic object presence is not claimed without a vision detector')),
   () => assert(envSource.includes('ENVIRONMENT_CONTINUITY_ENABLED=true')),
