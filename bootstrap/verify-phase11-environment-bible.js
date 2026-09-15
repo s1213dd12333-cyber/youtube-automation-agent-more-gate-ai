@@ -93,7 +93,12 @@ check('scene pipeline imports Environment Bible runtime', () => assert(pipelineS
 check('scene pipeline constructs Environment Bible service', () => assert(pipelineSource.includes('this.environmentBible = options.environmentBible || new EnvironmentBibleV11')));
 check('scene pipeline persists changed environment fingerprints', () => assert(pipelineSource.includes('existingEnvironmentBible.fingerprint !== plannedEnvironmentBible.fingerprint')));
 check('Review Studio renders Environment Bible', () => assert(dashboardSource.includes('function renderEnvironmentBible(bible)')));
-check('Review Studio does not claim a master frame exists', () => assert(dashboardSource.includes('master frame: pending 11.7.3')));
+check('Review Studio tracks master-frame state without claiming it is already ready', () => {
+  const pending11_7_1 = dashboardSource.includes('master frame: pending 11.7.3');
+  const tracked11_7_3 = dashboardSource.includes('master frame: tracked by 11.7.3 panel');
+  assert(pending11_7_1 || tracked11_7_3);
+  assert(!dashboardSource.includes('master frame: ready by 11.7.1'));
+});
 check('environment feature is enabled explicitly in env example', () => assert(envSource.includes('ENVIRONMENT_BIBLE_ENABLED=true')));
 check('environment count cap is documented in env example', () => assert(envSource.includes('ENVIRONMENT_BIBLE_MAX_ENVIRONMENTS=12')));
 check('package exposes Environment Bible regression command', () => assert.strictEqual(pkg.scripts['test:environment-bible'], 'node ../bootstrap/verify-phase11-environment-bible.js'));
