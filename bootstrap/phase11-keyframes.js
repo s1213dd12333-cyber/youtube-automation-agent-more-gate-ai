@@ -172,24 +172,9 @@ function patchDatabase() {
 function patchScenePipeline() {
   const rel = 'utils/scene-pipeline-v2.js';
   let s = read(rel);
-  s = replaceOnce(
-    s,
-    "const { CartoonShotPlannerV11 } = require('./cartoon-shot-planner-v11');\n",
-    "const { CartoonShotPlannerV11 } = require('./cartoon-shot-planner-v11');\nconst { CartoonKeyframePipelineV11 } = require('./cartoon-keyframe-pipeline-v11');\n",
-    'Phase 11.3 keyframe pipeline import'
-  );
-  s = replaceOnce(
-    s,
-    "    this.shotPlanner = options.shotPlanner || new CartoonShotPlannerV11({ logger: this.logger });\n",
-    "    this.shotPlanner = options.shotPlanner || new CartoonShotPlannerV11({ logger: this.logger });\n    this.keyframePipeline = options.keyframePipeline || new CartoonKeyframePipelineV11(db, videoGenerator, { logger: this.logger, dataRoot: this.dataRoot });\n",
-    'Phase 11.3 keyframe pipeline construction'
-  );
-  s = replaceOnce(
-    s,
-    "    let shotPlan = null;\n",
-    "    let shotPlan = null;\n    let keyframePlan = null;\n",
-    'Phase 11.3 keyframe plan state'
-  );
+  s = replaceOnce(s, "const { CartoonShotPlannerV11 } = require('./cartoon-shot-planner-v11');\n", "const { CartoonShotPlannerV11 } = require('./cartoon-shot-planner-v11');\nconst { CartoonKeyframePipelineV11 } = require('./cartoon-keyframe-pipeline-v11');\n", 'Phase 11.3 keyframe pipeline import');
+  s = replaceOnce(s, "    this.shotPlanner = options.shotPlanner || new CartoonShotPlannerV11({ logger: this.logger });\n", "    this.shotPlanner = options.shotPlanner || new CartoonShotPlannerV11({ logger: this.logger });\n    this.keyframePipeline = options.keyframePipeline || new CartoonKeyframePipelineV11(db, videoGenerator, { logger: this.logger, dataRoot: this.dataRoot });\n", 'Phase 11.3 keyframe pipeline construction');
+  s = replaceOnce(s, "    let shotPlan = null;\n", "    let shotPlan = null;\n    let keyframePlan = null;\n", 'Phase 11.3 keyframe plan state');
 
   const planningBlock = [
     "    if (cartoonBible && shotPlan) {",
@@ -204,30 +189,10 @@ function patchScenePipeline() {
     "    }",
     "",
   ].join('\n');
-  s = insertBefore(
-    s,
-    "    await this.persistManifest(bundle, production, scenes, fingerprint, scriptChanged, visualPlan, cartoonBible, shotPlan);\n",
-    planningBlock,
-    'Phase 11.3 planning before manifest persistence'
-  );
-  s = replaceOnce(
-    s,
-    "    await this.persistManifest(bundle, production, scenes, fingerprint, scriptChanged, visualPlan, cartoonBible, shotPlan);\n",
-    "    await this.persistManifest(bundle, production, scenes, fingerprint, scriptChanged, visualPlan, cartoonBible, shotPlan, keyframePlan);\n",
-    'pass Phase 11.3 keyframe plan to manifest'
-  );
-  s = replaceOnce(
-    s,
-    '  async persistManifest(bundle, production, scenes, fingerprint, resetMedia, visualPlan = null, cartoonBible = null, shotPlan = null) {\n',
-    '  async persistManifest(bundle, production, scenes, fingerprint, resetMedia, visualPlan = null, cartoonBible = null, shotPlan = null, keyframePlan = null) {\n',
-    'Phase 11.3 manifest signature'
-  );
-  s = replaceOnce(
-    s,
-    "        shotsPerScene: shotPlan?.summary || previousManifest.shotsPerScene || null,\n        updatedAt: new Date().toISOString()\n",
-    "        shotsPerScene: shotPlan?.summary || previousManifest.shotsPerScene || null,\n        keyframePipelineVersion: keyframePlan?.version || previousManifest.keyframePipelineVersion || null,\n        keyframePlanFingerprint: keyframePlan?.fingerprint || previousManifest.keyframePlanFingerprint || null,\n        keyframesPerShot: keyframePlan?.keyframesPerShot ?? previousManifest.keyframesPerShot ?? null,\n        keyframeCount: keyframePlan?.keyframeCount ?? previousManifest.keyframeCount ?? 0,\n        keyframeSummary: keyframePlan?.summary || previousManifest.keyframeSummary || null,\n        updatedAt: new Date().toISOString()\n",
-    'persist Phase 11.3 keyframe metadata'
-  );
+  s = insertBefore(s, "    await this.persistManifest(bundle, production, scenes, fingerprint, scriptChanged, visualPlan, cartoonBible, shotPlan);\n", planningBlock, 'Phase 11.3 planning before manifest persistence');
+  s = replaceOnce(s, "    await this.persistManifest(bundle, production, scenes, fingerprint, scriptChanged, visualPlan, cartoonBible, shotPlan);\n", "    await this.persistManifest(bundle, production, scenes, fingerprint, scriptChanged, visualPlan, cartoonBible, shotPlan, keyframePlan);\n", 'pass Phase 11.3 keyframe plan to manifest');
+  s = replaceOnce(s, '  async persistManifest(bundle, production, scenes, fingerprint, resetMedia, visualPlan = null, cartoonBible = null, shotPlan = null) {\n', '  async persistManifest(bundle, production, scenes, fingerprint, resetMedia, visualPlan = null, cartoonBible = null, shotPlan = null, keyframePlan = null) {\n', 'Phase 11.3 manifest signature');
+  s = replaceOnce(s, "        shotsPerScene: shotPlan?.summary || previousManifest.shotsPerScene || null,\n        updatedAt: new Date().toISOString()\n", "        shotsPerScene: shotPlan?.summary || previousManifest.shotsPerScene || null,\n        keyframePipelineVersion: keyframePlan?.version || previousManifest.keyframePipelineVersion || null,\n        keyframePlanFingerprint: keyframePlan?.fingerprint || previousManifest.keyframePlanFingerprint || null,\n        keyframesPerShot: keyframePlan?.keyframesPerShot ?? previousManifest.keyframesPerShot ?? null,\n        keyframeCount: keyframePlan?.keyframeCount ?? previousManifest.keyframeCount ?? 0,\n        keyframeSummary: keyframePlan?.summary || previousManifest.keyframeSummary || null,\n        updatedAt: new Date().toISOString()\n", 'persist Phase 11.3 keyframe metadata');
 
   s = replaceRegex(
     s,
@@ -236,54 +201,14 @@ function patchScenePipeline() {
     'cartoon keyframes replace single-scene image generation'
   );
 
-  s = replaceOnce(
-    s,
-    "        const local = !routed?.path && path.basename(assetPath).startsWith('visual_local_');\n",
-    "        const local = !keyframeResult && !routed?.path && path.basename(assetPath).startsWith('visual_local_');\n",
-    'local scene fallback excludes keyframe result'
-  );
-  s = replaceOnce(
-    s,
-    "          assetOrigin: routed?.path ? 'licensed-source' : 'generated',\n",
-    "          assetOrigin: keyframeResult ? 'generated-keyframes' : (routed?.path ? 'licensed-source' : 'generated'),\n",
-    'scene records keyframe asset origin'
-  );
-  s = replaceOnce(
-    s,
-    "          provider: routed?.path ? routed.provider : (local ? 'local-renderer' : 'image-provider'),\n",
-    "          provider: keyframeResult ? 'keyframe-pipeline-v11' : (routed?.path ? routed.provider : (local ? 'local-renderer' : 'image-provider')),\n",
-    'scene records keyframe provider'
-  );
-  s = replaceOnce(
-    s,
-    "          model: routed?.path ? routed.model : null,\n",
-    "          model: keyframeResult ? 'start-middle-end' : (routed?.path ? routed.model : null),\n",
-    'scene records keyframe model contract'
-  );
-  s = replaceOnce(
-    s,
-    "          rightsConfirmed: routed?.path ? routed.rightsConfirmed === true : true,\n",
-    "          rightsConfirmed: keyframeResult ? true : (routed?.path ? routed.rightsConfirmed === true : true),\n",
-    'generated keyframes have generated-media rights basis'
-  );
-  s = replaceOnce(
-    s,
-    "          containsSyntheticMedia: routed?.path ? false : !local\n",
-    "          containsSyntheticMedia: keyframeResult ? keyframeResult.containsSyntheticMedia : (routed?.path ? false : !local)\n",
-    'scene synthetic-media state reflects generated keyframes'
-  );
-  s = replaceOnce(
-    s,
-    "visualRouterVersion: 8, visualQuality: visualBrief?.quality || null, sourceAsset: routed?.record || null",
-    "visualRouterVersion: 8, keyframePipelineVersion: keyframeResult?.version || null, keyframeCount: keyframeResult?.keyframeCount || 0, visualQuality: visualBrief?.quality || null, sourceAsset: routed?.record || null",
-    'scene revision stores keyframe generation evidence'
-  );
-  s = replaceOnce(
-    s,
-    "        visualAssets: scenes.map(scene => scene.assetPath).filter(Boolean),\n",
-    "        visualAssets: scenes.map(scene => scene.assetPath).filter(Boolean),\n        keyframeAssets: (bundle.keyframes || []).filter(item => item.status === 'ready' && item.assetPath).map(item => item.assetPath),\n",
-    'media summary exposes generated keyframe assets without claiming composition'
-  );
+  s = replaceOnce(s, "        const local = !routed?.path && path.basename(assetPath).startsWith('visual_local_');\n", "        const local = !keyframeResult && !routed?.path && path.basename(assetPath).startsWith('visual_local_');\n", 'local scene fallback excludes keyframe result');
+  s = replaceOnce(s, "          assetOrigin: routed?.path ? 'licensed-source' : 'generated',\n", "          assetOrigin: keyframeResult ? 'generated-keyframes' : (routed?.path ? 'licensed-source' : 'generated'),\n", 'scene records keyframe asset origin');
+  s = replaceOnce(s, "          provider: routed?.path ? routed.provider : (local ? 'local-renderer' : 'image-provider'),\n", "          provider: keyframeResult ? 'keyframe-pipeline-v11' : (routed?.path ? routed.provider : (local ? 'local-renderer' : 'image-provider')),\n", 'scene records keyframe provider');
+  s = replaceOnce(s, "          model: routed?.path ? routed.model : null,\n", "          model: keyframeResult ? 'start-middle-end' : (routed?.path ? routed.model : null),\n", 'scene records keyframe model contract');
+  s = replaceOnce(s, "          rightsConfirmed: routed?.path ? routed.rightsConfirmed === true : true,\n", "          rightsConfirmed: keyframeResult ? true : (routed?.path ? routed.rightsConfirmed === true : true),\n", 'generated keyframes have generated-media rights basis');
+  s = replaceOnce(s, "          containsSyntheticMedia: routed?.path ? false : !local\n", "          containsSyntheticMedia: keyframeResult ? keyframeResult.containsSyntheticMedia : (routed?.path ? false : !local)\n", 'scene synthetic-media state reflects generated keyframes');
+  s = replaceOnce(s, "visualRouterVersion: 8, visualQuality: visualBrief?.quality || null, sourceAsset: routed?.record || null", "visualRouterVersion: 8, keyframePipelineVersion: keyframeResult?.version || null, keyframeCount: keyframeResult?.keyframeCount || 0, visualQuality: visualBrief?.quality || null, sourceAsset: routed?.record || null", 'scene revision stores keyframe generation evidence');
+  s = replaceOnce(s, "        visualAssets: scenes.map(scene => scene.assetPath).filter(Boolean),\n", "        visualAssets: scenes.map(scene => scene.assetPath).filter(Boolean),\n        keyframeAssets: (bundle.keyframes || []).filter(item => item.status === 'ready' && item.assetPath).map(item => item.assetPath),\n", 'media summary exposes generated keyframe assets without claiming composition');
   write(rel, s);
 }
 
@@ -311,12 +236,7 @@ function patchDashboard() {
     "",
   ].join('\n');
   s = insertBefore(s, 'function qualityScore(checks) {\n', helper, 'Phase 11.3 dashboard keyframe renderer');
-  s = replaceOnce(
-    s,
-    "        ${renderCartoonShotPlan(item)}\n        ${renderSceneEditor(item, canReview)}\n",
-    "        ${renderCartoonShotPlan(item)}\n        ${renderCartoonKeyframes(item)}\n        ${renderSceneEditor(item, canReview)}\n",
-    'show Phase 11.3 keyframes after shot plan'
-  );
+  s = replaceOnce(s, "        ${renderCartoonShotPlan(item)}\n        ${renderSceneEditor(item, canReview)}\n", "        ${renderCartoonShotPlan(item)}\n        ${renderCartoonKeyframes(item)}\n        ${renderSceneEditor(item, canReview)}\n", 'show Phase 11.3 keyframes after shot plan');
   write(rel, s);
 }
 
@@ -326,12 +246,9 @@ function patchPackageAndEnv() {
   pkg.scripts = pkg.scripts || {};
   pkg.scripts['test:keyframes'] = 'node ../bootstrap/verify-phase11-keyframes.js';
   write(pkgRel, `${JSON.stringify(pkg, null, 2)}\n`);
-
   const envRel = '.env.example';
   let env = read(envRel);
-  if (!env.includes('CARTOON_KEYFRAME_GENERATION_ENABLED=')) {
-    env += `\n# Phase 11.3 — start/middle/end keyframes per cartoon shot.\nCARTOON_KEYFRAME_GENERATION_ENABLED=true\n# Fail closed before runaway frame counts; raise deliberately for longer productions.\nCARTOON_KEYFRAME_MAX_PER_PRODUCTION=180\n`;
-  }
+  if (!env.includes('CARTOON_KEYFRAME_GENERATION_ENABLED=')) env += `\n# Phase 11.3 — start/middle/end keyframes per cartoon shot.\nCARTOON_KEYFRAME_GENERATION_ENABLED=true\n# Fail closed before runaway frame counts; raise deliberately for longer productions.\nCARTOON_KEYFRAME_MAX_PER_PRODUCTION=180\n`;
   write(envRel, env);
 }
 
@@ -342,3 +259,4 @@ patchDashboard();
 patchPackageAndEnv();
 
 console.log('FASE 11.3 ativa: start/middle/end por shot, keyframes persistentes, Resume granular e imagem representativa por cena sem duplicar a geracao scene-level.');
+require('./phase11-continuity.js');
