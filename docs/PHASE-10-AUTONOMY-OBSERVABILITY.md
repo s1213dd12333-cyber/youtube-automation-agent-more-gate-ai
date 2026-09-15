@@ -92,17 +92,26 @@ AUTONOMY_AUTO_REPAIR=true
 AUTONOMY_AUTO_REPAIR_MAX_ATTEMPTS=1
 ```
 
-Safe mappings:
+The default automatic mapping is deliberately narrow:
 
 ```text
-SEO blockers                  -> resume from SEO
-Retention / Fact blockers     -> resume from Script
-Missing/stale production media-> resume Production only
+SEO blocker -> resume from SEO once
 ```
 
-The operator does **not** automatically regenerate a thumbnail or general visual-quality failure when doing so could consume media-provider credits or require a rights decision.
+SEO repair can reuse the existing script, thumbnail and scene media. Phase 2 then reuses completed scene media while the downstream quality gate is recalculated.
 
-Those cases remain operator actions.
+The following remain manual by default:
+
+```text
+Retention / Fact blocker -> Script repair required
+Thumbnail blocker        -> Thumbnail/media action required
+Visual blocker           -> Production/media or rights action required
+Missing/stale media      -> Production/media action required
+```
+
+The reason is cost safety. A script change changes the scene-plan fingerprint and can legitimately trigger fresh narration, images and final video generation. Phase 10 does not spend those additional media-provider credits silently.
+
+Completed generation jobs can only be reopened by the autonomous repair path when both an explicit repair stage and the internal `qualityRepair=true` flag are present. Ordinary callers cannot use the Phase 10 exception to replay arbitrary completed jobs.
 
 The automatic repair attempt is persisted as autonomy events and can run at most once per planned item by default.
 
@@ -112,7 +121,7 @@ When `approval_required` is enabled, Phase 10 blocks both scheduling and YouTube
 
 It also blocks scheduling/publication when Phase 9 is `blocked`, in addition to the existing provenance, narration, readiness and media-rights gates.
 
-This means an autonomous run can generate and repair content, but it cannot silently bypass the configured human approval boundary.
+This means an autonomous run can generate and perform the narrow safe repair above, but it cannot silently bypass the configured human approval boundary.
 
 After a human approval, the associated autonomous operator run is reconciled automatically. A run that was `waiting_review` can therefore move to `completed` once all its produced videos are resolved.
 
@@ -167,8 +176,9 @@ The Phase 10 regression suite checks:
 - deterministic near-duplicate scoring
 - automated duplicate rejection
 - publication blockers
-- safe vs. manual repair mapping
+- cost-safe automatic vs. manual repair mapping
 - repair attempt limit
+- scoped reopening of completed jobs for quality repair
 - trace success/failure persistence
 - publication-state reporting
 - non-network doctor behavior
