@@ -1,0 +1,56 @@
+  async savePersistentWorldObjectAsset(input = {}) {
+    if (!input.assetKey || !input.objectId || !input.identityFingerprint || !input.assetPath || !input.assetSha256) return null;
+    const existing = await this.getPersistentWorldObjectAssetByKey(input.assetKey);
+    const id = existing?.id || input.id || this.generateId('persistent_world_object_asset');
+    const now = new Date().toISOString();
+    const createdAt = existing?.createdAt || input.createdAt || now;
+    await this.executeQuery(`INSERT INTO persistent_world_object_assets (
+      id, asset_key, object_id, asset_role, version, identity_fingerprint, canonical, status, asset_path, asset_sha256,
+      source_kind, source_production_id, source_environment_id, source_ref, source_prop_lock_id, provider, model, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(asset_key) DO UPDATE SET updated_at=excluded.updated_at`, [
+      id, input.assetKey, input.objectId, input.assetRole || 'object_reference', String(input.version || '11.10.3'), input.identityFingerprint,
+      input.canonical === false ? 0 : 1, input.status || 'ready', input.assetPath, input.assetSha256, input.sourceKind || 'explicit-canonical-object-reference',
+      input.sourceProductionId || null, input.sourceEnvironmentId || null, input.sourceRef || null, input.sourcePropLockId || null,
+      input.provider || null, input.model || null, createdAt, now
+    ]);
+    return this.getPersistentWorldObjectAssetByKey(input.assetKey);
+  }
+
+  async getPersistentWorldObjectAsset(id) {
+    return this.parsePersistentWorldObjectAsset(await this.getRow('SELECT * FROM persistent_world_object_assets WHERE id = ? LIMIT 1', [id]));
+  }
+
+  async getPersistentWorldObjectAssetByKey(assetKey) {
+    return this.parsePersistentWorldObjectAsset(await this.getRow('SELECT * FROM persistent_world_object_assets WHERE asset_key = ? LIMIT 1', [assetKey]));
+  }
+
+  async getPersistentWorldObjectAssetByObject(objectId, assetRole = 'object_reference') {
+    return this.parsePersistentWorldObjectAsset(await this.getRow('SELECT * FROM persistent_world_object_assets WHERE object_id = ? AND asset_role = ? LIMIT 1', [objectId, assetRole]));
+  }
+
+  async listPersistentWorldObjectAssets(objectId) {
+    const rows = objectId
+      ? await this.getAllRows('SELECT * FROM persistent_world_object_assets WHERE object_id = ? ORDER BY created_at, rowid', [objectId])
+      : await this.getAllRows('SELECT * FROM persistent_world_object_assets ORDER BY created_at, rowid', []);
+    return rows.map(row => this.parsePersistentWorldObjectAsset(row));
+  }
+
+  async listProductionPersistentWorldObjectAssets(productionId) {
+    const rows = await this.getAllRows(`SELECT DISTINCT a.* FROM persistent_world_object_assets a
+      JOIN persistent_world_object_usages u ON u.object_id = a.object_id
+      WHERE u.production_id = ? ORDER BY a.created_at, a.rowid`, [productionId]);
+    return rows.map(row => this.parsePersistentWorldObjectAsset(row));
+  }
+
+  parsePersistentWorldObjectAsset(row) {
+    if (!row) return null;
+    return {
+      id: row.id, assetKey: row.asset_key, objectId: row.object_id, assetRole: row.asset_role || 'object_reference', version: row.version || '11.10.3',
+      identityFingerprint: row.identity_fingerprint, canonical: row.canonical === 1 || row.canonical === true, status: row.status || 'ready',
+      assetPath: row.asset_path, assetSha256: row.asset_sha256, sourceKind: row.source_kind, sourceProductionId: row.source_production_id,
+      sourceEnvironmentId: row.source_environment_id, sourceRef: row.source_ref, sourcePropLockId: row.source_prop_lock_id,
+      provider: row.provider, model: row.model, createdAt: row.created_at, updatedAt: row.updated_at
+    };
+  }
+
