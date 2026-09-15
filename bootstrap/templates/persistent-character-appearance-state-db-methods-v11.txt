@@ -1,0 +1,65 @@
+  async savePersistentCharacterAppearanceState(input = {}) {
+    if (!input.id || !input.characterId || !input.productionId || !input.scopeKey || !input.stateFingerprint) return null;
+    const existing = await this.getRow('SELECT id, created_at FROM persistent_character_appearance_states WHERE production_id = ? AND character_id = ? AND scope_key = ? LIMIT 1', [input.productionId, input.characterId, input.scopeKey]);
+    const now = new Date().toISOString();
+    const id = existing?.id || input.id;
+    const createdAt = existing?.created_at || input.createdAt || now;
+    await this.executeQuery(`INSERT INTO persistent_character_appearance_states (
+      id, character_id, production_id, scene_id, scope_key, version, status, persistence, state_fingerprint,
+      wardrobe, footwear, hair_state, condition, cleanliness, age_appearance, injuries, carried_items, temporary_accessories,
+      appearance_notes, story_state, conflicts, source_kind, source_ref, parent_state_id, inherited, canonical_identity_fingerprint,
+      created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(production_id, character_id, scope_key) DO UPDATE SET
+      scene_id=excluded.scene_id, version=excluded.version, status=excluded.status, persistence=excluded.persistence,
+      state_fingerprint=excluded.state_fingerprint, wardrobe=excluded.wardrobe, footwear=excluded.footwear, hair_state=excluded.hair_state,
+      condition=excluded.condition, cleanliness=excluded.cleanliness, age_appearance=excluded.age_appearance, injuries=excluded.injuries,
+      carried_items=excluded.carried_items, temporary_accessories=excluded.temporary_accessories, appearance_notes=excluded.appearance_notes,
+      story_state=excluded.story_state, conflicts=excluded.conflicts, source_kind=excluded.source_kind, source_ref=excluded.source_ref,
+      parent_state_id=excluded.parent_state_id, inherited=excluded.inherited,
+      canonical_identity_fingerprint=excluded.canonical_identity_fingerprint, updated_at=excluded.updated_at`, [
+      id, input.characterId, input.productionId, input.sceneId || null, input.scopeKey, String(input.version || '11.11.4'),
+      input.status || 'neutral', input.persistence || 'scene', input.stateFingerprint, input.wardrobe || null, input.footwear || null,
+      input.hairState || null, input.condition || null, input.cleanliness || null, input.ageAppearance || null,
+      JSON.stringify(input.injuries || []), JSON.stringify(input.carriedItems || []), JSON.stringify(input.temporaryAccessories || []),
+      JSON.stringify(input.appearanceNotes || []), JSON.stringify(input.storyState || []), JSON.stringify(input.conflicts || []),
+      input.sourceKind || 'explicit_character_appearance_state', input.sourceRef || null, input.parentStateId || null,
+      input.inherited ? 1 : 0, input.canonicalIdentityFingerprint || null, createdAt, now
+    ]);
+    return this.getPersistentCharacterAppearanceState(id);
+  }
+
+  async getPersistentCharacterAppearanceState(id) {
+    return this.parsePersistentCharacterAppearanceState(await this.getRow('SELECT * FROM persistent_character_appearance_states WHERE id = ? LIMIT 1', [id]));
+  }
+
+  async listProductionPersistentCharacterAppearanceStates(productionId) {
+    const rows = await this.getAllRows('SELECT * FROM persistent_character_appearance_states WHERE production_id = ? ORDER BY created_at, rowid', [productionId]);
+    return rows.map(row => this.parsePersistentCharacterAppearanceState(row));
+  }
+
+  async listPersistentCharacterAppearanceStates(characterId) {
+    const rows = await this.getAllRows('SELECT * FROM persistent_character_appearance_states WHERE character_id = ? ORDER BY created_at, rowid', [characterId]);
+    return rows.map(row => this.parsePersistentCharacterAppearanceState(row));
+  }
+
+  async getLatestDurablePersistentCharacterAppearanceState(characterId, excludeProductionId = null) {
+    const row = excludeProductionId
+      ? await this.getRow(`SELECT * FROM persistent_character_appearance_states WHERE character_id = ? AND persistence = 'until_changed' AND production_id <> ? ORDER BY created_at DESC, rowid DESC LIMIT 1`, [characterId, excludeProductionId])
+      : await this.getRow(`SELECT * FROM persistent_character_appearance_states WHERE character_id = ? AND persistence = 'until_changed' ORDER BY created_at DESC, rowid DESC LIMIT 1`, [characterId]);
+    return this.parsePersistentCharacterAppearanceState(row);
+  }
+
+  parsePersistentCharacterAppearanceState(row) {
+    if (!row) return null;
+    return {
+      id: row.id, characterId: row.character_id, productionId: row.production_id, sceneId: row.scene_id, scopeKey: row.scope_key,
+      version: row.version || '11.11.4', status: row.status || 'neutral', persistence: row.persistence || 'scene', stateFingerprint: row.state_fingerprint,
+      wardrobe: row.wardrobe, footwear: row.footwear, hairState: row.hair_state, condition: row.condition, cleanliness: row.cleanliness,
+      ageAppearance: row.age_appearance, injuries: JSON.parse(row.injuries || '[]'), carriedItems: JSON.parse(row.carried_items || '[]'),
+      temporaryAccessories: JSON.parse(row.temporary_accessories || '[]'), appearanceNotes: JSON.parse(row.appearance_notes || '[]'),
+      storyState: JSON.parse(row.story_state || '[]'), conflicts: JSON.parse(row.conflicts || '[]'), sourceKind: row.source_kind,
+      sourceRef: row.source_ref, parentStateId: row.parent_state_id, inherited: Boolean(row.inherited),
+      canonicalIdentityFingerprint: row.canonical_identity_fingerprint, createdAt: row.created_at, updatedAt: row.updated_at
+    };
+  }
