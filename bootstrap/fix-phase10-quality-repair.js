@@ -47,6 +47,63 @@ function replaceOnce(source, from, to, label) {
     "              job = await this.resumeGenerationJob(job.id, { stage: repair.stage, qualityRepair: true });",
     'autonomous quality repair flag'
   );
+
+  const summaryFrom = [
+    "      const completed = generatedJobs.filter(job => job.status === 'completed');",
+    "      const needsReview = completed.filter(job => ['needs_review', 'needs_attention'].includes(job.reviewStatus));",
+    "      const failed = generatedJobs.filter(job => job.status !== 'completed');",
+    "      const allFailed = completed.length === 0 && failed.length > 0;",
+    "      const status = allFailed ? 'failed' : needsReview.length ? 'waiting_review' : failed.length ? 'completed_with_issues' : 'completed';",
+    "      const summary = {",
+    "        planned: plan.length,",
+    "        generated: completed.length,",
+    "        needsReview: needsReview.length,",
+    "        failed: failed.length",
+    "      };"
+  ].join('\n');
+  const summaryTo = [
+    "      const completed = generatedJobs.filter(job => job.status === 'completed');",
+    "      for (const record of completed) {",
+    "        if (!record.productionId || !this.observability) continue;",
+    "        const publication = await this.observability.publicationState(record.productionId);",
+    "        record.scheduleStatus = publication.scheduleStatus || null;",
+    "        record.publicationBlockers = publication.blockers || [];",
+    "      }",
+    "      const needsReview = completed.filter(job => ['needs_review', 'needs_attention'].includes(job.reviewStatus));",
+    "      const publicationIssues = completed.filter(job => job.reviewStatus === 'approved' && !['scheduled', 'paused', 'uploaded', 'published'].includes(job.scheduleStatus));",
+    "      const failed = generatedJobs.filter(job => job.status !== 'completed');",
+    "      const allFailed = completed.length === 0 && failed.length > 0;",
+    "      const status = allFailed ? 'failed' : needsReview.length ? 'waiting_review' : (publicationIssues.length || failed.length) ? 'completed_with_issues' : 'completed';",
+    "      const summary = {",
+    "        planned: plan.length,",
+    "        generated: completed.length,",
+    "        needsReview: needsReview.length,",
+    "        publicationIssues: publicationIssues.length,",
+    "        failed: failed.length",
+    "      };"
+  ].join('\n');
+  source = replaceOnce(source, summaryFrom, summaryTo, 'operator completion publication state');
+
+  const reconcileFrom = [
+    "    const completed = generatedJobs.filter(item => item.status === 'completed');",
+    "    const waiting = completed.filter(item => ['needs_review', 'needs_attention'].includes(item.reviewStatus));",
+    "    const failed = generatedJobs.filter(item => item.status !== 'completed');",
+    "    const status = waiting.length ? 'waiting_review' : failed.length ? 'completed_with_issues' : 'completed';",
+    "    const updated = await this.update(runId, {",
+    "      status, stage: waiting.length ? 'waiting_for_review' : 'complete', progress: 100, generatedJobs,",
+    "      summary: { planned: generatedJobs.length, generated: completed.length, needsReview: waiting.length, failed: failed.length },"
+  ].join('\n');
+  const reconcileTo = [
+    "    const completed = generatedJobs.filter(item => item.status === 'completed');",
+    "    const waiting = completed.filter(item => ['needs_review', 'needs_attention'].includes(item.reviewStatus));",
+    "    const publicationIssues = completed.filter(item => item.reviewStatus === 'approved' && !['scheduled', 'paused', 'uploaded', 'published'].includes(item.scheduleStatus));",
+    "    const failed = generatedJobs.filter(item => item.status !== 'completed');",
+    "    const status = waiting.length ? 'waiting_review' : (publicationIssues.length || failed.length) ? 'completed_with_issues' : 'completed';",
+    "    const updated = await this.update(runId, {",
+    "      status, stage: waiting.length ? 'waiting_for_review' : (publicationIssues.length ? 'publication_attention' : 'complete'), progress: 100, generatedJobs,",
+    "      summary: { planned: generatedJobs.length, generated: completed.length, needsReview: waiting.length, publicationIssues: publicationIssues.length, failed: failed.length },"
+  ].join('\n');
+  source = replaceOnce(source, reconcileFrom, reconcileTo, 'operator reconciliation publication state');
   write(rel, source);
 }
 
@@ -77,4 +134,4 @@ function replaceOnce(source, from, to, label) {
   write(rel, source);
 }
 
-console.log('Phase 10 quality repair hardened: completed jobs reopen only for an explicit scoped repair, and default auto-repair cannot trigger media regeneration.');
+console.log('Phase 10 hardened: scoped quality repair, cost-safe defaults, and publication-aware autonomous completion.');
