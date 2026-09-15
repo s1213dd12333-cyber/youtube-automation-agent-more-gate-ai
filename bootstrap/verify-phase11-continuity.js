@@ -5,9 +5,12 @@ const fs = require('fs');
 const fsp = fs.promises;
 const os = require('os');
 const path = require('path');
-const sharp = require(path.join(__dirname, '..', 'upstream', 'node_modules', 'sharp'));
+
+// Keep the materialized runtime honest before any Phase 11.4 assertions.
+require('./fix-phase11-continuity-evidence.js');
 
 const upstream = path.resolve(__dirname, '..', 'upstream');
+const sharp = require(path.join(upstream, 'node_modules', 'sharp'));
 const runtimePath = path.join(upstream, 'utils', 'cartoon-continuity-engine-v11.js');
 if (!fs.existsSync(runtimePath)) throw new Error('Phase 11.4 runtime is not materialized: utils/cartoon-continuity-engine-v11.js');
 
@@ -118,8 +121,10 @@ check('database persists continuity score attempts', () => assert(dbSource.inclu
 check('production bundle exposes continuity checks', () => assert(dbSource.includes('const continuityChecks = await this.listKeyframeContinuityChecks(productionId);')));
 check('image generator exposes reference-conditioned generation', () => assert(generatorSource.includes('async generateVisualAssetsWithReference(')));
 check('Gemini reference generation includes the prior image as inline data', () => assert(generatorSource.includes('{ inlineData: { mimeType, data: referenceData } }')));
+check('generator records real conditioning explicitly', () => assert(generatorSource.includes('this.lastReferenceConditionedGeneration = true')));
 check('keyframe runtime accepts a continuity engine', () => assert(keyframeSource.includes('this.continuityEngine = options.continuityEngine || null')));
 check('keyframe runtime prefers reference-conditioned generation when available', () => assert(keyframeSource.includes('generateVisualAssetsWithReference(current.prompt, referenceAssetPath')));
+check('keyframe runtime records truthful provider conditioning evidence', () => assert(keyframeSource.includes('this.videoGenerator.lastReferenceConditionedGeneration === true')));
 check('keyframe runtime validates each generated frame', () => assert(keyframeSource.includes('this.continuityEngine.evaluate({ productionId, sceneId')));
 check('keyframe runtime has bounded continuity repair loop', () => assert(keyframeSource.includes('repairAttempt < this.continuityEngine.maxRepairAttempts')));
 check('failed continuity blocks the frame', () => assert(keyframeSource.includes("status: 'continuity_failed'")));
