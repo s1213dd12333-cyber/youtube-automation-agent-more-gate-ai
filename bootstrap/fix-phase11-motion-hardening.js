@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 const upstream = path.resolve(__dirname, '..', 'upstream');
 
@@ -42,5 +43,13 @@ fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
 
 console.log('Phase 11.5 motion hardening active: byte-exact fingerprints, stale-scene invalidation, failed-visual Resume safety, and dedicated hardening regression command.');
 
-// Phase 11.6 closes the cartoon pipeline after the final motion hardening is applied.
+// Phase 11.6 is chained from the existing deterministic materializer. Syntax-check
+// all Phase 11.6 bootstrap artifacts here before allowing them to patch upstream.
+for (const rel of [
+  'phase11-cartoon-quality.js',
+  'verify-phase11-cartoon-quality.js',
+  'templates/cartoon-quality-gate-v11.js'
+]) {
+  execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+}
 require('./phase11-cartoon-quality.js');
