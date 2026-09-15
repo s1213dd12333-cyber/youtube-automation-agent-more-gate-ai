@@ -79,3 +79,9 @@ syntax(['phase11-persistent-characters.js', 'verify-phase11-persistent-character
 requireFiles(['templates/persistent-character-db-tables-v11.txt', 'templates/persistent-character-db-methods-v11.txt'], 'Phase 11.11.1');
 require('./phase11-persistent-characters.js');
 run('verify-phase11-persistent-characters.js');
+
+// 11.11.2 — Character Aliases + Resolver.
+syntax(['phase11-persistent-character-resolver.js', 'verify-phase11-persistent-character-resolver.js', 'templates/persistent-character-resolver-v11.js']);
+requireFiles(['templates/persistent-character-resolver-db-tables-v11.txt', 'templates/persistent-character-resolver-db-methods-v11.txt'], 'Phase 11.11.2');
+require('./phase11-persistent-character-resolver.js');
+run('verify-phase11-persistent-character-resolver.js');
