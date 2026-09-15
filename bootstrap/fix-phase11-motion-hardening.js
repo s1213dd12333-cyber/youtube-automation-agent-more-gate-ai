@@ -114,3 +114,27 @@ for (const rel of [
   'templates/semantic-prop-verifier-v11.js'
 ]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
 require('./phase11-semantic-prop-verification.js');
+
+// Phase 11.9.1 promotes production-local environments into a cross-video Reusable Location Library.
+for (const rel of [
+  'phase11-reusable-location-library.js',
+  'verify-phase11-reusable-location-library.js',
+  'templates/reusable-location-library-v11.js'
+]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+require('./phase11-reusable-location-library.js');
+
+// Phase 11.9.2 promotes scene zone labels into persistent rooms/subspaces under reusable locations.
+for (const rel of [
+  'phase11-location-zones.js',
+  'verify-phase11-location-zones.js',
+  'templates/location-zone-registry-v11.js'
+]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+require('./phase11-location-zones.js');
+
+// Phase 11.9.3 persists library-owned canonical visual anchors for locations and zones.
+for (const rel of [
+  'phase11-canonical-location-assets.js',
+  'verify-phase11-canonical-location-assets.js',
+  'templates/canonical-location-assets-v11.js'
+]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+require('./phase11-canonical-location-assets.js');
