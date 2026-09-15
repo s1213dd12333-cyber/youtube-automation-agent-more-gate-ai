@@ -134,7 +134,7 @@ function patchScenePipeline() {
   s = replaceOnce(
     s,
     "    let visualPlan = null;\n\n    if (!scenes.length || scriptChanged) {\n",
-    "    let visualPlan = null;\n    let cartoonBible = await this.db.getLatestCartoonVisualBible(production.id);\n    const plannedCartoonBible = this.cartoonBible.buildProductionBible(cleanProduction);\n    if (plannedCartoonBible && (!cartoonBible || cartoonBible.fingerprint !== plannedCartoonBible.fingerprint)) {\n      cartoonBible = await this.db.saveCartoonVisualBible({ ...plannedCartoonBible, productionId: production.id });\n      this.logger.info(`Cartoon Bible v11.1 persisted for ${production.id}: ${cartoonBible.characters.length} character(s), style=${cartoonBible.mode}.`);\n    }\n\n    if (!scenes.length || scriptChanged) {\n",
+    "    let visualPlan = null;\n    let cartoonBible = await this.db.getLatestCartoonVisualBible(production.id);\n    const plannedCartoonBible = this.cartoonBible.buildProductionBible(production);\n    if (plannedCartoonBible && (!cartoonBible || cartoonBible.fingerprint !== plannedCartoonBible.fingerprint)) {\n      cartoonBible = await this.db.saveCartoonVisualBible({ ...plannedCartoonBible, productionId: production.id });\n      this.logger.info(`Cartoon Bible v11.1 persisted for ${production.id}: ${cartoonBible.characters.length} character(s), style=${cartoonBible.mode}.`);\n    }\n\n    if (!scenes.length || scriptChanged) {\n",
     'prepare persistent cartoon bible before visual planning'
   );
 
