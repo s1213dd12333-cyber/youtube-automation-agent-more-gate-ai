@@ -468,7 +468,8 @@ function evaluateCartoonQualityV11(production = {}, options = {}) {
     keyframes: keyframes.map(frame => ({ id: frame.id, fingerprint: frame.fingerprint, status: frame.status, assetPath: frame.assetPath, generatedAt: frame.generatedAt })),
     continuity: [...latestContinuity.entries()].map(([id, check]) => ({ id, attempt: check.attempt, score: check.score, threshold: check.threshold, status: check.status })),
     motionSegments: motionSegments.map(item => ({ shotId: item.shotId, fingerprint: item.fingerprint, status: item.status, outputPath: item.outputPath })),
-    motionScenes: motionScenes.map(item => ({ sceneId: item.sceneId, fingerprint: item.fingerprint, status: item.status, outputPath: item.outputPath }))
+    motionScenes: motionScenes.map(item => ({ sceneId: item.sceneId, fingerprint: item.fingerprint, status: item.status, outputPath: item.outputPath })),
+    keyframeAssetDigests: allDigests.slice().sort((a, b) => String(a[0]).localeCompare(String(b[0])))
   }));
 
   return {
