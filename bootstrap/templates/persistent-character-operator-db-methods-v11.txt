@@ -1,0 +1,107 @@
+  async getPersistentCharacterResolution(id) {
+    return this.parsePersistentCharacterResolution(await this.getRow('SELECT * FROM persistent_character_resolutions WHERE id = ? LIMIT 1', [id]));
+  }
+
+  async listPendingPersistentCharacterResolutions(namespace = 'default', limit = 100) {
+    const safeLimit = Math.max(1, Math.min(1000, Number(limit || 100)));
+    const rows = await this.getAllRows("SELECT * FROM persistent_character_resolutions WHERE namespace = ? AND status IN ('unresolved','ambiguous') ORDER BY updated_at DESC, rowid DESC LIMIT ?", [namespace || 'default', safeLimit]);
+    return rows.map(row => this.parsePersistentCharacterResolution(row));
+  }
+
+  async listPersistentCharacterResolutionsByCharacter(characterId, limit = 250) {
+    const safeLimit = Math.max(1, Math.min(1000, Number(limit || 250)));
+    const rows = await this.getAllRows('SELECT * FROM persistent_character_resolutions WHERE character_id = ? ORDER BY updated_at DESC, rowid DESC LIMIT ?', [characterId, safeLimit]);
+    return rows.map(row => this.parsePersistentCharacterResolution(row));
+  }
+
+  async listPersistentCharacterBindingsByCharacter(characterId, limit = 250) {
+    const safeLimit = Math.max(1, Math.min(1000, Number(limit || 250)));
+    const rows = await this.getAllRows('SELECT * FROM persistent_character_bindings WHERE character_id = ? ORDER BY updated_at DESC, rowid DESC LIMIT ?', [characterId, safeLimit]);
+    return rows.map(row => this.parsePersistentCharacterBinding(row));
+  }
+
+  async listCrossVideoCharacterContinuityChecksByCharacter(characterId, limit = 250) {
+    const safeLimit = Math.max(1, Math.min(1000, Number(limit || 250)));
+    const rows = await this.getAllRows('SELECT * FROM cross_video_character_continuity_checks WHERE character_id = ? ORDER BY created_at DESC, attempt DESC, rowid DESC LIMIT ?', [characterId, safeLimit]);
+    return rows.map(row => this.parseCrossVideoCharacterContinuityCheck(row));
+  }
+
+  async savePersistentCharacterOperatorAlias(input = {}) {
+    if (!input.characterId || !input.aliasKey) return { status: 'invalid', alias: null, conflictingCharacterIds: [] };
+    const namespace = input.namespace || 'default';
+    const existingSame = await this.getRow('SELECT * FROM persistent_character_aliases WHERE namespace = ? AND character_id = ? AND alias_key = ? LIMIT 1', [namespace, input.characterId, input.aliasKey]);
+    if (existingSame) return { status: 'no_change', alias: this.parsePersistentCharacterAlias(existingSame), conflictingCharacterIds: [] };
+    const foreignBefore = await this.getAllRows('SELECT character_id FROM persistent_character_aliases WHERE namespace = ? AND alias_key = ? AND character_id <> ? ORDER BY character_id', [namespace, input.aliasKey, input.characterId]);
+    if (foreignBefore.length) return { status: 'conflict', alias: null, conflictingCharacterIds: [...new Set(foreignBefore.map(row => row.character_id))] };
+    const id = input.id || this.generateId('persistent_character_alias');
+    const now = new Date().toISOString();
+    await this.executeQuery(`INSERT INTO persistent_character_aliases (id, namespace, character_id, alias_text, alias_key, canonical, source_kind, created_at, updated_at)
+      SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
+      WHERE NOT EXISTS (
+        SELECT 1 FROM persistent_character_aliases WHERE namespace = ? AND alias_key = ? AND character_id <> ?
+      )
+      ON CONFLICT(namespace, character_id, alias_key) DO UPDATE SET alias_text=excluded.alias_text,
+        canonical=MAX(persistent_character_aliases.canonical, excluded.canonical), source_kind=excluded.source_kind, updated_at=excluded.updated_at`,
+      [id, namespace, input.characterId, input.aliasText || input.aliasKey, input.aliasKey, input.canonical ? 1 : 0,
+       input.sourceKind || 'operator_confirmed_alias', now, now, namespace, input.aliasKey, input.characterId]);
+    const aliasRow = await this.getRow('SELECT * FROM persistent_character_aliases WHERE namespace = ? AND character_id = ? AND alias_key = ? LIMIT 1', [namespace, input.characterId, input.aliasKey]);
+    if (aliasRow) return { status: 'applied', alias: this.parsePersistentCharacterAlias(aliasRow), conflictingCharacterIds: [] };
+    const foreignAfter = await this.getAllRows('SELECT character_id FROM persistent_character_aliases WHERE namespace = ? AND alias_key = ? AND character_id <> ? ORDER BY character_id', [namespace, input.aliasKey, input.characterId]);
+    return { status: 'conflict', alias: null, conflictingCharacterIds: [...new Set(foreignAfter.map(row => row.character_id))] };
+  }
+
+  async linkPersistentCharacterResolutionOperator(input = {}) {
+    if (!input.resolutionId || !input.characterId || !input.identityFingerprint) return { status: 'invalid', resolution: null };
+    const before = await this.getPersistentCharacterResolution(input.resolutionId);
+    if (!before) return { status: 'not_found', resolution: null };
+    const namespace = input.namespace || before.namespace || 'default';
+    if ((before.namespace || 'default') !== namespace) return { status: 'conflict', resolution: before, reason: 'resolution_namespace_mismatch' };
+    const wasSame = before.status === 'resolved' && before.characterId === input.characterId;
+    const now = new Date().toISOString();
+    await this.executeQuery(`UPDATE persistent_character_resolutions SET status='resolved', character_id=?, match_mode='operator_explicit_link', confidence=1,
+      candidate_character_ids=?, reason='operator_confirmed_reference_link', identity_fingerprint=?, updated_at=?
+      WHERE id=? AND namespace=? AND (status IN ('unresolved','ambiguous') OR (status='resolved' AND character_id=?))`,
+      [input.characterId, JSON.stringify([input.characterId]), input.identityFingerprint, now, input.resolutionId, namespace, input.characterId]);
+    const after = await this.getPersistentCharacterResolution(input.resolutionId);
+    if (!after || after.characterId !== input.characterId || after.status !== 'resolved') {
+      return { status: 'conflict', resolution: after || before, reason: 'resolution_concurrently_linked_to_different_character', currentCharacterId: after?.characterId || before.characterId || null };
+    }
+    return { status: wasSame ? 'no_change' : 'applied', resolution: after };
+  }
+
+  async savePersistentCharacterOperatorAction(input = {}) {
+    if (!input.actionType || !input.targetType || !input.status) return null;
+    const id = input.id || this.generateId('persistent_character_operator_action');
+    const createdAt = input.createdAt || new Date().toISOString();
+    await this.executeQuery(`INSERT INTO persistent_character_operator_actions (
+      id, namespace, action_type, character_id, target_type, target_id, production_id, status, actor, note, before_value, after_value, reason, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+      id, input.namespace || 'default', input.actionType, input.characterId || null, input.targetType, input.targetId || null,
+      input.productionId || null, input.status, input.actor || 'operator', input.note || null,
+      JSON.stringify(input.beforeValue || {}), JSON.stringify(input.afterValue || {}), input.reason || null, createdAt
+    ]);
+    return this.getPersistentCharacterOperatorAction(id);
+  }
+
+  async getPersistentCharacterOperatorAction(id) {
+    return this.parsePersistentCharacterOperatorAction(await this.getRow('SELECT * FROM persistent_character_operator_actions WHERE id = ? LIMIT 1', [id]));
+  }
+
+  async listPersistentCharacterOperatorActions(characterId = null, namespace = 'default', limit = 250) {
+    const safeLimit = Math.max(1, Math.min(1000, Number(limit || 250)));
+    const rows = characterId
+      ? await this.getAllRows('SELECT * FROM persistent_character_operator_actions WHERE namespace = ? AND character_id = ? ORDER BY created_at DESC, rowid DESC LIMIT ?', [namespace || 'default', characterId, safeLimit])
+      : await this.getAllRows('SELECT * FROM persistent_character_operator_actions WHERE namespace = ? ORDER BY created_at DESC, rowid DESC LIMIT ?', [namespace || 'default', safeLimit]);
+    return rows.map(row => this.parsePersistentCharacterOperatorAction(row));
+  }
+
+  parsePersistentCharacterOperatorAction(row) {
+    if (!row) return null;
+    return {
+      id: row.id, namespace: row.namespace || 'default', actionType: row.action_type, characterId: row.character_id,
+      targetType: row.target_type, targetId: row.target_id, productionId: row.production_id, status: row.status,
+      actor: row.actor || 'operator', note: row.note, beforeValue: JSON.parse(row.before_value || '{}'),
+      afterValue: JSON.parse(row.after_value || '{}'), reason: row.reason, createdAt: row.created_at
+    };
+  }
+
