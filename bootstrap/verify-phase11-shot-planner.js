@@ -78,9 +78,9 @@ check('character references resolve to Character Bible ids', () => {
   const ids = new Set(bible.characters.map(character => character.id));
   assert(planA.shots.flatMap(shot => shot.characters).every(id => ids.has(id)));
 });
-check('shot prompts carry Character Bible context', () => assert(planA.shots.every(shot => shot.prompt.includes('CARTOON BIBLE V11.1:')));
-check('shot prompts identify the Phase 11.2 shot contract', () => assert(planA.shots.every(shot => shot.prompt.includes('SHOT PLAN V11.2:')));
-check('shot prompts explicitly prohibit random changes', () => assert(planA.shots.every(shot => shot.prompt.includes('no unmotivated costume/location changes')));
+check('shot prompts carry Character Bible context', () => assert(planA.shots.every(shot => shot.prompt.includes('CARTOON BIBLE V11.1:'))));
+check('shot prompts identify the Phase 11.2 shot contract', () => assert(planA.shots.every(shot => shot.prompt.includes('SHOT PLAN V11.2:'))));
+check('shot prompts explicitly prohibit random changes', () => assert(planA.shots.every(shot => shot.prompt.includes('no unmotivated costume/location changes'))));
 check('shot durations preserve total scene duration', () => {
   const total = planA.shots.reduce((sum, shot) => sum + Number(shot.duration || 0), 0);
   assert(Math.abs(total - sceneA.duration) < 0.01);
