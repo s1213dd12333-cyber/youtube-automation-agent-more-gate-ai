@@ -96,3 +96,12 @@ for (const rel of [
   'templates/environment-prompt-enricher-v11.js'
 ]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
 require('./phase11-environment-prompt-enrichment.js');
+
+// Phase 11.7.6 validates every generated keyframe against the canonical persistent location.
+// It fails closed when the mapping/master reference is missing and feeds the result into Cartoon Quality.
+for (const rel of [
+  'phase11-environment-continuity.js',
+  'verify-phase11-environment-continuity.js',
+  'templates/environment-continuity-validator-v11.js'
+]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+require('./phase11-environment-continuity.js');
