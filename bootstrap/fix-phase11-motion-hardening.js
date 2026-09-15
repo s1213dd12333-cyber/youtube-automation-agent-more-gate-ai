@@ -41,3 +41,6 @@ pkg.scripts['test:motion-hardening'] = 'node ../bootstrap/verify-phase11-motion-
 fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
 
 console.log('Phase 11.5 motion hardening active: byte-exact fingerprints, stale-scene invalidation, failed-visual Resume safety, and dedicated hardening regression command.');
+
+// Phase 11.6 closes the cartoon pipeline after the final motion hardening is applied.
+require('./phase11-cartoon-quality.js');
