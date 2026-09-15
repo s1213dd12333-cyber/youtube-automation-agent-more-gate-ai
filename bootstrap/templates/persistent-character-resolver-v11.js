@@ -214,8 +214,9 @@ class PersistentCharacterResolverV11 {
       }
     }
 
+    const explicitSpecies = normalizeSpecies(candidate.speciesType || 'character');
     const aliasCharacters = await uniqueCharactersForAliases(this.db, namespace, descriptor.key);
-    const aliasCompatible = aliasCharacters.filter(character => speciesCompatible(character, descriptor.requestedSpecies) && compatibleCanonicalIdentity(character, candidate).compatible);
+    const aliasCompatible = aliasCharacters.filter(character => (explicitSpecies === 'character' || speciesCompatible(character, explicitSpecies)) && compatibleCanonicalIdentity(character, candidate).compatible);
     if (aliasCompatible.length === 1) {
       const result = { ...base, status: 'resolved', character: aliasCompatible[0], candidates: aliasCompatible, matchMode: 'character_alias_exact', confidence: 0.99, reason: 'persisted_alias_exact' };
       await this.persistResolution(input, result); return result;
@@ -227,7 +228,7 @@ class PersistentCharacterResolverV11 {
 
     const characters = this.db?.listPersistentCharacters ? await this.db.listPersistentCharacters(namespace) : [];
     const exactNamed = (characters || []).filter(character => {
-      if (!speciesCompatible(character, descriptor.requestedSpecies)) return false;
+      if (explicitSpecies !== 'character' && !speciesCompatible(character, explicitSpecies)) return false;
       if (!compatibleCanonicalIdentity(character, candidate).compatible) return false;
       return normalize(character.displayName) === descriptor.key ||
         normalize(String(character.characterKey || '').replace(/[_-]+/g, ' ')) === descriptor.key;
