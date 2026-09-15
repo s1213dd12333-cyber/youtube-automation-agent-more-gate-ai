@@ -26,4 +26,11 @@ replaceOnce(
 );
 
 fs.writeFileSync(target, source, 'utf8');
+
+const pkgPath = path.join(upstream, 'package.json');
+const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+pkg.scripts = pkg.scripts || {};
+pkg.scripts['test:made-for-kids'] = 'node ../bootstrap/verify-phase11-made-for-kids.js';
+fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
+
 console.log('Phase 11.6 made-for-kids hardening active: kids_cartoon_2d schedules persist audience metadata and YouTube upload uses it instead of hard-coding false.');
