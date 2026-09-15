@@ -317,7 +317,7 @@ class LocationResolverV11 {
     }
 
     const incomingStructural = structuralFingerprint(identity);
-    if (incomingStructural) {
+    if (descriptor.generic && incomingStructural) {
       const structuralHits = knownLocations
         .filter(location => compatibleType(location, requestedType))
         .filter(location => structuralFingerprint(location.canonicalIdentity || {}) === incomingStructural)
