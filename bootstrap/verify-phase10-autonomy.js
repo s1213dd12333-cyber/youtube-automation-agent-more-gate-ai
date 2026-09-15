@@ -149,6 +149,8 @@ check('SQLite Phase 10 trace tables and methods are installed', () => {
   assert(source.includes('CREATE TABLE IF NOT EXISTS autonomy_events'));
   assert(source.includes('async startAutonomyTraceSpan'));
   assert(source.includes('async listAutonomyTraceSpans'));
+  assert(source.includes('SUM(CASE WHEN estimated_cost IS NOT NULL THEN 1 ELSE 0 END) AS cost_reports'));
+  assert(source.includes('estimatedCost: Number(row?.cost_reports || 0) > 0 ? Number(row.estimated_cost || 0) : null'));
 });
 check('generation stages are wrapped in Phase 10 tracing', () => {
   const source = fs.readFileSync(path.join(upstream, 'index.js'), 'utf8');
