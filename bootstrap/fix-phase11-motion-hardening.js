@@ -77,9 +77,11 @@ require('./phase11-environment-bible.js');
 // identity and evidence-backed attributes now; master-frame placement anchoring remains 11.7.3.
 for (const rel of [
   'phase11-prop-lock.js',
+  'fix-phase11-prop-lock-attributes.js',
   'verify-phase11-prop-lock.js',
   'templates/prop-lock-v11.js'
 ]) {
   execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
 }
 require('./phase11-prop-lock.js');
+require('./fix-phase11-prop-lock-attributes.js');
