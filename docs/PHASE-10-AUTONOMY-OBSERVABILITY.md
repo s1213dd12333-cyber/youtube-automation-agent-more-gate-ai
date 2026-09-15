@@ -46,7 +46,7 @@ The autonomous operator also records state transitions and automatic-repair even
 
 Phase 10 aggregates the existing Phase 4 `ai_usage` records for a production and its generation job. It reports tokens, non-token units, provider/resource grouping, requests, errors, latency and estimated cost only where Phase 4 has real evidence.
 
-An absent provider price or token report is not replaced with an invented value.
+An absent provider price or token report is not replaced with an invented value. When no request has a recorded cost, per-video `estimatedCost` is `null`, not zero. A numeric zero is therefore reserved for cases where actual cost evidence exists and sums to zero.
 
 API:
 
@@ -119,13 +119,15 @@ The automatic repair attempt is persisted as autonomy events and can run at most
 
 When `approval_required` is enabled, Phase 10 blocks both scheduling and YouTube publication until the persisted content review is `approved`.
 
-It also blocks scheduling/publication when Phase 9 is `blocked`, in addition to the existing provenance, narration, readiness and media-rights gates.
+A Phase 9 Quality Agents report is mandatory before scheduling/upload. An absent report fails closed with `QUALITY_REPORT_REQUIRED`; a blocked report fails with `QUALITY_BLOCKED`. This intentionally forces legacy pre-Phase-9 content through the current quality review before publication.
+
+The publication gate also retains provenance, narration, readiness and media-rights protections.
 
 This means an autonomous run can generate and perform the narrow safe repair above, but it cannot silently bypass the configured human approval boundary.
 
-After a human approval, the associated autonomous operator run is reconciled automatically. A run that was `waiting_review` can therefore move to `completed` once all its produced videos are resolved.
+The operator distinguishes generation completion from publication resolution. Approved content that still has publication blockers or no valid schedule remains `completed_with_issues` at the `publication_attention` stage rather than being reported as fully complete.
 
-Manual reconciliation is also available:
+After a human approval, the associated autonomous operator run is reconciled automatically. A run that was `waiting_review` can move to `completed` only when its publication state is resolved. Manual reconciliation is also available:
 
 ```text
 POST /api/operator/:runId/reconcile
