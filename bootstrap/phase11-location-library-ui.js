@@ -63,3 +63,20 @@ for (const rel of [
 }
 require('./phase11-persistent-world-object-resolver.js');
 execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-persistent-world-object-resolver.js')], { stdio: 'inherit' });
+
+// Phase 11.10.3 promotes only explicit provider-backed canonical object references and freezes their origin hash/provenance.
+for (const rel of [
+  'phase11-canonical-world-object-assets.js',
+  'verify-phase11-canonical-world-object-assets.js',
+  'templates/canonical-world-object-assets-v11.js'
+]) {
+  execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+}
+for (const rel of [
+  'templates/persistent-world-object-assets-db-tables-v11.txt',
+  'templates/persistent-world-object-assets-db-methods-v11.txt'
+]) {
+  if (!fs.existsSync(path.join(__dirname, rel))) throw new Error(`Phase 11.10.3 prerequisite missing: ${rel}`);
+}
+require('./phase11-canonical-world-object-assets.js');
+execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-canonical-world-object-assets.js')], { stdio: 'inherit' });
