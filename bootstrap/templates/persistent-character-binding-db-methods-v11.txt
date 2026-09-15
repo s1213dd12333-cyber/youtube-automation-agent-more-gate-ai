@@ -1,0 +1,55 @@
+  async savePersistentCharacterBinding(input = {}) {
+    if (!input.id || !input.productionId || !input.sceneId || !input.shotId || !input.bindingFingerprint) return null;
+    const now = new Date().toISOString();
+    const existing = await this.getRow('SELECT id, created_at FROM persistent_character_bindings WHERE id = ? LIMIT 1', [input.id]);
+    const createdAt = existing?.created_at || input.createdAt || now;
+    await this.executeQuery(`INSERT INTO persistent_character_bindings (
+      id, production_id, scene_id, shot_id, shot_index, character_id, character_key, version, status, reference_text, reference_key, match_mode,
+      confidence, visibility, placement, action, expression, required, state_id, state_fingerprint, canonical_asset_id, canonical_asset_sha256,
+      binding_fingerprint, prompt_fragment, source_kind, source_ref, reason, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET status=excluded.status, character_id=excluded.character_id, character_key=excluded.character_key,
+      match_mode=excluded.match_mode, confidence=excluded.confidence, visibility=excluded.visibility, placement=excluded.placement,
+      action=excluded.action, expression=excluded.expression, required=excluded.required, state_id=excluded.state_id,
+      state_fingerprint=excluded.state_fingerprint, canonical_asset_id=excluded.canonical_asset_id,
+      canonical_asset_sha256=excluded.canonical_asset_sha256, binding_fingerprint=excluded.binding_fingerprint,
+      prompt_fragment=excluded.prompt_fragment, source_kind=excluded.source_kind, source_ref=excluded.source_ref,
+      reason=excluded.reason, updated_at=excluded.updated_at`,
+      [input.id, input.productionId, input.sceneId, input.shotId, Number(input.shotIndex || 0), input.characterId || null,
+       input.characterKey || null, String(input.version || '11.11.5'), input.status || 'resolved', input.referenceText || null,
+       input.referenceKey || null, input.matchMode || null, Number(input.confidence || 0), input.visibility || 'visible',
+       input.placement || null, input.action || null, input.expression || null, input.required === false ? 0 : 1,
+       input.stateId || null, input.stateFingerprint || null, input.canonicalAssetId || null, input.canonicalAssetSha256 || null,
+       input.bindingFingerprint, input.promptFragment || '', input.sourceKind || 'scene_character_binding', input.sourceRef || null,
+       input.reason || null, createdAt, now]);
+    return this.getPersistentCharacterBinding(input.id);
+  }
+
+  async getPersistentCharacterBinding(id) {
+    return this.parsePersistentCharacterBinding(await this.getRow('SELECT * FROM persistent_character_bindings WHERE id = ? LIMIT 1', [id]));
+  }
+
+  async listProductionPersistentCharacterBindings(productionId) {
+    const rows = await this.getAllRows('SELECT * FROM persistent_character_bindings WHERE production_id = ? ORDER BY scene_id, shot_index, created_at, rowid', [productionId]);
+    return rows.map(row => this.parsePersistentCharacterBinding(row));
+  }
+
+  async listShotPersistentCharacterBindings(productionId, shotId) {
+    const rows = await this.getAllRows('SELECT * FROM persistent_character_bindings WHERE production_id = ? AND shot_id = ? ORDER BY created_at, rowid', [productionId, shotId]);
+    return rows.map(row => this.parsePersistentCharacterBinding(row));
+  }
+
+  parsePersistentCharacterBinding(row) {
+    if (!row) return null;
+    return {
+      id: row.id, productionId: row.production_id, sceneId: row.scene_id, shotId: row.shot_id, shotIndex: Number(row.shot_index || 0),
+      characterId: row.character_id, characterKey: row.character_key, version: row.version || '11.11.5', status: row.status,
+      referenceText: row.reference_text, referenceKey: row.reference_key, matchMode: row.match_mode, confidence: Number(row.confidence || 0),
+      visibility: row.visibility || 'visible', placement: row.placement, action: row.action, expression: row.expression,
+      required: Boolean(row.required), stateId: row.state_id, stateFingerprint: row.state_fingerprint,
+      canonicalAssetId: row.canonical_asset_id, canonicalAssetSha256: row.canonical_asset_sha256,
+      bindingFingerprint: row.binding_fingerprint, promptFragment: row.prompt_fragment || '',
+      sourceKind: row.source_kind, sourceRef: row.source_ref, reason: row.reason, createdAt: row.created_at, updatedAt: row.updated_at
+    };
+  }
+
