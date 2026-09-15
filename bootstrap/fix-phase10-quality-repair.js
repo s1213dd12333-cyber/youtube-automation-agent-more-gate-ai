@@ -110,6 +110,12 @@ function replaceOnce(source, from, to, label) {
 {
   const rel = 'utils/autonomy-observability-v10.js';
   let source = read(rel);
+  source = replaceOnce(
+    source,
+    "  if (bundle.qualityAgentReport?.status === 'blocked') blockers.push('quality_agents');",
+    "  if (!bundle.qualityAgentReport || bundle.qualityAgentReport.status === 'blocked') blockers.push('quality_agents');",
+    'publication requires Phase 9 report'
+  );
   const from = [
     "  // Text-only repairs are allowed automatically. Media regeneration can consume image/video credits and stays manual.",
     "  if (has(/^seo_/) || agents.has('seo')) return { automatic: true, stage: 'seo', reason: 'text_only_seo_repair' };",
@@ -134,4 +140,37 @@ function replaceOnce(source, from, to, label) {
   write(rel, source);
 }
 
-console.log('Phase 10 hardened: scoped quality repair, cost-safe defaults, and publication-aware autonomous completion.');
+{
+  const rel = 'agents/publishing-scheduling-agent.js';
+  let source = read(rel);
+  const from = [
+    "        if (gateBundle.qualityAgentReport?.status === 'blocked') {",
+    "          const error = new Error('Scheduling is blocked by Phase 9 Quality Agents');",
+    "          error.status = 409; error.code = 'QUALITY_BLOCKED'; throw error;",
+    "        }"
+  ].join('\n');
+  const to = [
+    "        if (!gateBundle.qualityAgentReport || gateBundle.qualityAgentReport.status === 'blocked') {",
+    "          const error = new Error(gateBundle.qualityAgentReport ? 'Scheduling is blocked by Phase 9 Quality Agents' : 'Scheduling requires a Phase 9 Quality Agents report');",
+    "          error.status = 409; error.code = gateBundle.qualityAgentReport ? 'QUALITY_BLOCKED' : 'QUALITY_REPORT_REQUIRED'; throw error;",
+    "        }"
+  ].join('\n');
+  source = replaceOnce(source, from, to, 'scheduling requires Quality Agents report');
+
+  const publishFrom = [
+    "        if (productionBundle?.qualityAgentReport?.status === 'blocked') {",
+    "          const error = new Error('Publishing is blocked by Phase 9 Quality Agents');",
+    "          error.status = 409; error.code = 'QUALITY_BLOCKED'; throw error;",
+    "        }"
+  ].join('\n');
+  const publishTo = [
+    "        if (productionBundle && (!productionBundle.qualityAgentReport || productionBundle.qualityAgentReport.status === 'blocked')) {",
+    "          const error = new Error(productionBundle.qualityAgentReport ? 'Publishing is blocked by Phase 9 Quality Agents' : 'Publishing requires a Phase 9 Quality Agents report');",
+    "          error.status = 409; error.code = productionBundle.qualityAgentReport ? 'QUALITY_BLOCKED' : 'QUALITY_REPORT_REQUIRED'; throw error;",
+    "        }"
+  ].join('\n');
+  source = replaceOnce(source, publishFrom, publishTo, 'publishing requires Quality Agents report');
+  write(rel, source);
+}
+
+console.log('Phase 10 hardened: scoped quality repair, cost-safe defaults, publication-aware completion, and mandatory Phase 9 review before schedule/upload.');
