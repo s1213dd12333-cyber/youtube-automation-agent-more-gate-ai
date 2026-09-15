@@ -131,3 +131,22 @@ for (const rel of [
 }
 require('./phase11-cross-video-object-continuity.js');
 execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-cross-video-object-continuity.js')], { stdio: 'inherit' });
+
+// Phase 11.10.7 exposes the persistent object library and audited, fail-closed operator corrections.
+for (const rel of [
+  'phase11-persistent-world-object-library-ui.js',
+  'verify-phase11-persistent-world-object-library-ui.js',
+  'templates/persistent-world-object-library-manager-v11.js',
+  'templates/persistent-world-object-library-dashboard-v11.js'
+]) {
+  execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+}
+for (const rel of [
+  'templates/persistent-world-object-operator-db-tables-v11.txt',
+  'templates/persistent-world-object-operator-db-methods-v11.txt',
+  'templates/persistent-world-object-library-dashboard-v11.css'
+]) {
+  if (!fs.existsSync(path.join(__dirname, rel))) throw new Error(`Phase 11.10.7 prerequisite missing: ${rel}`);
+}
+require('./phase11-persistent-world-object-library-ui.js');
+execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-persistent-world-object-library-ui.js')], { stdio: 'inherit' });
