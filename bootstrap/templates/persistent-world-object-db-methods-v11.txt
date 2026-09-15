@@ -1,0 +1,95 @@
+  async savePersistentWorldObject(input = {}) {
+    if (!input.id || !input.namespace || !input.objectKey || !input.identityFingerprint) return null;
+    const now = new Date().toISOString();
+    const existing = await this.getPersistentWorldObjectByFingerprint(input.namespace, input.identityFingerprint);
+    const createdAt = existing?.createdAt || input.createdAt || now;
+    const firstSeenAt = existing?.firstSeenAt || input.firstSeenAt || createdAt;
+    await this.executeQuery(
+      `INSERT INTO persistent_world_objects (
+        id, namespace, object_key, display_name, object_type, version, identity_fingerprint, canonical_identity, canonical_prompt_context,
+        canonical_location_id, canonical_zone_id, canonical_prop_lock_id, status, created_from_production_id, first_seen_at, last_seen_at, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(namespace, identity_fingerprint) DO UPDATE SET
+        display_name = persistent_world_objects.display_name, object_type = persistent_world_objects.object_type, version = excluded.version,
+        canonical_identity = persistent_world_objects.canonical_identity, canonical_prompt_context = persistent_world_objects.canonical_prompt_context,
+        canonical_location_id = COALESCE(persistent_world_objects.canonical_location_id, excluded.canonical_location_id),
+        canonical_zone_id = COALESCE(persistent_world_objects.canonical_zone_id, excluded.canonical_zone_id),
+        canonical_prop_lock_id = COALESCE(persistent_world_objects.canonical_prop_lock_id, excluded.canonical_prop_lock_id),
+        status = persistent_world_objects.status, last_seen_at = excluded.last_seen_at, updated_at = excluded.updated_at`,
+      [input.id, input.namespace, input.objectKey, input.displayName || input.objectKey, input.objectType || 'object', String(input.version || '11.10.1'),
+       input.identityFingerprint, JSON.stringify(input.canonicalIdentity || {}), input.canonicalPromptContext || '', input.canonicalLocationId || null,
+       input.canonicalZoneId || null, input.canonicalPropLockId || null, input.status || 'registered', input.createdFromProductionId || null,
+       firstSeenAt, input.lastSeenAt || now, createdAt, now]
+    );
+    return this.getPersistentWorldObjectByFingerprint(input.namespace, input.identityFingerprint);
+  }
+
+  async getPersistentWorldObject(id) {
+    return this.parsePersistentWorldObject(await this.getRow('SELECT * FROM persistent_world_objects WHERE id = ? LIMIT 1', [id]));
+  }
+
+  async getPersistentWorldObjectByFingerprint(namespace, fingerprint) {
+    return this.parsePersistentWorldObject(await this.getRow('SELECT * FROM persistent_world_objects WHERE namespace = ? AND identity_fingerprint = ? LIMIT 1', [namespace || 'default', fingerprint]));
+  }
+
+  async getPersistentWorldObjectByKey(namespace, objectKey) {
+    return this.parsePersistentWorldObject(await this.getRow('SELECT * FROM persistent_world_objects WHERE namespace = ? AND object_key = ? LIMIT 1', [namespace || 'default', objectKey]));
+  }
+
+  async listPersistentWorldObjects(namespace = 'default') {
+    const rows = await this.getAllRows('SELECT * FROM persistent_world_objects WHERE namespace = ? ORDER BY last_seen_at DESC, created_at, rowid', [namespace || 'default']);
+    return rows.map(row => this.parsePersistentWorldObject(row));
+  }
+
+  async savePersistentWorldObjectUsage(input = {}) {
+    if (!input.objectId || !input.productionId || !input.scopeKey || !input.identityFingerprint) return null;
+    const existing = await this.getRow('SELECT id, created_at FROM persistent_world_object_usages WHERE object_id = ? AND production_id = ? AND scope_key = ? LIMIT 1', [input.objectId, input.productionId, input.scopeKey]);
+    const id = existing?.id || input.id || this.generateId('persistent_world_object_usage');
+    const now = new Date().toISOString(); const createdAt = existing?.created_at || input.createdAt || now;
+    await this.executeQuery(`INSERT INTO persistent_world_object_usages (id, object_id, production_id, scope_key, environment_id, scene_id, location_id, zone_id, prop_lock_id, source_kind, source_ref, match_mode, identity_fingerprint, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(object_id, production_id, scope_key) DO UPDATE SET
+      environment_id=excluded.environment_id, scene_id=excluded.scene_id, location_id=excluded.location_id, zone_id=excluded.zone_id, prop_lock_id=excluded.prop_lock_id,
+      source_kind=excluded.source_kind, source_ref=excluded.source_ref, match_mode=excluded.match_mode, identity_fingerprint=excluded.identity_fingerprint, updated_at=excluded.updated_at`,
+      [id, input.objectId, input.productionId, input.scopeKey, input.environmentId || null, input.sceneId || null, input.locationId || null, input.zoneId || null,
+       input.propLockId || null, input.sourceKind || 'explicit_world_object', input.sourceRef || null, input.matchMode || 'identity_fingerprint_exact_register',
+       input.identityFingerprint, createdAt, now]);
+    return this.getPersistentWorldObjectUsage(input.objectId, input.productionId, input.scopeKey);
+  }
+
+  async getPersistentWorldObjectUsage(objectId, productionId, scopeKey) {
+    return this.parsePersistentWorldObjectUsage(await this.getRow('SELECT * FROM persistent_world_object_usages WHERE object_id = ? AND production_id = ? AND scope_key = ? LIMIT 1', [objectId, productionId, scopeKey]));
+  }
+
+  async listPersistentWorldObjectUsages(objectId) {
+    const rows = await this.getAllRows('SELECT * FROM persistent_world_object_usages WHERE object_id = ? ORDER BY created_at, rowid', [objectId]);
+    return rows.map(row => this.parsePersistentWorldObjectUsage(row));
+  }
+
+  async listProductionPersistentWorldObjects(productionId) {
+    const rows = await this.getAllRows(`SELECT o.*, u.id AS usage_id, u.production_id AS usage_production_id, u.scope_key AS usage_scope_key,
+      u.environment_id AS usage_environment_id, u.scene_id AS usage_scene_id, u.location_id AS usage_location_id, u.zone_id AS usage_zone_id,
+      u.prop_lock_id AS usage_prop_lock_id, u.source_kind AS usage_source_kind, u.source_ref AS usage_source_ref, u.match_mode AS usage_match_mode,
+      u.identity_fingerprint AS usage_identity_fingerprint, u.created_at AS usage_created_at, u.updated_at AS usage_updated_at
+      FROM persistent_world_object_usages u JOIN persistent_world_objects o ON o.id = u.object_id WHERE u.production_id = ? ORDER BY u.created_at, u.rowid`, [productionId]);
+    return rows.map(row => ({ ...this.parsePersistentWorldObject(row), usage: {
+      id: row.usage_id, objectId: row.id, productionId: row.usage_production_id, scopeKey: row.usage_scope_key, environmentId: row.usage_environment_id,
+      sceneId: row.usage_scene_id, locationId: row.usage_location_id, zoneId: row.usage_zone_id, propLockId: row.usage_prop_lock_id, sourceKind: row.usage_source_kind,
+      sourceRef: row.usage_source_ref, matchMode: row.usage_match_mode, identityFingerprint: row.usage_identity_fingerprint, createdAt: row.usage_created_at, updatedAt: row.usage_updated_at
+    }, reusedAcrossVideos: Boolean(row.created_from_production_id && row.created_from_production_id !== productionId) }));
+  }
+
+  parsePersistentWorldObject(row) {
+    if (!row) return null;
+    return { id: row.id, namespace: row.namespace || 'default', objectKey: row.object_key, displayName: row.display_name, objectType: row.object_type || 'object',
+      version: row.version || '11.10.1', identityFingerprint: row.identity_fingerprint, canonicalIdentity: JSON.parse(row.canonical_identity || '{}'),
+      canonicalPromptContext: row.canonical_prompt_context || '', canonicalLocationId: row.canonical_location_id, canonicalZoneId: row.canonical_zone_id,
+      canonicalPropLockId: row.canonical_prop_lock_id, status: row.status || 'registered', createdFromProductionId: row.created_from_production_id,
+      firstSeenAt: row.first_seen_at, lastSeenAt: row.last_seen_at, createdAt: row.created_at, updatedAt: row.updated_at };
+  }
+
+  parsePersistentWorldObjectUsage(row) {
+    if (!row) return null;
+    return { id: row.id, objectId: row.object_id, productionId: row.production_id, scopeKey: row.scope_key, environmentId: row.environment_id, sceneId: row.scene_id,
+      locationId: row.location_id, zoneId: row.zone_id, propLockId: row.prop_lock_id, sourceKind: row.source_kind, sourceRef: row.source_ref, matchMode: row.match_mode,
+      identityFingerprint: row.identity_fingerprint, createdAt: row.created_at, updatedAt: row.updated_at };
+  }
