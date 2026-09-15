@@ -108,3 +108,9 @@ run('verify-phase11-persistent-character-binding.js');
 syntax(['fix-phase11-persistent-character-binding-hardening.js', 'verify-phase11-persistent-character-binding-hardening.js']);
 require('./fix-phase11-persistent-character-binding-hardening.js');
 run('verify-phase11-persistent-character-binding-hardening.js');
+
+// 11.11.6 — Cross-Video Character Continuity Gate consumes only the hardened current binding set.
+syntax(['phase11-cross-video-character-continuity.js', 'verify-phase11-cross-video-character-continuity.js', 'templates/cross-video-character-continuity-gate-v11.js']);
+requireFiles(['templates/cross-video-character-continuity-db-tables-v11.txt', 'templates/cross-video-character-continuity-db-methods-v11.txt'], 'Phase 11.11.6');
+require('./phase11-cross-video-character-continuity.js');
+run('verify-phase11-cross-video-character-continuity.js');
