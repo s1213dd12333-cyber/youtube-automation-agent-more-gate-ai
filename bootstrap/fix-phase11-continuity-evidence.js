@@ -4,105 +4,141 @@ const fs = require('fs');
 const path = require('path');
 
 const upstream = path.resolve(__dirname, '..', 'upstream');
+const read = rel => fs.readFileSync(path.join(upstream, rel), 'utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+const write = (rel, source) => fs.writeFileSync(path.join(upstream, rel), source, 'utf8');
 
-function read(rel) {
-  return fs.readFileSync(path.join(upstream, rel), 'utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+function replaceRequired(source, from, to, label) {
+  if (source.includes(to)) return source;
+  if (!source.includes(from)) throw new Error(`Phase 11.4 evidence anchor not found: ${label}`);
+  return source.replace(from, to);
 }
 
-function write(rel, source) {
-  fs.writeFileSync(path.join(upstream, rel), source, 'utf8');
-}
-
-function patchSimple(rel, replacements) {
+function ensureGeneratorRuntime() {
+  const rel = 'utils/ai-video-generator.js';
   let source = read(rel);
-  let changed = false;
-  for (const { from, to, label, satisfiedBy = [] } of replacements) {
-    if ([to, ...satisfiedBy].some(marker => marker && source.includes(marker))) continue;
-    if (!source.includes(from)) throw new Error(`Phase 11.4 evidence anchor not found: ${label}`);
-    source = source.replace(from, to);
-    changed = true;
+
+  if (!source.includes('  async generateVisualAssetsWithReference(')) {
+    const anchor = '  async generateVisualAssets(prompt, style = "ethereal", count = 1) {\n';
+    if (!source.includes(anchor)) throw new Error('Phase 11.4 generator anchor not found: generateVisualAssets');
+    const block = [
+      '  async generateVisualAssetsWithReference(prompt, referenceAssetPath, style = "kids_cartoon_2d", count = 1) {',
+      '    this.lastReferenceConditionedGeneration = false;',
+      '    if (!referenceAssetPath) return this.generateVisualAssets(prompt, style, count);',
+      '    if (!this.gemini) {',
+      "      this.logger.warn('Reference-conditioned image generation is unavailable for the active image provider; continuity validation will still run after generation.');",
+      '      return this.generateVisualAssets(prompt, style, count);',
+      '    }',
+      '    const enhancedPrompt = this.enhanceVisualPrompt(prompt, style);',
+      '    const extension = path.extname(referenceAssetPath).toLowerCase();',
+      "    const mimeType = extension === '.jpg' || extension === '.jpeg' ? 'image/jpeg' : extension === '.webp' ? 'image/webp' : 'image/png';",
+      "    const referenceData = (await fs.readFile(referenceAssetPath)).toString('base64');",
+      '    const localPaths = [];',
+      '    for (let i = 0; i < count; i++) {',
+      "      const imagePath = path.join(__dirname, '..', 'data', 'assets', 'visual_ref_' + Date.now() + '_' + i + '.png');",
+      '      await this.generateGeminiImageWithReference(enhancedPrompt, referenceData, mimeType, imagePath);',
+      '      localPaths.push(imagePath);',
+      '    }',
+      '    this.lastReferenceConditionedGeneration = true;',
+      '    return localPaths;',
+      '  }',
+      '',
+      '  async generateGeminiImageWithReference(prompt, referenceData, mimeType, imagePath) {',
+      '    await fs.mkdir(path.dirname(imagePath), { recursive: true });',
+      "    const model = process.env.GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-image';",
+      '    const response = await this.gemini.models.generateContent({',
+      '      model,',
+      "      contents: [{ role: 'user', parts: [",
+      '        { inlineData: { mimeType, data: referenceData } },',
+      "        { text: 'Use the supplied image as the strict continuity reference. Preserve character identity and established visual state.\\n\\n' + prompt }",
+      '      ] }],',
+      "      config: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '16:9', imageSize: '1K' } }",
+      '    });',
+      '    const parts = response.candidates?.[0]?.content?.parts || [];',
+      "    const imageParts = parts.filter(part => part.inlineData?.data && (!part.inlineData.mimeType || part.inlineData.mimeType.startsWith('image/')));",
+      '    const rendered = imageParts.filter(part => part.thought !== true);',
+      '    const imagePart = (rendered.length ? rendered : imageParts).at(-1);',
+      "    if (!imagePart) throw new Error('Gemini reference-conditioned image generation returned no image data');",
+      "    const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64');",
+      "    await sharp(imageBuffer, { failOn: 'error' }).png().toFile(imagePath);",
+      '    return imagePath;',
+      '  }',
+      '',
+    ].join('\n');
+    source = source.replace(anchor, block + anchor);
   }
-  if (changed) write(rel, source);
-}
 
-function normalizeInitialKeyframeEvidence() {
-  const rel = 'utils/cartoon-keyframe-pipeline-v11.js';
-  let source = read(rel);
-  const finalMarker = 'const referenceConditioned = canUseReference && this.videoGenerator.lastReferenceConditionedGeneration === true;';
-  if (source.includes(finalMarker)) return;
+  source = replaceRequired(
+    source,
+    '  async generateVisualAssetsWithReference(prompt, referenceAssetPath, style = "kids_cartoon_2d", count = 1) {\n    if (!referenceAssetPath) return this.generateVisualAssets(prompt, style, count);\n',
+    '  async generateVisualAssetsWithReference(prompt, referenceAssetPath, style = "kids_cartoon_2d", count = 1) {\n    this.lastReferenceConditionedGeneration = false;\n    if (!referenceAssetPath) return this.generateVisualAssets(prompt, style, count);\n',
+    'initialize reference-conditioning evidence'
+  );
 
-  const referenceCall = "await this.videoGenerator.generateVisualAssetsWithReference(current.prompt, referenceAssetPath, 'kids_cartoon_2d', 1)";
-  const callIndex = source.indexOf(referenceCall);
-  if (callIndex === -1) throw new Error('Phase 11.4 evidence anchor not found: reference-conditioned keyframe provider call');
-
-  let assetsLineStart = source.lastIndexOf('\n        const assets =', callIndex);
-  if (assetsLineStart === -1) throw new Error('Phase 11.4 evidence anchor not found: keyframe assets assignment');
-  assetsLineStart += 1;
-
-  let blockStart = assetsLineStart;
-  const previousLineStartRaw = source.lastIndexOf('\n', Math.max(0, assetsLineStart - 2));
-  const previousLineStart = previousLineStartRaw === -1 ? 0 : previousLineStartRaw + 1;
-  const previousLine = source.slice(previousLineStart, assetsLineStart);
-  if (/^        const (?:referenceConditioned|canUseReference)\s*=/.test(previousLine)) blockStart = previousLineStart;
-
-  const sourcePathRegex = /        (?:let|const) sourcePath = Array\.isArray\(assets\) \? assets\[0\] : null;\n/g;
-  sourcePathRegex.lastIndex = callIndex;
-  const sourcePathMatch = sourcePathRegex.exec(source);
-  if (!sourcePathMatch || sourcePathMatch.index - callIndex > 1200) {
-    throw new Error('Phase 11.4 evidence anchor not found: keyframe sourcePath assignment');
+  if (!source.includes('this.lastReferenceConditionedGeneration = true;')) {
+    source = replaceRequired(
+      source,
+      '    return localPaths;\n  }\n\n  async generateGeminiImageWithReference',
+      '    this.lastReferenceConditionedGeneration = true;\n    return localPaths;\n  }\n\n  async generateGeminiImageWithReference',
+      'mark real Gemini reference conditioning'
+    );
   }
-  const blockEnd = sourcePathMatch.index + sourcePathMatch[0].length;
 
-  const canonical = [
-    "        const canUseReference = Boolean(referenceAssetPath && typeof this.videoGenerator.generateVisualAssetsWithReference === 'function');",
-    '        const assets = canUseReference',
-    "          ? await this.videoGenerator.generateVisualAssetsWithReference(current.prompt, referenceAssetPath, 'kids_cartoon_2d', 1)",
-    "          : await this.videoGenerator.generateVisualAssets(current.prompt, 'kids_cartoon_2d', 1);",
-    '        const referenceConditioned = canUseReference && this.videoGenerator.lastReferenceConditionedGeneration === true;',
-    '        let sourcePath = Array.isArray(assets) ? assets[0] : null;',
-    ''
-  ].join('\n');
-
-  source = source.slice(0, blockStart) + canonical + source.slice(blockEnd);
-  if (!source.includes(finalMarker)) throw new Error('Phase 11.4 evidence normalization failed: truthful initial reference evidence missing');
   write(rel, source);
 }
 
-function normalizeRepairEvidence() {
+function ensureKeyframeContinuityRuntime() {
   const rel = 'utils/cartoon-keyframe-pipeline-v11.js';
   let source = read(rel);
-  const finalMarker = 'referenceConditioned: Boolean(referenceAssetPath && this.videoGenerator.lastReferenceConditionedGeneration === true)';
-  if (source.includes(finalMarker)) return;
 
-  const legacyMarker = "referenceConditioned: Boolean(referenceAssetPath && typeof this.videoGenerator.generateVisualAssetsWithReference === 'function')";
-  if (source.includes(legacyMarker)) {
-    source = source.replaceAll(legacyMarker, finalMarker);
-    write(rel, source);
-    return;
+  if (!source.includes('this.continuityEngine = options.continuityEngine || null;')) {
+    source = replaceRequired(
+      source,
+      "    this.generationEnabled = String(options.generationEnabled ?? process.env.CARTOON_KEYFRAME_GENERATION_ENABLED ?? 'true').toLowerCase() !== 'false';\n",
+      "    this.generationEnabled = String(options.generationEnabled ?? process.env.CARTOON_KEYFRAME_GENERATION_ENABLED ?? 'true').toLowerCase() !== 'false';\n    this.continuityEngine = options.continuityEngine || null;\n",
+      'continuity engine option after downgraded 11.3 runtime'
+    );
   }
 
-  const repairAttemptIndex = source.indexOf('attempt: repairAttempt');
-  if (repairAttemptIndex !== -1) {
-    const windowStart = Math.max(0, repairAttemptIndex - 700);
-    const window = source.slice(windowStart, repairAttemptIndex + 200);
-    if (window.includes('referenceConditioned:') && window.includes('lastReferenceConditionedGeneration === true')) return;
+  if (!source.includes('generateVisualAssetsWithReference(current.prompt, referenceAssetPath')) {
+    source = replaceRequired(
+      source,
+      "        const assets = await this.videoGenerator.generateVisualAssets(current.prompt, 'kids_cartoon_2d', 1);\n        const sourcePath = Array.isArray(assets) ? assets[0] : null;\n",
+      "        const canUseReference = Boolean(referenceAssetPath && typeof this.videoGenerator.generateVisualAssetsWithReference === 'function');\n        const assets = canUseReference\n          ? await this.videoGenerator.generateVisualAssetsWithReference(current.prompt, referenceAssetPath, 'kids_cartoon_2d', 1)\n          : await this.videoGenerator.generateVisualAssets(current.prompt, 'kids_cartoon_2d', 1);\n        const referenceConditioned = canUseReference && this.videoGenerator.lastReferenceConditionedGeneration === true;\n        let sourcePath = Array.isArray(assets) ? assets[0] : null;\n",
+      'restore reference-conditioned keyframe provider call after downgraded 11.3 runtime'
+    );
+  } else {
+    source = source.replace(
+      "        const referenceConditioned = Boolean(referenceAssetPath && typeof this.videoGenerator.generateVisualAssetsWithReference === 'function');\n        const assets = referenceConditioned\n          ? await this.videoGenerator.generateVisualAssetsWithReference(current.prompt, referenceAssetPath, 'kids_cartoon_2d', 1)\n          : await this.videoGenerator.generateVisualAssets(current.prompt, 'kids_cartoon_2d', 1);\n        let sourcePath = Array.isArray(assets) ? assets[0] : null;\n",
+      "        const canUseReference = Boolean(referenceAssetPath && typeof this.videoGenerator.generateVisualAssetsWithReference === 'function');\n        const assets = canUseReference\n          ? await this.videoGenerator.generateVisualAssetsWithReference(current.prompt, referenceAssetPath, 'kids_cartoon_2d', 1)\n          : await this.videoGenerator.generateVisualAssets(current.prompt, 'kids_cartoon_2d', 1);\n        const referenceConditioned = canUseReference && this.videoGenerator.lastReferenceConditionedGeneration === true;\n        let sourcePath = Array.isArray(assets) ? assets[0] : null;\n"
+    );
   }
-  throw new Error('Phase 11.4 evidence anchor not found: truthful repair reference-conditioning evidence');
+
+  if (!source.includes('let continuityResult = null;')) {
+    source = replaceRequired(
+      source,
+      "        const local = path.basename(sourcePath).startsWith('visual_local_');\n        const assetPath = await this.persistAsset(sourcePath, current);\n        await this.db.updateShotKeyframe(current.id, {\n",
+      "        let local = path.basename(sourcePath).startsWith('visual_local_');\n        let assetPath = await this.persistAsset(sourcePath, current);\n        let continuityResult = null;\n        if (this.continuityEngine) {\n          continuityResult = await this.continuityEngine.evaluate({ productionId, sceneId, keyframe: current, assetPath, referenceAssetPath, referenceConditioned, attempt: 0 });\n          let repairAttempt = 0;\n          while (!continuityResult.accepted && this.continuityEngine.autoRepair && repairAttempt < this.continuityEngine.maxRepairAttempts) {\n            repairAttempt += 1;\n            const repairPrompt = this.continuityEngine.repairPrompt(current, continuityResult);\n            const canRepairWithReference = Boolean(referenceAssetPath && typeof this.videoGenerator.generateVisualAssetsWithReference === 'function');\n            const repairAssets = canRepairWithReference\n              ? await this.videoGenerator.generateVisualAssetsWithReference(repairPrompt, referenceAssetPath, 'kids_cartoon_2d', 1)\n              : await this.videoGenerator.generateVisualAssets(repairPrompt, 'kids_cartoon_2d', 1);\n            sourcePath = Array.isArray(repairAssets) ? repairAssets[0] : null;\n            if (!sourcePath || !IMAGE_EXTENSIONS.has(path.extname(sourcePath).toLowerCase()) || !await this.pathExists(sourcePath)) break;\n            local = path.basename(sourcePath).startsWith('visual_local_');\n            assetPath = await this.persistAsset(sourcePath, current);\n            const repairReferenceConditioned = canRepairWithReference && this.videoGenerator.lastReferenceConditionedGeneration === true;\n            continuityResult = await this.continuityEngine.evaluate({ productionId, sceneId, keyframe: current, assetPath, referenceAssetPath, referenceConditioned: repairReferenceConditioned, attempt: repairAttempt });\n          }\n          if (!continuityResult.accepted) {\n            await this.db.updateShotKeyframe(current.id, { status: 'continuity_failed', assetPath, error: 'Continuity score ' + Number(continuityResult.score || 0).toFixed(3) + ' below ' + Number(continuityResult.threshold || 0).toFixed(3) });\n            const continuityError = new Error('Continuity validation failed for keyframe ' + current.id + ': score=' + Number(continuityResult.score || 0).toFixed(3) + ' threshold=' + Number(continuityResult.threshold || 0).toFixed(3));\n            continuityError.code = 'CARTOON_CONTINUITY_FAILED';\n            throw continuityError;\n          }\n        }\n        await this.db.updateShotKeyframe(current.id, {\n",
+      'restore continuity validation loop after downgraded 11.3 runtime'
+    );
+  }
+
+  const required = [
+    'this.continuityEngine = options.continuityEngine || null;',
+    'generateVisualAssetsWithReference(current.prompt, referenceAssetPath',
+    'this.videoGenerator.lastReferenceConditionedGeneration === true',
+    'this.continuityEngine.evaluate({ productionId, sceneId',
+    'repairAttempt < this.continuityEngine.maxRepairAttempts',
+    "status: 'continuity_failed'",
+    "continuityError.code = 'CARTOON_CONTINUITY_FAILED'"
+  ];
+  for (const marker of required) {
+    if (!source.includes(marker)) throw new Error(`Phase 11.4 continuity runtime repair incomplete: ${marker}`);
+  }
+
+  write(rel, source);
 }
 
-patchSimple('utils/ai-video-generator.js', [{
-  from: '  async generateVisualAssetsWithReference(prompt, referenceAssetPath, style = "kids_cartoon_2d", count = 1) {\n    if (!referenceAssetPath) return this.generateVisualAssets(prompt, style, count);\n',
-  to: '  async generateVisualAssetsWithReference(prompt, referenceAssetPath, style = "kids_cartoon_2d", count = 1) {\n    this.lastReferenceConditionedGeneration = false;\n    if (!referenceAssetPath) return this.generateVisualAssets(prompt, style, count);\n',
-  label: 'initialize reference-conditioning evidence',
-  satisfiedBy: ['this.lastReferenceConditionedGeneration = false;']
-}, {
-  from: '    return localPaths;\n  }\n\n  async generateGeminiImageWithReference',
-  to: '    this.lastReferenceConditionedGeneration = true;\n    return localPaths;\n  }\n\n  async generateGeminiImageWithReference',
-  label: 'mark real Gemini reference conditioning',
-  satisfiedBy: ['this.lastReferenceConditionedGeneration = true;']
-}]);
+ensureGeneratorRuntime();
+ensureKeyframeContinuityRuntime();
 
-normalizeInitialKeyframeEvidence();
-normalizeRepairEvidence();
-
-console.log('Phase 11.4 continuity evidence hardened: runtime normalized and referenceConditioned is true only when the reference image was actually sent to the image provider.');
+console.log('Phase 11.4 continuity evidence hardened: downgraded 11.3 keyframe runtimes are repaired, and referenceConditioned is true only when the reference image was actually sent to the image provider.');
