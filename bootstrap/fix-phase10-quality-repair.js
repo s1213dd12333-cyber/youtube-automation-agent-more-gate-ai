@@ -144,6 +144,31 @@ function replaceOnce(source, from, to, label) {
     "  if (has(/^visual_/) || agents.has('visual')) return { automatic: false, stage: 'production', reason: 'visual_cost_or_rights_review_required' };"
   ].join('\n');
   source = replaceOnce(source, from, to, 'automatic repair cost policy');
+
+  source = replaceOnce(
+    source,
+    "       SUM(COALESCE(estimated_cost, 0)) AS estimated_cost, AVG(latency_ms) AS avg_latency_ms",
+    "       SUM(estimated_cost) AS estimated_cost, SUM(CASE WHEN estimated_cost IS NOT NULL THEN 1 ELSE 0 END) AS cost_reports, AVG(latency_ms) AS avg_latency_ms",
+    'per-production total cost evidence count'
+  );
+  source = replaceOnce(
+    source,
+    "       SUM(COALESCE(estimated_cost, 0)) AS estimated_cost\n       FROM ai_usage WHERE ${where} GROUP BY provider, resource_type ORDER BY requests DESC`,",
+    "       SUM(estimated_cost) AS estimated_cost, SUM(CASE WHEN estimated_cost IS NOT NULL THEN 1 ELSE 0 END) AS cost_reports\n       FROM ai_usage WHERE ${where} GROUP BY provider, resource_type ORDER BY requests DESC`,",
+    'per-provider cost evidence count'
+  );
+  source = replaceOnce(
+    source,
+    "        estimatedCost: Number(totals?.estimated_cost || 0), avgLatencyMs: Math.round(Number(totals?.avg_latency_ms || 0))",
+    "        costReports: Number(totals?.cost_reports || 0), estimatedCost: Number(totals?.cost_reports || 0) > 0 ? Number(totals.estimated_cost || 0) : null, avgLatencyMs: Math.round(Number(totals?.avg_latency_ms || 0))",
+    'unknown total estimated cost stays null'
+  );
+  source = replaceOnce(
+    source,
+    "        outputUnits: Number(row.output_units || 0), estimatedCost: Number(row.estimated_cost || 0)",
+    "        outputUnits: Number(row.output_units || 0), costReports: Number(row.cost_reports || 0), estimatedCost: Number(row.cost_reports || 0) > 0 ? Number(row.estimated_cost || 0) : null",
+    'unknown provider estimated cost stays null'
+  );
   write(rel, source);
 }
 
@@ -180,4 +205,4 @@ function replaceOnce(source, from, to, label) {
   write(rel, source);
 }
 
-console.log('Phase 10 hardened: scoped quality repair, cost-safe defaults, blocker-aware completion, and mandatory Phase 9 review before schedule/upload.');
+console.log('Phase 10 hardened: scoped quality repair, cost-safe defaults, blocker-aware completion, honest cost evidence, and mandatory Phase 9 review before schedule/upload.');
