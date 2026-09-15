@@ -35,3 +35,6 @@ require('./verify-phase11-environment-bible.js');
 
 // Phase 11.7.2 establishes persistent furniture/object identity locks.
 require('./verify-phase11-prop-lock.js');
+
+// Phase 11.7.3 establishes canonical reusable visual references for environments.
+require('./verify-phase11-master-environment.js');
