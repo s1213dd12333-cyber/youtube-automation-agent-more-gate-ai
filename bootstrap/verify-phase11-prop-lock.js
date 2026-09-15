@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const upstream = path.resolve(__dirname, '..', 'upstream');
+require('./fix-phase11-prop-lock-attributes.js');
 const { PropLockV11, canonicalName } = require(path.join(upstream, 'utils', 'prop-lock-v11.js'));
 
 const environmentBible = {
@@ -73,9 +74,12 @@ const checks = [
   () => assert(sofa && sofa.required === true),
   () => assert.strictEqual(sofa.continuityPriority, 'critical'),
   () => assert.strictEqual(sofa.lockedAttributes.color, 'beige'),
+  () => assert.strictEqual(sofa.lockedAttributes.colorSource, 'explicit_instruction'),
+  () => assert.strictEqual(table.lockedAttributes.color, null),
+  () => assert.strictEqual(table.lockedAttributes.material, 'natural wood'),
+  () => assert.strictEqual(table.lockedAttributes.materialSource, 'explicit_instruction'),
   () => assert(sofa.forbiddenChanges.some(value => value.includes('different object'))),
   () => assert.strictEqual(sofa.placementStatus, 'unanchored_until_master_frame'),
-  () => assert.strictEqual(table.lockedAttributes.material, 'natural wood'),
   () => assert.strictEqual(table.required, true),
   () => assert.strictEqual(bookshelf.type, 'furniture'),
   () => assert.strictEqual(windowLock.type, 'architectural_fixture'),
