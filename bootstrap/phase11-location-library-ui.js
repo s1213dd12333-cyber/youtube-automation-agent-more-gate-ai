@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
@@ -17,7 +18,7 @@ for (const rel of [
 require('./fix-phase11-location-resolver-audit.js');
 execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-location-resolver-audit.js')], { stdio: 'inherit' });
 
-// Close the roadmap with the Phase 11.9.8 E2E gate.
+// Close the Phase 11.9 roadmap with its deterministic cross-video E2E gate.
 for (const rel of [
   'phase11-reusable-location-e2e.js',
   'verify-phase11-reusable-location-e2e.js',
@@ -26,6 +27,22 @@ for (const rel of [
 ]) {
   execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
 }
-
 require('./phase11-reusable-location-e2e.js');
 execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-reusable-location-e2e.js')], { stdio: 'inherit' });
+
+// Phase 11.10.1 begins persistent story-world object continuity after the location system is proven healthy.
+for (const rel of [
+  'phase11-persistent-world-objects.js',
+  'verify-phase11-persistent-world-objects.js',
+  'templates/persistent-world-object-registry-v11.js'
+]) {
+  execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+}
+for (const rel of [
+  'templates/persistent-world-object-db-tables-v11.txt',
+  'templates/persistent-world-object-db-methods-v11.txt'
+]) {
+  if (!fs.existsSync(path.join(__dirname, rel))) throw new Error(`Phase 11.10.1 prerequisite missing: ${rel}`);
+}
+require('./phase11-persistent-world-objects.js');
+execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-persistent-world-objects.js')], { stdio: 'inherit' });
