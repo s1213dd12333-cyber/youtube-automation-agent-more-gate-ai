@@ -138,3 +138,11 @@ for (const rel of [
   'templates/canonical-location-assets-v11.js'
 ]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
 require('./phase11-canonical-location-assets.js');
+
+// Phase 11.9.4 resolves aliases and narrative references before a new reusable location is created.
+for (const rel of [
+  'phase11-location-resolver.js',
+  'verify-phase11-location-resolver.js',
+  'templates/location-resolver-v11.js'
+]) execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+require('./phase11-location-resolver.js');
