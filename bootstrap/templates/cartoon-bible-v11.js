@@ -45,6 +45,7 @@ function sourceText(production = {}) {
 }
 
 function detectCartoonMode(production = {}, configuredMode = process.env.CARTOON_VISUAL_MODE || 'auto') {
+  if (String(process.env.CARTOON_BIBLE_ENABLED || 'true').trim().toLowerCase() === 'false') return false;
   const mode = clean(configuredMode, 20).toLowerCase() || 'auto';
   if (['off', 'false', 'disabled'].includes(mode)) return false;
   if (['force', 'on', 'true', 'cartoon'].includes(mode)) return true;
@@ -108,9 +109,12 @@ function extractNamedCharacters(production = {}) {
 }
 
 function inferSpecies(descriptor, text) {
-  const value = `${descriptor || ''} ${text || ''}`.toLowerCase();
   const options = ['star', 'cloud', 'bird', 'bunny', 'rabbit', 'bear', 'cat', 'dog', 'fox', 'dragon', 'robot', 'child', 'girl', 'boy'];
-  return options.find(item => new RegExp(`\\b${item}s?\\b`, 'i').test(value)) || 'original cartoon character';
+  const descriptorText = String(descriptor || '').toLowerCase();
+  const direct = options.find(item => new RegExp(`\\b${item}s?\\b`, 'i').test(descriptorText));
+  if (direct) return direct;
+  const context = String(text || '').toLowerCase();
+  return options.find(item => new RegExp(`\\b${item}s?\\b`, 'i').test(context)) || 'original cartoon character';
 }
 
 function inferPersonality(name, descriptor, text) {
