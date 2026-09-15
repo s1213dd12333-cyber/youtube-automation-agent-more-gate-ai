@@ -85,3 +85,14 @@ for (const rel of [
 }
 require('./phase11-prop-lock.js');
 require('./fix-phase11-prop-lock-attributes.js');
+
+// Phase 11.7.3 creates one persistent canonical visual reference per environment.
+// Generic local fallback remains auditable but non-canonical by default.
+for (const rel of [
+  'phase11-master-environment.js',
+  'verify-phase11-master-environment.js',
+  'templates/master-environment-v11.js'
+]) {
+  execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+}
+require('./phase11-master-environment.js');
