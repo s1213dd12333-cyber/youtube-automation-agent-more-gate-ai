@@ -1,0 +1,21 @@
+      // Phase 11.11.7 audited operator corrections for Persistent Character Library
+      `CREATE TABLE IF NOT EXISTS persistent_character_operator_actions (
+        id TEXT PRIMARY KEY,
+        namespace TEXT NOT NULL DEFAULT 'default',
+        action_type TEXT NOT NULL,
+        character_id TEXT,
+        target_type TEXT NOT NULL,
+        target_id TEXT,
+        production_id TEXT,
+        status TEXT NOT NULL,
+        actor TEXT NOT NULL DEFAULT 'operator',
+        note TEXT,
+        before_value TEXT NOT NULL DEFAULT '{}',
+        after_value TEXT NOT NULL DEFAULT '{}',
+        reason TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (character_id) REFERENCES persistent_characters(id) ON DELETE SET NULL,
+        FOREIGN KEY (production_id) REFERENCES productions(id) ON DELETE SET NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_character_operator_actions_character ON persistent_character_operator_actions(namespace, character_id, created_at)`,
+      `CREATE INDEX IF NOT EXISTS idx_character_operator_actions_target ON persistent_character_operator_actions(target_type, target_id, created_at)`,
