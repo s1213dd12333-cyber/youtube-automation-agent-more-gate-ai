@@ -118,18 +118,20 @@ async function runtimeChecks() {
   const providerService = new MasterEnvironmentGeneratorV11(fakeDb, providerGenerator, { dataRoot: tempRoot, requireProvider: true, enabled: true });
   const providerResult = await providerService.ensureProductionFrames(production, environmentBible, propLocks);
   const ready = providerResult.frames[0];
+  const readyExistsBeforeCleanup = Boolean(ready.masterFramePath && fs.existsSync(ready.masterFramePath));
+  const anchorCallsBeforeReuse = anchorCalls;
+  const reused = await providerService.ensureEnvironmentFrame(production, environment, propLocks);
+  const anchorCallsAfterReuse = anchorCalls;
 
   check('provider frame becomes canonical', () => assert.strictEqual(ready.canonical, true));
   check('provider frame becomes ready', () => assert.strictEqual(ready.status, 'ready'));
-  check('canonical master frame is persisted on disk', () => assert(fs.existsSync(ready.masterFramePath)));
+  check('canonical master frame is persisted on disk before test cleanup', () => assert.strictEqual(readyExistsBeforeCleanup, true));
   check('canonical master frame has SHA-256 evidence', () => assert(/^[a-f0-9]{64}$/.test(ready.assetSha256)));
   check('canonical master frame records image dimensions', () => assert.strictEqual(ready.width, 320));
-  check('canonical master frame anchors prop reference state once', () => assert.strictEqual(anchorCalls, 1));
-  check('provider frame can be reused deterministically', async () => {
-    const before = anchorCalls;
-    const reused = await providerService.ensureEnvironmentFrame(production, environment, propLocks);
+  check('canonical master frame anchors prop reference state once', () => assert.strictEqual(anchorCallsBeforeReuse, 1));
+  check('provider frame can be reused deterministically', () => {
     assert.strictEqual(reused.reused, true);
-    assert.strictEqual(anchorCalls, before);
+    assert.strictEqual(anchorCallsAfterReuse, anchorCallsBeforeReuse);
   });
 
   const fallbackRecords = new Map();
