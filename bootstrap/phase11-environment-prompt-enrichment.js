@@ -139,7 +139,7 @@ function patchScenePipeline() {
     "          const changed = existingShots.length !== scenePlan.shots.length || existingShots.some((item, index) => item.fingerprint !== scenePlan.shots[index]?.fingerprint || item.prompt !== scenePlan.shots[index]?.prompt);",
     "          if (changed) await this.db.replaceSceneShots(production.id, scenePlan.sceneId, scenePlan.shots);",
     "        }",
-    "        environmentPromptPlan.shots = await this.db.replaceShotEnvironmentContexts(production.id, environmentPromptPlan);",
+    "        await this.db.replaceShotEnvironmentContexts(production.id, environmentPromptPlan);",
     "        shotPlan = {",
     "          ...shotPlan,",
     "          shots: environmentPromptPlan.scenes.flatMap(scenePlan => scenePlan.shots),",
@@ -155,6 +155,18 @@ function patchScenePipeline() {
   ].join('\n');
   s = insertBefore(s, "    if (cartoonBible && shotPlan) {\n      keyframePlan = await this.keyframePipeline.ensurePlan(production, scenes, shotPlan.shots, cartoonBible);\n", block, 'enrich shots before keyframe planning');
 
+  s = replaceOnce(
+    s,
+    "    await this.persistManifest(bundle, production, scenes, fingerprint, scriptChanged, visualPlan, cartoonBible, shotPlan, keyframePlan);\n",
+    "    await this.persistManifest(bundle, production, scenes, fingerprint, scriptChanged, visualPlan, cartoonBible, shotPlan, keyframePlan, environmentPromptPlan);\n",
+    'pass Environment Prompt plan to manifest'
+  );
+  s = replaceOnce(
+    s,
+    '  async persistManifest(bundle, production, scenes, fingerprint, resetMedia, visualPlan = null, cartoonBible = null, shotPlan = null, keyframePlan = null) {\n',
+    '  async persistManifest(bundle, production, scenes, fingerprint, resetMedia, visualPlan = null, cartoonBible = null, shotPlan = null, keyframePlan = null, environmentPromptPlan = null) {\n',
+    'Environment Prompt manifest signature'
+  );
   s = replaceOnce(
     s,
     "        keyframeSummary: keyframePlan?.summary || previousManifest.keyframeSummary || null,\n        updatedAt: new Date().toISOString()\n",
