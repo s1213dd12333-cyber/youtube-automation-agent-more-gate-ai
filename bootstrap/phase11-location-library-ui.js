@@ -97,3 +97,20 @@ for (const rel of [
 }
 require('./phase11-persistent-world-object-state.js');
 execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-persistent-world-object-state.js')], { stdio: 'inherit' });
+
+// Phase 11.10.5 binds already-resolved persistent objects explicitly to scene/shot presence semantics before shot persistence.
+for (const rel of [
+  'phase11-persistent-world-object-binding.js',
+  'verify-phase11-persistent-world-object-binding.js',
+  'templates/persistent-world-object-binding-v11.js'
+]) {
+  execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+}
+for (const rel of [
+  'templates/persistent-world-object-binding-db-tables-v11.txt',
+  'templates/persistent-world-object-binding-db-methods-v11.txt'
+]) {
+  if (!fs.existsSync(path.join(__dirname, rel))) throw new Error(`Phase 11.10.5 prerequisite missing: ${rel}`);
+}
+require('./phase11-persistent-world-object-binding.js');
+execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-persistent-world-object-binding.js')], { stdio: 'inherit' });
