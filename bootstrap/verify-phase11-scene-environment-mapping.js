@@ -113,7 +113,7 @@ check('dashboard renders mapper panel', () => assert(dashboardSource.includes('S
 check('dashboard exposes unresolved state', () => assert(dashboardSource.includes("'UNRESOLVED'")));
 check('package exposes mapping test', () => assert.strictEqual(pkg.scripts['test:scene-environments'], 'node ../bootstrap/verify-phase11-scene-environment-mapping.js'));
 check('mapping enabled in env example', () => assert(envSource.includes('SCENE_ENVIRONMENT_MAPPING_ENABLED=true')));
-check('minimum score is explicit in env example', () => assert(envSource.includes('SCENE_ENVIRONMENT_MIN_SCORE=0.18'));
+check('minimum score is explicit in env example', () => assert(envSource.includes('SCENE_ENVIRONMENT_MIN_SCORE=0.18')));
 
 (async () => {
   for (const item of checks) await item.fn();
