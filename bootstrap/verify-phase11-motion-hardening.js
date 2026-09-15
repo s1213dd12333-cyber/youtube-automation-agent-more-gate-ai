@@ -17,7 +17,7 @@ const checks = [
   () => assert(dbSource.includes("UPDATE production_scenes SET status = 'visual_stale'")),
   () => assert(dbSource.includes("DELETE FROM cartoon_motion_segments WHERE production_id = ? AND shot_id = ?")),
   () => assert(dbSource.includes("DELETE FROM cartoon_motion_scenes WHERE production_id = ? AND scene_id = ?")),
-  () => assert.strictEqual(pkg.scripts['test:motion'], 'node ../bootstrap/verify-phase11-motion.js && node ../bootstrap/verify-phase11-motion-hardening.js')
+  () => assert.strictEqual(pkg.scripts['test:motion-hardening'], 'node ../bootstrap/verify-phase11-motion-hardening.js')
 ];
 
 for (const fn of checks) fn();
