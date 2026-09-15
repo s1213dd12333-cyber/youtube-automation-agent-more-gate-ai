@@ -70,8 +70,12 @@ check('master plan is deterministic', () => assert.strictEqual(planA.promptFinge
 check('planned frame starts non-canonical', () => assert.strictEqual(planA.canonical, false));
 check('planned frame has no fabricated path', () => assert.strictEqual(planA.masterFramePath, null));
 check('locksForEnvironment filters correctly', () => assert.strictEqual(locksForEnvironment([...propLocks, { environmentId: 'other' }], environment.environmentId).length, 2));
-check('visual_local filename is generic fallback', () => assert.strictEqual(isGenericLocalFallback('C:/tmp/visual_local_123.png', {}), true));
-check('provider-looking filename is not generic fallback', () => assert.strictEqual(isGenericLocalFallback('C:/tmp/provider_master.png', {}), false));
+check('visual_local filename is generic fallback', () => assert.strictEqual(isGenericLocalFallback('C:/tmp/visual_local_123.png'), true));
+check('provider-looking filename is not generic fallback', () => assert.strictEqual(isGenericLocalFallback('C:/tmp/provider_master.png'), false));
+check('historical Gemini breaker cannot misclassify an asset emitted by another provider', () => {
+  const generatorState = { geminiImageDisabledReason: 'Gemini quota zero' };
+  assert.strictEqual(isGenericLocalFallback('C:/tmp/openai_master.png', generatorState), false);
+});
 
 const dbSource = fs.readFileSync(path.join(upstream, 'database', 'db.js'), 'utf8');
 const pipelineSource = fs.readFileSync(path.join(upstream, 'utils', 'scene-pipeline-v2.js'), 'utf8');
@@ -91,7 +95,7 @@ check('scene pipeline generates environment frames', () => assert(pipelineSource
 check('Review Studio renders master frames', () => assert(dashboardSource.includes('function renderMasterEnvironmentFrames(item)')));
 check('Review Studio distinguishes noncanonical generic fallback', () => assert(dashboardSource.includes('GENERIC FALLBACK — NOT CANONICAL')));
 check('package exposes master environment test', () => assert.strictEqual(pkg.scripts['test:master-environment'], 'node ../bootstrap/verify-phase11-master-environment.js'));
-check('master generation enabled in env example', () => assert(envSource.includes('MASTER_ENVIRONMENT_GENERATION_ENABLED=true')));
+check('master generation enabled in env example', () => assert(envSource.includes('MASTER_ENVIRONMENT_GENERATION_ENABLED=true'));
 check('provider-backed canonical reference is required by default', () => assert(envSource.includes('MASTER_ENVIRONMENT_REQUIRE_PROVIDER=true')));
 
 async function runtimeChecks() {
