@@ -285,6 +285,7 @@ check('publication blocks a current report whose cartoon gate is blocked', async
 const dbSource = fs.readFileSync(path.join(upstream, 'database', 'db.js'), 'utf8');
 const qualitySource = fs.readFileSync(path.join(upstream, 'utils', 'quality-agents-v9.js'), 'utf8');
 const autonomySource = fs.readFileSync(path.join(upstream, 'utils', 'autonomy-observability-v10.js'), 'utf8');
+const publishingSource = fs.readFileSync(path.join(upstream, 'agents', 'publishing-scheduling-agent.js'), 'utf8');
 const dashboardSource = fs.readFileSync(path.join(upstream, 'dashboard', 'app.js'), 'utf8');
 const pkg = JSON.parse(fs.readFileSync(path.join(upstream, 'package.json'), 'utf8'));
 
@@ -304,6 +305,14 @@ check('Phase 9 fingerprint and persistence include Phase 11.6', () => {
 check('Phase 10 publication gate imports Phase 11.6', () => assert(autonomySource.includes("const { evaluateCartoonQualityV11 } = require('./cartoon-quality-gate-v11');")));
 check('Phase 10 publication gate requires current non-blocked cartoon quality', () => {
   for (const marker of ['cartoon_quality_required', 'cartoon_quality_stale', 'cartoon_quality']) assert(autonomySource.includes(marker));
+});
+check('direct scheduling gate requires current Phase 11.6 report', () => {
+  assert(publishingSource.includes("const { evaluateCartoonQualityV11 } = require('../utils/cartoon-quality-gate-v11');"));
+  for (const marker of ['CARTOON_QUALITY_REQUIRED', 'CARTOON_QUALITY_STALE', 'CARTOON_QUALITY_BLOCKED']) assert(publishingSource.includes(marker));
+});
+check('direct upload gate recomputes cartoon quality before YouTube upload', () => {
+  assert(publishingSource.includes('const cartoonQuality = evaluateCartoonQualityV11(productionBundle);'));
+  assert(publishingSource.includes('productionBundle.cartoonQualityReport.fingerprint !== cartoonQuality.fingerprint'));
 });
 check('Review Studio renders Cartoon Quality Gate v11.6', () => {
   assert(dashboardSource.includes('CARTOON QUALITY GATE V11.6'));
