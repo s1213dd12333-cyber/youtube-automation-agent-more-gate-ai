@@ -114,3 +114,20 @@ for (const rel of [
 }
 require('./phase11-persistent-world-object-binding.js');
 execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-persistent-world-object-binding.js')], { stdio: 'inherit' });
+
+// Phase 11.10.6 gates only resolved visible/occluded reused objects against their immutable canonical references.
+for (const rel of [
+  'phase11-cross-video-object-continuity.js',
+  'verify-phase11-cross-video-object-continuity.js',
+  'templates/cross-video-object-continuity-gate-v11.js'
+]) {
+  execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+}
+for (const rel of [
+  'templates/cross-video-object-continuity-db-tables-v11.txt',
+  'templates/cross-video-object-continuity-db-methods-v11.txt'
+]) {
+  if (!fs.existsSync(path.join(__dirname, rel))) throw new Error(`Phase 11.10.6 prerequisite missing: ${rel}`);
+}
+require('./phase11-cross-video-object-continuity.js');
+execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-cross-video-object-continuity.js')], { stdio: 'inherit' });
