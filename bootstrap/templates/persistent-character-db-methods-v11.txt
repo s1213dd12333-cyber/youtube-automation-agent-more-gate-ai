@@ -1,0 +1,163 @@
+  async savePersistentCharacter(character = {}) {
+    const now = new Date().toISOString();
+    const id = character.id || this.generateId('persistent_character');
+    await this.executeQuery(
+      `INSERT INTO persistent_characters (
+        id, namespace, character_key, display_name, species_type, version, identity_fingerprint,
+        canonical_identity, canonical_prompt_context, status, created_from_production_id,
+        first_seen_at, last_seen_at, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(namespace, identity_fingerprint) DO UPDATE SET
+        last_seen_at = excluded.last_seen_at,
+        updated_at = excluded.updated_at`,
+      [
+        id, character.namespace || 'default', character.characterKey || null, character.displayName || 'Character',
+        character.speciesType || 'character', character.version || '11.11.1', character.identityFingerprint || '',
+        JSON.stringify(character.canonicalIdentity || {}), character.canonicalPromptContext || '', character.status || 'active',
+        character.createdFromProductionId || null, character.firstSeenAt || now, character.lastSeenAt || now,
+        character.createdAt || now, now
+      ]
+    );
+    return this.getPersistentCharacterByFingerprint(character.namespace || 'default', character.identityFingerprint || '');
+  }
+
+  async touchPersistentCharacter(characterId) {
+    const now = new Date().toISOString();
+    await this.executeQuery('UPDATE persistent_characters SET last_seen_at = ?, updated_at = ? WHERE id = ?', [now, now, characterId]);
+    return this.getPersistentCharacter(characterId);
+  }
+
+  async getPersistentCharacter(characterId) {
+    const row = await this.getRow('SELECT * FROM persistent_characters WHERE id = ? LIMIT 1', [characterId]);
+    return this.parsePersistentCharacter(row);
+  }
+
+  async getPersistentCharacterByFingerprint(namespace, identityFingerprint) {
+    const row = await this.getRow(
+      'SELECT * FROM persistent_characters WHERE namespace = ? AND identity_fingerprint = ? LIMIT 1',
+      [namespace || 'default', identityFingerprint || '']
+    );
+    return this.parsePersistentCharacter(row);
+  }
+
+  async getPersistentCharacterByKey(namespace, characterKey) {
+    const row = await this.getRow(
+      'SELECT * FROM persistent_characters WHERE namespace = ? AND character_key = ? LIMIT 1',
+      [namespace || 'default', characterKey || '']
+    );
+    return this.parsePersistentCharacter(row);
+  }
+
+  async listPersistentCharacters(namespace = 'default', limit = 250) {
+    const rows = await this.getAllRows(
+      'SELECT * FROM persistent_characters WHERE namespace = ? ORDER BY updated_at DESC, rowid DESC LIMIT ?',
+      [namespace || 'default', Math.max(1, Math.min(1000, Number(limit || 250)))]
+    );
+    return rows.map(row => this.parsePersistentCharacter(row));
+  }
+
+  async savePersistentCharacterUsage(usage = {}) {
+    const now = new Date().toISOString();
+    const id = usage.id || this.generateId('persistent_character_usage');
+    await this.executeQuery(
+      `INSERT INTO persistent_character_usages (
+        id, character_id, production_id, source_bible_id, source_character_id, role, source_kind, source_ref,
+        match_mode, identity_fingerprint, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(character_id, production_id, source_character_id) DO UPDATE SET
+        role = excluded.role, source_kind = excluded.source_kind, source_ref = excluded.source_ref,
+        match_mode = excluded.match_mode, identity_fingerprint = excluded.identity_fingerprint, updated_at = excluded.updated_at`,
+      [
+        id, usage.characterId, usage.productionId, usage.sourceBibleId || null, usage.sourceCharacterId || null,
+        usage.role || null, usage.sourceKind || null, usage.sourceRef || null, usage.matchMode || 'unknown',
+        usage.identityFingerprint || '', usage.createdAt || now, now
+      ]
+    );
+    return this.getPersistentCharacterUsage(usage.characterId, usage.productionId, usage.sourceCharacterId || null);
+  }
+
+  async getPersistentCharacterUsage(characterId, productionId, sourceCharacterId = null) {
+    const row = sourceCharacterId
+      ? await this.getRow('SELECT * FROM persistent_character_usages WHERE character_id = ? AND production_id = ? AND source_character_id = ? LIMIT 1', [characterId, productionId, sourceCharacterId])
+      : await this.getRow('SELECT * FROM persistent_character_usages WHERE character_id = ? AND production_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1', [characterId, productionId]);
+    return this.parsePersistentCharacterUsage(row);
+  }
+
+  async listPersistentCharacterUsages(characterId, limit = 250) {
+    const rows = await this.getAllRows(
+      'SELECT * FROM persistent_character_usages WHERE character_id = ? ORDER BY created_at DESC, rowid DESC LIMIT ?',
+      [characterId, Math.max(1, Math.min(1000, Number(limit || 250)))]
+    );
+    return rows.map(row => this.parsePersistentCharacterUsage(row));
+  }
+
+  async listProductionPersistentCharacters(productionId) {
+    const rows = await this.getAllRows(
+      `SELECT u.*, c.namespace, c.character_key, c.display_name, c.species_type, c.version,
+              c.identity_fingerprint AS character_identity_fingerprint, c.canonical_identity,
+              c.canonical_prompt_context, c.status, c.created_from_production_id,
+              c.first_seen_at, c.last_seen_at
+       FROM persistent_character_usages u
+       JOIN persistent_characters c ON c.id = u.character_id
+       WHERE u.production_id = ?
+       ORDER BY u.created_at ASC, u.rowid ASC`,
+      [productionId]
+    );
+    return rows.map(row => ({
+      id: row.character_id,
+      namespace: row.namespace,
+      characterKey: row.character_key,
+      displayName: row.display_name,
+      speciesType: row.species_type,
+      version: row.version || '11.11.1',
+      identityFingerprint: row.character_identity_fingerprint,
+      canonicalIdentity: JSON.parse(row.canonical_identity || '{}'),
+      canonicalPromptContext: row.canonical_prompt_context || '',
+      status: row.status,
+      createdFromProductionId: row.created_from_production_id,
+      firstSeenAt: row.first_seen_at,
+      lastSeenAt: row.last_seen_at,
+      reusedAcrossVideos: Boolean(row.created_from_production_id && row.created_from_production_id !== productionId),
+      usage: this.parsePersistentCharacterUsage(row)
+    }));
+  }
+
+  parsePersistentCharacter(row) {
+    if (!row) return null;
+    return {
+      id: row.id,
+      namespace: row.namespace || 'default',
+      characterKey: row.character_key || null,
+      displayName: row.display_name,
+      speciesType: row.species_type || 'character',
+      version: row.version || '11.11.1',
+      identityFingerprint: row.identity_fingerprint,
+      canonicalIdentity: JSON.parse(row.canonical_identity || '{}'),
+      canonicalPromptContext: row.canonical_prompt_context || '',
+      status: row.status || 'active',
+      createdFromProductionId: row.created_from_production_id || null,
+      firstSeenAt: row.first_seen_at,
+      lastSeenAt: row.last_seen_at,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  }
+
+  parsePersistentCharacterUsage(row) {
+    if (!row) return null;
+    return {
+      id: row.id,
+      characterId: row.character_id,
+      productionId: row.production_id,
+      sourceBibleId: row.source_bible_id || null,
+      sourceCharacterId: row.source_character_id || null,
+      role: row.role || null,
+      sourceKind: row.source_kind || null,
+      sourceRef: row.source_ref || null,
+      matchMode: row.match_mode || 'unknown',
+      identityFingerprint: row.identity_fingerprint,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  }
+
