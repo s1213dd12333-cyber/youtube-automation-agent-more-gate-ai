@@ -63,9 +63,12 @@ Review Studio renders the Character Bible followed by a `Scene → Shots` panel.
 
 This is intentionally visible before keyframe generation so an operator can inspect whether the story has enough visual changes and whether the shot plan is still too repetitive.
 
-## Phase 11.1 activation hardening
+## Phase 11.1 hardening included
 
-Phase 11.2 also hardens Phase 11.1 activation. A historical Cartoon Bible no longer keeps cartoon mode active after the current instructions stop matching cartoon content or after the feature is disabled. The active Bible is derived from the current production request on every run.
+Phase 11.2 also hardens two Phase 11.1 runtime boundaries:
+
+- a historical Cartoon Bible no longer keeps cartoon mode active after current instructions stop matching cartoon content or the feature is disabled;
+- `persistManifest()` receives the active Cartoon Bible explicitly rather than relying on out-of-scope runtime state.
 
 ## Regression command
 
@@ -73,7 +76,11 @@ Phase 11.2 also hardens Phase 11.1 activation. A historical Cartoon Bible no lon
 npm run test:shot-planner
 ```
 
-The command reports the exact number of Phase 11.2 regression checks that passed.
+Expected result:
+
+```text
+Phase 11.2 Shot Planner OK: 45 regression checks passed.
+```
 
 ## Completion boundary
 
