@@ -23,6 +23,8 @@ const checks = [
 for (const fn of checks) fn();
 console.log(`Phase 11.5 Motion Hardening OK: ${checks.length} regression checks passed.`);
 
+require('./verify-phase11-reference-quota-fallback.js');
+
 // The materializer already invokes this verifier directly, so chaining here makes
 // the full Phase 11.6 quality and audience-metadata boundary deterministic.
 require('./verify-phase11-cartoon-quality.js');
