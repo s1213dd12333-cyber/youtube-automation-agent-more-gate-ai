@@ -1,0 +1,59 @@
+  async savePersistentWorldObjectState(input = {}) {
+    if (!input.id || !input.objectId || !input.productionId || !input.scopeKey || !input.stateFingerprint) return null;
+    const existing = await this.getRow('SELECT id, created_at FROM persistent_world_object_states WHERE production_id = ? AND object_id = ? AND scope_key = ? LIMIT 1', [input.productionId, input.objectId, input.scopeKey]);
+    const now = new Date().toISOString();
+    const id = existing?.id || input.id;
+    const createdAt = existing?.created_at || input.createdAt || now;
+    await this.executeQuery(`INSERT INTO persistent_world_object_states (
+      id, object_id, production_id, scene_id, scope_key, version, status, persistence, state_fingerprint, condition, damage, cleanliness, openness,
+      operational_state, contents, holder_key, placement, story_state, conflicts, source_kind, source_ref, parent_state_id, inherited,
+      canonical_identity_fingerprint, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(production_id, object_id, scope_key) DO UPDATE SET
+      scene_id=excluded.scene_id, version=excluded.version, status=excluded.status, persistence=excluded.persistence, state_fingerprint=excluded.state_fingerprint,
+      condition=excluded.condition, damage=excluded.damage, cleanliness=excluded.cleanliness, openness=excluded.openness,
+      operational_state=excluded.operational_state, contents=excluded.contents, holder_key=excluded.holder_key, placement=excluded.placement,
+      story_state=excluded.story_state, conflicts=excluded.conflicts, source_kind=excluded.source_kind, source_ref=excluded.source_ref,
+      parent_state_id=excluded.parent_state_id, inherited=excluded.inherited, canonical_identity_fingerprint=excluded.canonical_identity_fingerprint,
+      updated_at=excluded.updated_at`,
+      [id, input.objectId, input.productionId, input.sceneId || null, input.scopeKey, String(input.version || '11.10.4'), input.status || 'neutral',
+       input.persistence || 'scene', input.stateFingerprint, input.condition || null, JSON.stringify(input.damage || []), input.cleanliness || null,
+       input.openness || null, input.operationalState || null, JSON.stringify(input.contents || []), input.holderKey || null, input.placement || null,
+       JSON.stringify(input.storyState || []), JSON.stringify(input.conflicts || []), input.sourceKind || 'explicit_object_state', input.sourceRef || null,
+       input.parentStateId || null, input.inherited ? 1 : 0, input.canonicalIdentityFingerprint || null, createdAt, now]);
+    return this.getPersistentWorldObjectState(id);
+  }
+
+  async getPersistentWorldObjectState(id) {
+    return this.parsePersistentWorldObjectState(await this.getRow('SELECT * FROM persistent_world_object_states WHERE id = ? LIMIT 1', [id]));
+  }
+
+  async listProductionPersistentWorldObjectStates(productionId) {
+    const rows = await this.getAllRows('SELECT * FROM persistent_world_object_states WHERE production_id = ? ORDER BY created_at, rowid', [productionId]);
+    return rows.map(row => this.parsePersistentWorldObjectState(row));
+  }
+
+  async listPersistentWorldObjectStates(objectId) {
+    const rows = await this.getAllRows('SELECT * FROM persistent_world_object_states WHERE object_id = ? ORDER BY created_at, rowid', [objectId]);
+    return rows.map(row => this.parsePersistentWorldObjectState(row));
+  }
+
+  async getLatestDurablePersistentWorldObjectState(objectId, excludeProductionId = null) {
+    const row = excludeProductionId
+      ? await this.getRow(`SELECT * FROM persistent_world_object_states WHERE object_id = ? AND persistence = 'until_changed' AND production_id <> ? ORDER BY created_at DESC, rowid DESC LIMIT 1`, [objectId, excludeProductionId])
+      : await this.getRow(`SELECT * FROM persistent_world_object_states WHERE object_id = ? AND persistence = 'until_changed' ORDER BY created_at DESC, rowid DESC LIMIT 1`, [objectId]);
+    return this.parsePersistentWorldObjectState(row);
+  }
+
+  parsePersistentWorldObjectState(row) {
+    if (!row) return null;
+    return {
+      id: row.id, objectId: row.object_id, productionId: row.production_id, sceneId: row.scene_id, scopeKey: row.scope_key,
+      version: row.version || '11.10.4', status: row.status || 'neutral', persistence: row.persistence || 'scene', stateFingerprint: row.state_fingerprint,
+      condition: row.condition, damage: JSON.parse(row.damage || '[]'), cleanliness: row.cleanliness, openness: row.openness,
+      operationalState: row.operational_state, contents: JSON.parse(row.contents || '[]'), holderKey: row.holder_key, placement: row.placement,
+      storyState: JSON.parse(row.story_state || '[]'), conflicts: JSON.parse(row.conflicts || '[]'), sourceKind: row.source_kind, sourceRef: row.source_ref,
+      parentStateId: row.parent_state_id, inherited: Boolean(row.inherited), canonicalIdentityFingerprint: row.canonical_identity_fingerprint,
+      createdAt: row.created_at, updatedAt: row.updated_at
+    };
+  }
