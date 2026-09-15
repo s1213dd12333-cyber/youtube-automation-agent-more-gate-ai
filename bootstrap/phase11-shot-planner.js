@@ -253,4 +253,7 @@ patchScenePipeline();
 patchDashboard();
 patchPackageAndEnv();
 
+// Phase 11.3 is chained here so the main materializer applies keyframes before runtime checks.
+require('./phase11-keyframes.js');
+
 console.log('FASE 11.2 ativa: cada cena cartoon possui 3-6 shots persistentes com beat, acao, camera, personagens, continuidade e prompt proprio.');
