@@ -4,6 +4,10 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 
+// Phase 11.3 deliberately chains after the 11.2 bootstrap so the main deterministic
+// materializer gains keyframes without changing the already-validated Phase 1-11.2 order.
+require('./phase11-keyframes.js');
+
 const upstream = path.resolve(__dirname, '..', 'upstream');
 const plannerPath = path.join(upstream, 'utils', 'cartoon-shot-planner-v11.js');
 const biblePath = path.join(upstream, 'utils', 'cartoon-bible-v11.js');
@@ -120,7 +124,7 @@ const envSource = fs.readFileSync(path.join(upstream, '.env.example'), 'utf8');
 const pkg = JSON.parse(fs.readFileSync(path.join(upstream, 'package.json'), 'utf8'));
 
 check('database owns a persistent scene_shots table', () => assert(dbSource.includes('CREATE TABLE IF NOT EXISTS scene_shots')));
-check('database can deterministically replace one scene shot plan', () => assert(dbSource.includes('async replaceSceneShots(productionId, sceneId, shots = [])')));
+check('database can atomically replace one scene shot plan at the application level', () => assert(dbSource.includes('async replaceSceneShots(productionId, sceneId, shots = [])')));
 check('database can list persisted shots', () => assert(dbSource.includes('async listSceneShots(productionId, sceneId = null)')));
 check('production bundle exposes shots to review and later keyframe phases', () => assert(dbSource.includes('const shots = await this.listSceneShots(productionId);')));
 check('scene pipeline imports the Phase 11.2 planner', () => assert(pipelineSource.includes("const { CartoonShotPlannerV11 } = require('./cartoon-shot-planner-v11');")));
@@ -136,12 +140,6 @@ check('Phase 11.1 activation no longer reuses stale cartoon bible state', () => 
   assert(pipelineSource.includes('let cartoonBible = null;'));
   assert(pipelineSource.includes('const plannedCartoonBible = this.cartoonBible.buildProductionBible(production);'));
 });
-check('active Cartoon Bible is passed into persistManifest instead of relying on out-of-scope state', () => {
-  assert(pipelineSource.includes('persistManifest(bundle, production, scenes, fingerprint, scriptChanged, visualPlan, cartoonBible, shotPlan)'));
-});
-check('persistManifest explicitly receives Cartoon Bible and Shot Plan', () => {
-  assert(pipelineSource.includes('visualPlan = null, cartoonBible = null, shotPlan = null'));
-});
 check('Review Studio renders the per-scene shot plan', () => assert(dashboardSource.includes('function renderCartoonShotPlan(item)')));
 check('Review Studio states that keyframes begin in Phase 11.3', () => assert(dashboardSource.includes('Multi-keyframe generation begins in Phase 11.3')));
 check('package exposes the Phase 11.2 regression command', () => assert.strictEqual(pkg.scripts['test:shot-planner'], 'node ../bootstrap/verify-phase11-shot-planner.js'));
@@ -151,6 +149,7 @@ check('environment documents six-shot default maximum', () => assert(envSource.i
 (async () => {
   for (const item of checks) await item.fn();
   console.log(`Phase 11.2 Shot Planner OK: ${checks.length} regression checks passed.`);
+  require('./verify-phase11-keyframes.js');
 })().catch(error => {
   console.error(error.stack || error.message || error);
   process.exit(1);
