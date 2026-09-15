@@ -1,4 +1,4 @@
-name: Validate Phase 11.10 Full
+name: Validate Phase 11.10 + 11.11 Full
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  validate-phase-11-10:
+  validate-phase-11-continuity:
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
@@ -49,3 +49,8 @@ jobs:
         shell: pwsh
         working-directory: upstream
         run: npm run test:persistent-world-object:full
+
+      - name: Run Phase 11.11 full suite
+        shell: pwsh
+        working-directory: upstream
+        run: npm run test:persistent-character:full
