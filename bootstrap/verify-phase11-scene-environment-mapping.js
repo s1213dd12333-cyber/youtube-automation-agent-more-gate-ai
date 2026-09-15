@@ -107,12 +107,12 @@ check('database gets one scene mapping', () => assert(dbSource.includes('async g
 check('bundle exposes sceneEnvironments', () => assert(dbSource.includes('const sceneEnvironments = await this.listSceneEnvironments(productionId);') && dbSource.includes('sceneEnvironments,')));
 check('pipeline imports mapper', () => assert(pipelineSource.includes("const { SceneEnvironmentMapperV11 } = require('./scene-environment-mapper-v11');")));
 check('pipeline constructs mapper', () => assert(pipelineSource.includes('this.sceneEnvironmentMapper = options.sceneEnvironmentMapper || new SceneEnvironmentMapperV11')));
-check('pipeline maps after final scene planning', () => assert(pipelineSource.includes('this.sceneEnvironmentMapper.mapProduction(production, scenes, environmentBible, latestMasterFrames)'));
-check('pipeline persists mapping plan', () => assert(pipelineSource.includes('replaceProductionSceneEnvironments(production.id, sceneEnvironmentPlan)'));
+check('pipeline maps after final scene planning', () => assert(pipelineSource.includes('this.sceneEnvironmentMapper.mapProduction(production, scenes, environmentBible, latestMasterFrames)')));
+check('pipeline persists mapping plan', () => assert(pipelineSource.includes('replaceProductionSceneEnvironments(production.id, sceneEnvironmentPlan)')));
 check('dashboard renders mapper panel', () => assert(dashboardSource.includes('SCENE → ENVIRONMENT V11.7.4')));
 check('dashboard exposes unresolved state', () => assert(dashboardSource.includes("'UNRESOLVED'")));
 check('package exposes mapping test', () => assert.strictEqual(pkg.scripts['test:scene-environments'], 'node ../bootstrap/verify-phase11-scene-environment-mapping.js'));
-check('mapping enabled in env example', () => assert(envSource.includes('SCENE_ENVIRONMENT_MAPPING_ENABLED=true'));
+check('mapping enabled in env example', () => assert(envSource.includes('SCENE_ENVIRONMENT_MAPPING_ENABLED=true')));
 check('minimum score is explicit in env example', () => assert(envSource.includes('SCENE_ENVIRONMENT_MIN_SCORE=0.18'));
 
 (async () => {
