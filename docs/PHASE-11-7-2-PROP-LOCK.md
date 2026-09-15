@@ -4,7 +4,7 @@ Phase 11.7.2 turns important environment objects into persistent continuity iden
 
 ## Scope
 
-This phase does **not** generate a canonical environment image and does **not** claim visual placement has been anchored. Master-frame anchoring belongs to Phase 11.7.3.
+This phase does **not** generate a canonical environment image and does **not** claim visual placement has been anchored. Master-frame anchoring belongs to Phase 11.7.3. Direct shot/keyframe prompt enrichment belongs to Phase 11.7.5.
 
 It does:
 
@@ -18,6 +18,25 @@ It does:
 - record whether placement is still `unanchored_until_master_frame`;
 - expose Prop Locks in the production bundle and Review Studio;
 - keep stable fingerprints for deterministic Resume/materialization.
+
+## Attribute isolation and provenance
+
+Color/material extraction is scoped to the clause that actually contains the prop. For example:
+
+```text
+sofa bege, mesa rustica de madeira
+```
+
+must produce a beige sofa without incorrectly making the table beige.
+
+The runtime also records attribute provenance:
+
+```text
+colorSource: explicit_instruction
+materialSource: explicit_instruction | environment_material_inference | null
+```
+
+This prevents inferred environment material from being presented as a directly stated prop attribute.
 
 ## Example
 
@@ -35,12 +54,14 @@ sofa
   required: true
   priority: critical
   color: beige
+  colorSource: explicit_instruction
   identity: locked
 
 coffee table
   required: true
   priority: critical
   material: natural wood
+  materialSource: explicit_instruction
   identity: locked
 
 window
@@ -99,4 +120,4 @@ PROP_LOCK_MAX_PER_ENVIRONMENT=24
 npm run test:prop-lock
 ```
 
-The verifier covers deterministic IDs/fingerprints, source-backed vs inferred props, furniture/fixture types, locked attributes, persistence wiring, bundle exposure, pipeline integration, dashboard rendering, and environment settings.
+The verifier applies the attribute hardening before loading the runtime and covers deterministic IDs/fingerprints, source-backed vs inferred props, per-prop color isolation, material provenance, furniture/fixture types, locked attributes, persistence wiring, bundle exposure, pipeline integration, dashboard rendering, and environment settings.
