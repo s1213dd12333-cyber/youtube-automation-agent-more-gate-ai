@@ -1,8 +1,8 @@
 # YouTube Automation Agent — More Gate AI
 
-Camada de evolução do [AgentTube / YouTube Automation Agent](https://github.com/darkzOGx/youtube-automation-agent), com roteamento multi-provider, pesquisa com evidência, pipeline scene-first, áudio/captions, Visual Director/Router, Quality Agents, autonomia segura e um pipeline avançado de cartoons com continuidade de personagens **e ambientes persistentes**.
+Camada de evolução do [AgentTube / YouTube Automation Agent](https://github.com/darkzOGx/youtube-automation-agent), com roteamento multi-provider, pesquisa com evidência, pipeline scene-first, áudio/captions, Visual Director/Router, Quality Agents, autonomia segura e pipeline avançado de cartoons com continuidade de personagens **e ambientes persistentes**.
 
-> **Estado do projeto:** as Fases 1–11.6 já tiveram regressões validadas no Windows deste projeto. As revisões 11.7.1–11.7.6 estão implementadas e publicadas; a validação Windows da cadeia 11.7 está em andamento.
+> **Estado atual:** Fases 1–11.6 validadas no Windows. A FASE 11.7 está implementada até 11.7.6; 11.7.2, 11.7.5 e 11.7.6 já foram runtime-verificadas no Windows. 11.7.1, 11.7.3 e 11.7.4 continuam aguardando seus testes específicos antes de serem marcadas como runtime-verificadas.
 
 ---
 
@@ -14,20 +14,22 @@ Este repositório usa um overlay determinístico sobre o upstream original.
 - Branch upstream: `master`
 - Commit fixado: `260d7a94ab2d5bb2a98ce6620bfda7efd56ebd6b`
 - Submodule local: `upstream/`
-- Bootstrap/versionamento das revisões: `bootstrap/`
+- Bootstrap/versionamento: `bootstrap/`
 - Materializador Windows: `materialize.ps1`
 
-O upstream não é alterado diretamente no repositório original. O materializador parte do commit fixado e reaplica as extensões de forma determinística.
+O upstream original não é modificado diretamente. O materializador parte do commit fixado e reaplica as extensões versionadas.
 
-### Atenção com um checkout que já possui produções
+### Atenção: checkout com produções existentes
 
-O `materialize.ps1` atual executa `git clean -fd` dentro de `upstream/`. Isso pode remover diretórios runtime não rastreados, inclusive `data/production/`. Portanto, **não execute uma materialização completa em um checkout com produção importante sem backup**. Para desenvolvimento incremental, aplique os bootstraps específicos da fase em vez de resetar todo o runtime.
+O `materialize.ps1` atual ainda executa `git clean -fd` dentro de `upstream/`. Isso pode remover diretórios runtime não rastreados, inclusive `data/production/`.
+
+**Não execute uma materialização completa em um checkout com produção importante sem backup.** Para evolução incremental, prefira aplicar somente os bootstraps específicos da fase.
 
 ---
 
 ## 2. Inicialização
 
-Em uma instalação nova:
+Instalação nova:
 
 ```powershell
 git clone --recurse-submodules https://github.com/s1213dd12333-cyber/youtube-automation-agent-more-gate-ai.git
@@ -46,7 +48,7 @@ Schedule:  http://localhost:3456/schedule
 Analytics: http://localhost:3456/analytics
 ```
 
-O `PORT` pode sobrescrever a porta padrão.
+`PORT` pode sobrescrever a porta padrão.
 
 ---
 
@@ -88,13 +90,12 @@ Models:
 - zai-glm-4.7
 ```
 
-Exemplo de variáveis:
+Exemplo:
 
 ```env
 NVIDIA_API_KEY=
 GROQ_API_KEY=
 CEREBRAS_API_KEY=
-
 AI_PROVIDER_MODE=explicit
 ```
 
@@ -103,8 +104,6 @@ Nunca versione chaves reais no Git.
 ---
 
 ## 4. Pipeline principal
-
-Fluxo de produção consolidado:
 
 ```text
 Topic / Instructions
@@ -123,11 +122,11 @@ Topic / Instructions
 → Schedule / Publish
 ```
 
-Publicação continua fail-closed: conteúdo não aprovado ou com gates pendentes não deve ser agendado/publicado automaticamente.
+Publicação permanece fail-closed: conteúdo não aprovado ou com gates pendentes não deve ser agendado/publicado automaticamente.
 
 ---
 
-# 5. Revisões por fase
+# 5. Fases 1–10
 
 ## FASE 1 — Content Contracts
 
@@ -151,10 +150,8 @@ Contratos estruturais de conteúdo e regressões determinísticas.
 - chunking/retry;
 - captions sincronizadas;
 - Gemini TTS;
-- fallback local Windows SAPI quando permitido;
+- fallback Windows SAPI quando permitido;
 - circuit breaker de quota diária.
-
-Configuração principal:
 
 ```env
 TTS_SCENE_CHUNK_CHARS=1800
@@ -179,13 +176,11 @@ WINDOWS_TTS_VOICE=
 
 ## FASE 5 — Research + Evidence
 
-Fontes integradas:
+Fontes:
 
 - Wikipedia;
 - Crossref;
 - OpenAlex.
-
-Modo estrito:
 
 ```env
 EVIDENCE_STRICT_MODE=true
@@ -201,7 +196,7 @@ Claims não verificadas podem bloquear com `EVIDENCE_CLAIMS_UNVERIFIED`.
 
 ## FASE 6 — Per-video Instructions
 
-Instruções por vídeo atravessam Strategy → Research → Script → Evidence → SEO → Visuals → Review sem poder sobrescrever regras de evidência, segurança, direitos ou aprovação.
+Instruções por vídeo atravessam Strategy → Research → Script → Evidence → SEO → Visuals → Review sem poder sobrescrever evidência, segurança, direitos ou aprovação.
 
 ```env
 SCRIPT_AI_MAX_TOKENS=6144
@@ -240,7 +235,7 @@ Cartoons `kids_cartoon_2d` podem ignorar o router documental quando o modo carto
 
 ## FASE 9 — Quality Agents
 
-Cinco agentes, mantendo exatamente os pesos:
+Cinco agentes, sem criar um sexto agente:
 
 ```text
 Retention  25
@@ -255,8 +250,6 @@ Persistência em `quality_agent_reports`.
 **Windows validado:** `22 regression checks passed`.
 
 ## FASE 10 — Autonomy + Observability + Safe Publication
-
-Inclui:
 
 - prevenção de tópicos próximos/duplicados;
 - auto-repair limitado;
@@ -290,7 +283,7 @@ Script
 → Character Continuity
 → Motion Composer
 → Cartoon Quality Gate
-→ Environment System 11.7
+→ Persistent Environment System
 ```
 
 ## 11.1 — Character Bible + Style Bible
@@ -311,11 +304,11 @@ CARTOON_BIBLE_ENABLED=true
 
 ## 11.2 — Shot Planner
 
-- 3–6 shots por cena por padrão;
+- 3–6 shots por cena;
 - IDs determinísticos;
 - wide / medium / close_up / reaction / action / ending;
 - duração fecha exatamente com a cena;
-- action, camera, emotion, continuity notes.
+- action, camera, emotion e continuity notes.
 
 ```env
 CARTOON_SHOTS_PER_SCENE_MIN=3
@@ -326,7 +319,7 @@ CARTOON_SHOTS_PER_SCENE_MAX=6
 
 ## 11.3 — Keyframe Pipeline
 
-Cada shot recebe exatamente:
+Cada shot recebe:
 
 ```text
 start
@@ -361,7 +354,7 @@ CARTOON_CONTINUITY_AUTO_REPAIR=true
 CARTOON_CONTINUITY_MAX_REPAIR_ATTEMPTS=1
 ```
 
-Importante: `referenceConditioned=true` só é persistido quando a imagem de referência foi realmente enviada ao provider.
+`referenceConditioned=true` só é persistido quando a imagem de referência foi realmente enviada ao provider.
 
 **Windows validado:** `36 regression checks passed`.
 
@@ -377,7 +370,7 @@ CARTOON_MOTION_HEIGHT=720
 CARTOON_MOTION_TRANSITION_SECONDS=0.16
 ```
 
-Inclui fingerprint SHA-256 dos bytes, invalidação de motion após alteração de keyframe e proteção de Resume.
+Inclui SHA-256 dos bytes, invalidação de motion após alteração de keyframe e proteção de Resume.
 
 **Windows validado:** `36` checks + `7` checks de hardening.
 
@@ -385,7 +378,7 @@ Inclui fingerprint SHA-256 dos bytes, invalidação de motion após alteração 
 
 O Cartoon Quality Gate é incorporado ao **Visual Agent existente**; não existe um sexto Quality Agent.
 
-Verifica, entre outros:
+Verifica:
 
 - Bible;
 - 3–6 shots;
@@ -408,22 +401,22 @@ Também mapeia cartoon infantil para `selfDeclaredMadeForKids` no upload.
 
 # 7. FASE 11.7 — Persistent Environment System
 
-A 11.7 resolve o problema de cenários genéricos que mudam a cada frame.
+A 11.7 existe para evitar que o cenário seja reinventado a cada frame.
 
-Exemplo de intenção:
+Exemplo:
 
 ```text
 "uma casa mobiliada feita em madeira, com sofá bege,
 mesa rústica, estante, tapete e janelas grandes"
 ```
 
-O objetivo é que isso vire uma localização persistente, como:
+vira uma identidade persistente:
 
 ```text
 env_house_<fingerprint>
 ```
 
-que possa reaparecer de forma reconhecível em vários shots e cenas.
+que pode reaparecer em vários shots/cenas.
 
 ## 11.7.1 — Environment Bible Service
 
@@ -446,7 +439,13 @@ Persiste:
 
 Tabela: `environment_bibles`.
 
-**Implementada / validação Windows em andamento.**
+**Implementada. Validação Windows específica ainda pendente.**
+
+Teste:
+
+```powershell
+npm run test:environment-bible
+```
 
 ## 11.7.2 — Prop Lock Service
 
@@ -460,30 +459,38 @@ coffee table
 bookshelf
 large window
 kitchen counter
+flower bed
 ```
 
 Cada lock possui prioridade, `required`, atributos travados, proveniência e regras de mudança.
 
+Hardenings confirmados:
+
+- atributos associados à cláusula do próprio objeto;
+- cor de um prop não vaza para outro;
+- `flower bed` vence `bed` em overlaps;
+- `coffee table` vence `table`;
+- regex de quebra de linha permanece sintaticamente válida;
+- runtime gerado recebe `node --check`.
+
 Tabela: `prop_locks`.
 
-**Implementada / validação Windows em andamento.**
+**Windows/runtime validado:** `60 regression checks passed`.
 
 ## 11.7.3 — Master Environment Generator
 
-Cria uma imagem-mestra canônica por ambiente:
+Cria imagem-mestra canônica por ambiente:
 
 ```text
 data/assets/environments/<production>/<environment>/master.png
 ```
-
-Por padrão:
 
 ```env
 MASTER_ENVIRONMENT_GENERATION_ENABLED=true
 MASTER_ENVIRONMENT_REQUIRE_PROVIDER=true
 ```
 
-Um renderer local genérico **não pode virar referência canônica**. Quando isso acontece:
+Um renderer local genérico **não pode virar referência canônica**:
 
 ```text
 status = fallback_unanchored
@@ -493,7 +500,13 @@ masterFramePath = null
 
 Tabela: `environment_master_frames`.
 
-**Implementada / validação Windows em andamento.**
+**Implementada. Validação Windows específica ainda pendente.**
+
+Teste:
+
+```powershell
+npm run test:master-environment
+```
 
 ## 11.7.4 — Scene-to-Environment Mapping
 
@@ -505,11 +518,17 @@ Scene 2 → env_house_01 / kitchen
 Scene 3 → env_garden_01 / garden
 ```
 
-Ambiguidade em produções com vários ambientes permanece `unresolved` em vez de inventar um cenário.
+Ambiguidade com vários ambientes permanece `unresolved` em vez de inventar um cenário.
 
 Tabela: `scene_environments`.
 
-**Implementada / validação Windows em andamento.**
+**Implementada. Validação Windows específica ainda pendente.**
+
+Teste:
+
+```powershell
+npm run test:scene-environments
+```
 
 ## 11.7.5 — Environment + Prop Prompt Enrichment
 
@@ -527,19 +546,21 @@ Injeta no shot/keyframe:
 
 Tabela: `shot_environment_contexts`.
 
-O primeiro `start` de uma cena pode usar o `master.png` canônico como referência real de geração; os keyframes seguintes continuam a cadeia normal de continuidade.
+O primeiro `start` pode usar o `master.png` canônico como referência real de geração. Os frames seguintes mantêm a cadeia normal de continuidade.
 
-A revisão preserva o `planFingerprint` estrutural da 11.2 para estabilidade de Resume, mas altera o fingerprint visual quando o contexto do ambiente muda.
+A revisão preserva o `planFingerprint` estrutural da 11.2 para estabilidade de Resume, mas altera o fingerprint visual quando o ambiente muda.
 
-**Implementada / validação Windows em andamento.**
+O verifier também autocorrige o hardening 11.7.2 antes de carregar o runtime, evitando que runtimes antigos materializados com regex inválida escondam o estado real da 11.7.5.
+
+**Windows/runtime validado:** `51 regression checks passed`.
 
 ## 11.7.6 — Environment Continuity Validation
 
-A continuidade de **personagem** continua pertencendo à 11.4.
+A continuidade de **personagem** pertence à 11.4.
 
 A continuidade de **ambiente** pertence à 11.7.6.
 
-Cada keyframe de uma cena mapeada é comparado com o Master Environment usando evidência de imagem:
+Cada keyframe de uma cena mapeada é comparado com o Master Environment usando:
 
 - aspect;
 - palette;
@@ -547,8 +568,6 @@ Cada keyframe de uma cena mapeada é comparado com o Master Environment usando e
 - composition grid;
 - perceptual hash;
 - edge density.
-
-Configuração:
 
 ```env
 ENVIRONMENT_CONTINUITY_ENABLED=true
@@ -573,22 +592,22 @@ status = environment_continuity_failed
 
 Tabela: `environment_continuity_checks`.
 
-A presença visual semântica de um objeto específico ainda **não é inventada**. Enquanto não existir detector visual semântico próprio:
+A presença semântica pixel-a-pixel de objetos ainda **não é inventada**:
 
 ```text
 semanticPropPresenceVerified = false
 propVerificationMode = prompt-contract-only
 ```
 
-O Cartoon Quality Gate 11.6 também passa a exigir as decisões de Environment Continuity para shots mapeados.
+O Cartoon Quality Gate 11.6 exige as decisões de Environment Continuity para shots mapeados.
 
-**Implementada / validação Windows em andamento.**
+**Windows/runtime validado:** `44 regression checks passed`.
 
 ---
 
 ## 8. Estado de regressão conhecido
 
-Última cadeia 1–11.6 validada no Windows:
+Base 1–11.6 validada no Windows:
 
 ```text
 Phase 1 content contracts OK: 7 regression checks passed.
@@ -612,30 +631,35 @@ Phase 11.6 Made-for-Kids Mapping OK: 4 regression checks passed.
 Phase 11.6 Cartoon Quality Gate OK: 34 regression checks passed.
 ```
 
-Regressões específicas da 11.7 disponíveis:
+11.7 já confirmada no Windows:
+
+```text
+Phase 11.7.2 Prop Lock OK: 60 regression checks passed.
+Phase 11.7.5 Environment Prompt Enrichment OK: 51 regression checks passed.
+Phase 11.7.6 Environment Continuity OK: 44 regression checks passed.
+```
+
+Ainda faltam os logs específicos de:
 
 ```powershell
 npm run test:environment-bible
-npm run test:prop-lock
 npm run test:master-environment
 npm run test:scene-environments
-npm run test:environment-prompts
-npm run test:environment-continuity
 ```
 
-A validação Windows da cadeia 11.7 ainda deve ser concluída antes de marcar essas subfases como runtime-verificadas.
+Somente depois desses três testes a cadeia 11.7.1–11.7.6 deve ser descrita como totalmente runtime-verificada.
 
 ---
 
-## 9. E2E cartoon
+## 9. E2E cartoon real
 
-O primeiro E2E real utilizado nesta evolução foi:
+Produção de validação:
 
 ```text
 Benny the Bunny Learns the Colors
 ```
 
-O pipeline chegou a:
+O E2E chegou a:
 
 ```text
 Character Bible
@@ -646,7 +670,15 @@ Character Bible
 → first keyframe generated
 ```
 
-Esse E2E revelou bugs reais de runtime que os testes estáticos não mostravam, incluindo o caminho de image-reference após circuit breaker de quota. Esses casos geraram hardenings adicionais e reforçaram a estratégia de Resume no mesmo job em vez de recriar produções.
+O teste real revelou bugs que os testes estáticos não mostravam, incluindo:
+
+- image-reference após circuit breaker de quota;
+- Resume vs duplicate-topic guard;
+- erros sintáticos de verifier;
+- regex materializada incorretamente;
+- overlaps semânticos como `flower bed` vs `bed`.
+
+Esses casos foram transformados em hardenings/regressões versionados.
 
 ---
 
@@ -657,7 +689,7 @@ Em validação real, Gemini Images retornou quota gratuita `0` para o provider d
 Consequência intencional da 11.7:
 
 - fallback local genérico pode ser auditado;
-- fallback local genérico **não** se torna Master Environment canônico;
+- fallback local genérico **não** vira Master Environment canônico;
 - com `ENVIRONMENT_CONTINUITY_REQUIRE_MASTER=true`, a geração pode parar com `ENVIRONMENT_MASTER_REQUIRED` até existir um master válido.
 
 Isso é preferível a fingir continuidade com imagens genéricas.
@@ -666,15 +698,13 @@ Isso é preferível a fingir continuidade com imagens genéricas.
 
 ## 11. TTS Gemini
 
-Exemplo:
-
 ```env
 GEMINI_API_KEY=
 GEMINI_TTS_MODEL=gemini-3.1-flash-tts-preview
 GEMINI_TTS_VOICE=Kore
 ```
 
-O projeto possui fallback local no Windows para TTS quando configurado, mas o fallback deve continuar auditável e não deve ser apresentado como Gemini.
+O projeto possui fallback local Windows para TTS quando configurado, mas o fallback permanece auditável e não deve ser apresentado como Gemini.
 
 ---
 
@@ -709,9 +739,7 @@ VISUAL_DIRECTOR_REFRESH_LEGACY_VISUALS=false
 
 Quando um job falhar depois de já persistir Strategy/Script/Scenes/Shots/Keyframes, prefira **Resume do mesmo job**.
 
-Não reenvie o mesmo tópico como uma geração nova: a FASE 10 pode corretamente bloquear como duplicado dentro da janela configurada.
-
-Endpoint de Resume:
+Não reenvie o mesmo tópico como geração nova: a FASE 10 pode corretamente bloquear como duplicado dentro da janela configurada.
 
 ```text
 POST /api/jobs/<jobId>/resume
@@ -720,8 +748,6 @@ POST /api/jobs/<jobId>/resume
 ---
 
 ## 14. Dados persistentes principais
-
-Entre as tabelas adicionadas/expandidas pelas revisões:
 
 ```text
 ai_usage
@@ -747,13 +773,13 @@ O banco runtime usa SQLite no checkout materializado.
 
 ## 15. Próximos passos técnicos
 
-Depois da validação completa da 11.7:
-
-1. executar um novo E2E com Master Environment proveniente de provider real;
-2. avaliar visualmente a reprodução do mesmo ambiente em vários ângulos;
-3. adicionar detecção visual semântica de props, caso se queira comprovar pixel-a-pixel sofá/mesa/janela;
-4. considerar image-to-video local (Wan/LTX) para substituir progressivamente o motion baseado em keyframes/FFmpeg por movimento generativo real;
-5. manter Human Review antes de qualquer scheduling/publicação.
+1. concluir os testes Windows específicos da 11.7.1, 11.7.3 e 11.7.4;
+2. corrigir a segurança de `materialize.ps1` para preservar `data/production/` antes de recomendar nova materialização completa em checkout ativo;
+3. executar E2E com Master Environment proveniente de provider real;
+4. avaliar visualmente a mesma localização em vários ângulos;
+5. adicionar detector visual semântico de props caso seja necessário comprovar sofá/mesa/janela pixel-a-pixel;
+6. considerar image-to-video local (Wan/LTX) para substituir progressivamente motion baseado apenas em keyframes/FFmpeg;
+7. manter Human Review antes de scheduling/publicação.
 
 ---
 
