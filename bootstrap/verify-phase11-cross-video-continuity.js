@@ -99,7 +99,7 @@ async function runtimeChecks() {
   check('runtime state audited', () => assert.strictEqual(saved.at(-1).stateFingerprint, 'night'));
   result = await gate.evaluate({ productionId: 'new', sceneId: 'scene', keyframe, assetPath: '/drift' });
   check('runtime drift blocked', () => assert.strictEqual(result.accepted, false));
-  check('runtime drift reason', () => assert(result.reasons.includes('CROSS_VIDEO_STRUCTURE_DRIFT'));
+  check('runtime drift reason', () => assert(result.reasons.includes('CROSS_VIDEO_STRUCTURE_DRIFT')));
   assets = [];
   result = await gate.evaluate({ productionId: 'new', sceneId: 'scene', keyframe, assetPath: '/night' });
   check('runtime missing anchor blocked', () => assert.strictEqual(result.status, 'canonical_asset_missing'));
