@@ -34,4 +34,10 @@ patch('database/db.js', [[
   'invalidate scene visual when keyframe state changes'
 ]]);
 
-console.log('Phase 11.5 motion hardening active: byte-exact fingerprints, stale-scene invalidation, and failed-visual Resume safety.');
+const pkgPath = path.join(upstream, 'package.json');
+const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+pkg.scripts = pkg.scripts || {};
+pkg.scripts['test:motion'] = 'node ../bootstrap/verify-phase11-motion.js && node ../bootstrap/verify-phase11-motion-hardening.js';
+fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
+
+console.log('Phase 11.5 motion hardening active: byte-exact fingerprints, stale-scene invalidation, failed-visual Resume safety, and hardening regression chaining.');
