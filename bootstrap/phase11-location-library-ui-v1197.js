@@ -100,7 +100,7 @@ function patchReusableLocationLibrary() {
 function patchIndexApi() {
   let s = read('index.js');
   s = replaceOnce(s, "const { DiscoverabilityService } = require('./utils/discoverability-service');\n", "const { DiscoverabilityService } = require('./utils/discoverability-service');\nconst { LocationLibraryManagerV11 } = require('./utils/location-library-manager-v11');\n", 'Location Library API import');
-  s = replaceOnce(s, "    this.discoverability = null;\n    this.setupRequired = false;\n", "    this.discoverability = null;\n    this.locationLibrary = null;\n    this.setupRequired = false;\n", 'Location Library API property');
+  s = replaceOnce(s, "    this.discoverability = null;\n", "    this.discoverability = null;\n    this.locationLibrary = null;\n", 'Location Library API property');
   s = replaceOnce(s, "      await this.db.markInterruptedJobs();\n", "      await this.db.markInterruptedJobs();\n      this.locationLibrary = new LocationLibraryManagerV11(this.db, { logger: this.logger });\n", 'Location Library initialization');
   const routes = [
     "    this.app.get('/api/location-library', async (req, res) => {",
