@@ -63,7 +63,7 @@ require('./phase11-cartoon-quality.js');
 require('./fix-phase11-made-for-kids.js');
 
 // Phase 11.7.1 adds persistent location identity only. It does not fabricate a master
-// environment frame or Prop Lock; those remain explicit later subphases.
+// environment frame; canonical environment images remain a later subphase.
 for (const rel of [
   'phase11-environment-bible.js',
   'verify-phase11-environment-bible.js',
@@ -72,3 +72,14 @@ for (const rel of [
   execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
 }
 require('./phase11-environment-bible.js');
+
+// Phase 11.7.2 turns signature furniture/objects into persistent locks. It records
+// identity and evidence-backed attributes now; master-frame placement anchoring remains 11.7.3.
+for (const rel of [
+  'phase11-prop-lock.js',
+  'verify-phase11-prop-lock.js',
+  'templates/prop-lock-v11.js'
+]) {
+  execFileSync(process.execPath, ['--check', path.join(__dirname, rel)], { stdio: 'inherit' });
+}
+require('./phase11-prop-lock.js');
