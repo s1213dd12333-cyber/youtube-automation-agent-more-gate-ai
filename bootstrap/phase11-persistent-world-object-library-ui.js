@@ -44,8 +44,8 @@ function patchIndexApi() {
     "const { LocationLibraryManagerV11 } = require('./utils/location-library-manager-v11');\nconst { PersistentWorldObjectLibraryManagerV11 } = require('./utils/persistent-world-object-library-manager-v11');\n",
     'Object Library API import');
   s = replaceOnce(s,
-    "    this.locationLibrary = null;\n    this.setupRequired = false;\n",
-    "    this.locationLibrary = null;\n    this.objectLibrary = null;\n    this.setupRequired = false;\n",
+    "    this.locationLibrary = null;\n",
+    "    this.locationLibrary = null;\n    this.objectLibrary = null;\n",
     'Object Library API property');
   s = replaceOnce(s,
     "      this.locationLibrary = new LocationLibraryManagerV11(this.db, { logger: this.logger });\n",
@@ -99,8 +99,8 @@ function patchDashboard() {
 
   let app = read('dashboard/app.js');
   app = replaceOnce(app,
-    "    locations: ['LOCATION LIBRARY', 'Reuse the same places across every video.'],\n    readiness: ['PRODUCTION READINESS', 'Verify before autonomy runs.'],\n",
-    "    locations: ['LOCATION LIBRARY', 'Reuse the same places across every video.'],\n    objects: ['OBJECT LIBRARY', 'Keep the same story-world objects across every video.'],\n    readiness: ['PRODUCTION READINESS', 'Verify before autonomy runs.'],\n",
+    "    locations: ['LOCATION LIBRARY', 'Reuse the same places across every video.'],\n",
+    "    locations: ['LOCATION LIBRARY', 'Reuse the same places across every video.'],\n    objects: ['OBJECT LIBRARY', 'Keep the same story-world objects across every video.'],\n",
     'Object Library title');
   write('dashboard/app.js', app);
 }
