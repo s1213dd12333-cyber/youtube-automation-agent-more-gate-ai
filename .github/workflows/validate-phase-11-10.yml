@@ -1,8 +1,8 @@
-name: Validate Phase 11.10 + 11.11 + 11.12.1 + 11.12.2 + 11.12.3
+name: Validate Phase 11.10 + 11.11 + 11.12.1 + 11.12.2 + 11.12.3 + 11.12.4
 
 on:
   push:
-    branches: [main, phase-11.12.3-episode-memory]
+    branches: [main, phase-11.12.4-character-arc-memory]
     paths:
       - '.github/workflows/validate-phase-11-10.yml'
       - 'bootstrap/**'
@@ -76,3 +76,8 @@ jobs:
         shell: pwsh
         working-directory: upstream
         run: npm run test:episode-memory
+
+      - name: Run Phase 11.12.4 Character Arc Memory suite
+        shell: pwsh
+        working-directory: upstream
+        run: npm run test:character-arc-memory
