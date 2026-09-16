@@ -163,3 +163,9 @@ syntax(['phase11-relationship-state-graph.js', 'verify-phase11-relationship-stat
 requireFiles(['templates/relationship-state-graph-db-tables-v12.txt', 'templates/relationship-state-graph-db-methods-v12.txt'], 'Phase 11.12.5');
 require('./phase11-relationship-state-graph.js');
 run('verify-phase11-relationship-state-graph.js');
+
+// 11.12.6 — explicit lifecycle registry for serialized plot threads and narrative obligations.
+syntax(['phase11-plot-thread-registry.js', 'verify-phase11-plot-thread-registry.js', 'templates/plot-thread-registry-v12.js']);
+requireFiles(['templates/plot-thread-registry-db-tables-v12.txt', 'templates/plot-thread-registry-db-methods-v12.txt'], 'Phase 11.12.6');
+require('./phase11-plot-thread-registry.js');
+run('verify-phase11-plot-thread-registry.js');
