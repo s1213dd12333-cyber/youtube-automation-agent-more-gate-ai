@@ -16,8 +16,8 @@ function replaceOnce(from, to, label) {
 
 replaceOnce(
   "    const ep = Math.max(1, Math.floor(Number(episodeNumber || 0) || 0));\n    const memory = await this.db.getSerializedEpisodeMemory(seriesId, ep);\n",
-  "    const ep = Math.max(1, Math.floor(Number(episodeNumber || 0) || 0));\n    const source = Array.isArray(updates) ? updates : [updates];\n    if (!source.length) return { status: 'invalid', reason: 'relationship_updates_required' };\n\n    // Reject malformed directed edges before temporal/backfill policy so API errors are deterministic.\n    const edgeKeys = new Set();\n    for (const raw of source) {\n      const sourceKey = slug(raw?.sourceCharacterKey || '');\n      const targetKey = slug(raw?.targetCharacterKey || '');\n      const edgeKey = relationshipKey(sourceKey, targetKey);\n      if (!sourceKey || !targetKey) return { status: 'invalid', reason: 'relationship_endpoints_required' };\n      if (sourceKey === targetKey) return { status: 'invalid', reason: 'relationship_self_edge_forbidden', sourceCharacterKey: sourceKey };\n      if (edgeKeys.has(edgeKey)) return { status: 'conflict', reason: 'duplicate_relationship_edge_in_commit', edgeKey };\n      edgeKeys.add(edgeKey);\n    }\n\n    const memory = await this.db.getSerializedEpisodeMemory(seriesId, ep);\n",
-  'structural validation must precede episode/backfill policy'
+  "    const ep = Math.max(1, Math.floor(Number(episodeNumber || 0) || 0));\n    const source = Array.isArray(updates) ? updates : [updates];\n    if (!source.length) return { status: 'invalid', reason: 'relationship_updates_required' };\n\n    // Reject malformed directed edges and unresolved same-series endpoints before temporal/backfill policy.\n    const edgeKeys = new Set();\n    for (const raw of source) {\n      const sourceKey = slug(raw?.sourceCharacterKey || '');\n      const targetKey = slug(raw?.targetCharacterKey || '');\n      const edgeKey = relationshipKey(sourceKey, targetKey);\n      if (!sourceKey || !targetKey) return { status: 'invalid', reason: 'relationship_endpoints_required' };\n      if (sourceKey === targetKey) return { status: 'invalid', reason: 'relationship_self_edge_forbidden', sourceCharacterKey: sourceKey };\n      if (edgeKeys.has(edgeKey)) return { status: 'conflict', reason: 'duplicate_relationship_edge_in_commit', edgeKey };\n      edgeKeys.add(edgeKey);\n      const sourceArcResult = await this.resolveArc(seriesId, sourceKey);\n      if (sourceArcResult.status !== 'found') return { status: 'conflict', reason: 'relationship_source_character_arc_not_found', sourceCharacterKey: sourceKey };\n      const targetArcResult = await this.resolveArc(seriesId, targetKey);\n      if (targetArcResult.status !== 'found') return { status: 'conflict', reason: 'relationship_target_character_arc_not_found', targetCharacterKey: targetKey };\n    }\n\n    const memory = await this.db.getSerializedEpisodeMemory(seriesId, ep);\n",
+  'structural and endpoint validation must precede episode/backfill policy'
 );
 
 replaceOnce(
@@ -28,8 +28,11 @@ replaceOnce(
 
 fs.writeFileSync(target, source, 'utf8');
 
-if (!source.includes('Reject malformed directed edges before temporal/backfill policy')) {
+if (!source.includes('Reject malformed directed edges and unresolved same-series endpoints before temporal/backfill policy')) {
   throw new Error('Relationship structural prevalidation was not materialized');
 }
+if (!source.includes("reason: 'relationship_target_character_arc_not_found'")) {
+  throw new Error('Relationship endpoint prevalidation was not materialized');
+}
 
-console.log('Phase 11.12.5 hardening: malformed/self/duplicate directed edges are rejected before episode and backfill policy.');
+console.log('Phase 11.12.5 hardening: malformed/self/duplicate edges and unresolved same-series endpoints are rejected before episode/backfill policy.');
