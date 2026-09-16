@@ -121,7 +121,7 @@ function patchRadar() {
     "      const researchGatePassed = !this.autonomousResearch?.getConfig()?.enabled || autonomousResearch?.status === 'EVIDENCE_READY';",
     "      if (autoPromote && selectedByBrain && researchGatePassed && ['COVER','BREAKING','UPDATE','FOLLOW_UP'].includes(decision.action)) {",
     "        try {",
-    "          promotion = await this.promoteDecision(decision.id, editorialPlan, autonomousResearch);",
+    "          promotion = autonomousResearch ? await this.promoteDecision(decision.id, editorialPlan, autonomousResearch) : await this.promoteDecision(decision.id, editorialPlan);",
     "          if (editorialPlan?.id && promotion && this.editorialPlanner) await this.editorialPlanner.linkPromotion(editorialPlan.id, promotion);",
     "          if (autonomousResearch?.id && promotion && this.autonomousResearch) await this.autonomousResearch.linkPromotion(autonomousResearch.id, promotion);",
     "          if (event?.id && promotion && this.eventIntelligence) await this.eventIntelligence.recordAssignment(event.id, decision.id, promotion);",
