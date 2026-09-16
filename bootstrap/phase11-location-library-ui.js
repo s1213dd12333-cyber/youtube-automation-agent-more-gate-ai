@@ -157,3 +157,9 @@ syntax(['phase11-character-arc-memory.js', 'verify-phase11-character-arc-memory.
 requireFiles(['templates/character-arc-memory-db-tables-v12.txt', 'templates/character-arc-memory-db-methods-v12.txt'], 'Phase 11.12.4');
 require('./phase11-character-arc-memory.js');
 run('verify-phase11-character-arc-memory.js');
+
+// 11.12.5 — directed inter-character Relationship State Graph layered on Character Arc Memory.
+syntax(['phase11-relationship-state-graph.js', 'verify-phase11-relationship-state-graph.js', 'templates/relationship-state-graph-v12.js']);
+requireFiles(['templates/relationship-state-graph-db-tables-v12.txt', 'templates/relationship-state-graph-db-methods-v12.txt'], 'Phase 11.12.5');
+require('./phase11-relationship-state-graph.js');
+run('verify-phase11-relationship-state-graph.js');
