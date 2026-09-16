@@ -132,3 +132,10 @@ syntax(['fix-phase5-fiction-evidence.js', 'verify-phase5-fiction-evidence.js', '
 requireFiles(['templates/fiction-evidence-policy-v5.js'], 'Phase 5 fiction evidence hardening');
 require('./fix-phase5-fiction-evidence.js');
 run('verify-phase5-fiction-evidence.js');
+
+// 11.12.1 — persistent, revisioned Series Bible for serialized narrative memory.
+// It runs after fiction evidence hardening so the Script Writer receives both policies in a deterministic order.
+syntax(['phase11-serialized-series-bible.js', 'verify-phase11-serialized-series-bible.js', 'templates/serialized-series-bible-v12.js']);
+requireFiles(['templates/serialized-series-bible-db-tables-v12.txt', 'templates/serialized-series-bible-db-methods-v12.txt'], 'Phase 11.12.1');
+require('./phase11-serialized-series-bible.js');
+run('verify-phase11-serialized-series-bible.js');
