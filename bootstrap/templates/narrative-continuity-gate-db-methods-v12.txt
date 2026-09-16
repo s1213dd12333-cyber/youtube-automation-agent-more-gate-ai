@@ -1,0 +1,73 @@
+  parseSerializedNarrativeContinuityReport(row) {
+    if (!row) return null;
+    const parse = (value, fallback) => { try { return JSON.parse(value || JSON.stringify(fallback)); } catch (_error) { return fallback; } };
+    return {
+      id: row.id,
+      seriesId: row.series_id,
+      episodeNumber: Number(row.episode_number || 0),
+      gateVersion: row.gate_version,
+      contextFingerprint: row.context_fingerprint,
+      candidateFingerprint: row.candidate_fingerprint,
+      sourceFingerprint: row.source_fingerprint || null,
+      verdict: row.verdict,
+      score: Number(row.score || 0),
+      blockers: parse(row.blockers, []),
+      warnings: parse(row.warnings, []),
+      checks: parse(row.checks, []),
+      focus: parse(row.focus, {}),
+      candidateSnapshot: parse(row.candidate_snapshot, {}),
+      manifest: parse(row.manifest, {}),
+      createdBy: row.created_by || null,
+      createdAt: row.created_at
+    };
+  }
+
+  async getSerializedNarrativeContinuityReport(reportId) {
+    const row = await this.getRow('SELECT * FROM serialized_narrative_continuity_reports WHERE id = ? LIMIT 1', [reportId]);
+    return this.parseSerializedNarrativeContinuityReport(row);
+  }
+
+  async listSerializedNarrativeContinuityReports(seriesId, episodeNumber, limit = 100) {
+    const rows = await this.getAllRows(
+      `SELECT * FROM serialized_narrative_continuity_reports
+       WHERE series_id = ? AND episode_number = ?
+       ORDER BY created_at DESC LIMIT ?`,
+      [seriesId, Math.max(1, Number(episodeNumber || 1)), Math.max(1, Math.min(500, Number(limit || 100)))]
+    );
+    return rows.map(row => this.parseSerializedNarrativeContinuityReport(row));
+  }
+
+  async getLatestPassingNarrativeContinuityReport(seriesId, episodeNumber, candidateFingerprint) {
+    const row = await this.getRow(
+      `SELECT * FROM serialized_narrative_continuity_reports
+       WHERE series_id = ? AND episode_number = ? AND candidate_fingerprint = ? AND verdict = 'pass'
+       ORDER BY created_at DESC LIMIT 1`,
+      [seriesId, Math.max(1, Number(episodeNumber || 1)), candidateFingerprint]
+    );
+    return this.parseSerializedNarrativeContinuityReport(row);
+  }
+
+  async saveSerializedNarrativeContinuityReport(report = {}) {
+    if (!report.id || !report.seriesId || !report.episodeNumber || !report.contextFingerprint || !report.candidateFingerprint) {
+      throw new Error('narrative_continuity_report_identity_required');
+    }
+    const now = report.createdAt || new Date().toISOString();
+    await this.executeQuery(
+      `INSERT OR IGNORE INTO serialized_narrative_continuity_reports (
+        id, series_id, episode_number, gate_version, context_fingerprint, candidate_fingerprint,
+        source_fingerprint, verdict, score, blockers, warnings, checks, focus,
+        candidate_snapshot, manifest, created_by, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        report.id, report.seriesId, Number(report.episodeNumber), report.gateVersion,
+        report.contextFingerprint, report.candidateFingerprint, report.sourceFingerprint || null,
+        report.verdict, Math.max(0, Math.min(100, Number(report.score || 0))),
+        JSON.stringify(report.blockers || []), JSON.stringify(report.warnings || []),
+        JSON.stringify(report.checks || []), JSON.stringify(report.focus || {}),
+        JSON.stringify(report.candidateSnapshot || {}), JSON.stringify(report.manifest || {}),
+        report.createdBy || null, now
+      ]
+    );
+    return await this.getSerializedNarrativeContinuityReport(report.id);
+  }
+
