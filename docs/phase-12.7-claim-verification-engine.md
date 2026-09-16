@@ -1,62 +1,69 @@
-# Phase 12.7 — Claim Verification & Evidence Synthesis Engine
+# Phase 12.7 — Evidence / Truth Engine
 
 ## Purpose
 
-Phase 12.6 answers **whether the newsroom has enough evidence to continue**. Phase 12.7 answers the stricter question: **which concrete factual claims are actually supported by that evidence, by which independent sources, and with what confidence?**
+Phase 12.6 answers whether the newsroom has enough retrievable evidence to continue. Phase 12.7 answers the stricter question: **what truth state may be assigned to each concrete claim supported by that evidence?**
 
-The phase is deliberately fail-closed. It never treats a topic title, a research question, a model inference, or a single source as a verified fact.
+The engine is deliberately fail-closed. Repetition is not truth, a headline is not proof, and a single source is not silently promoted into a confirmed fact.
 
 ## Pipeline position
 
-`Global News Radar → Event Intelligence → Editorial Brain → Global Importance → Editorial Planning → Autonomous Research 12.6 → Claim Verification 12.7 → Backlog / downstream Research & Provenance → Quality → Approval → Publishing`
+`Global News Radar → Event Intelligence → Editorial Brain → Global Importance → Editorial Planning → Autonomous Research 12.6 → Evidence / Truth 12.7 → Backlog → Research & Provenance → Quality → Approval → Publishing`
 
-Only an `EVIDENCE_READY` research run may enter claim verification. While 12.7 is enabled, automatic promotion requires a claim packet with status `VERIFIED`.
+Only an `EVIDENCE_READY` 12.6 run may enter 12.7. While 12.7 is enabled, automatic promotion requires a packet with status `VERIFIED`.
 
-## Claim model
+## Seven claim classifications
 
-Each planned research question becomes a verification target. The engine searches the already-retrieved evidence text for the strongest source-bound sentence matching that target, then evaluates corroboration across independent domains.
+Every planned research question becomes a truth-verification target. The engine binds the target to exact sentences from already retrieved evidence and classifies the resulting proposition as one of:
 
-A claim receives one of three statuses:
+- `confirmed` — independently corroborated across the configured minimum number of distinct domains, no material independent contradiction, required primary/official support satisfied, and confidence above threshold;
+- `reported` — source-bound reporting exists, but the claim is not sufficiently corroborated to be treated as confirmed;
+- `claimed` — the evidence explicitly presents the proposition as an attributed assertion/allegation/claim rather than an established fact;
+- `disputed` — independently sourced evidence materially conflicts on the proposition;
+- `unverified` — some relevant evidence exists, but it is too weak or too narrow for confirmation;
+- `false` — a weak proposition is contradicted by stronger independent evidence including authoritative official/scholarly contradiction;
+- `unknown` — no relevant evidence sentence can be bound to the verification target.
 
-- `SUPPORTED` — sufficient independent corroboration and, when required by the editorial plan, primary/official support.
-- `CONTESTED` — source evidence contains a material polarity conflict without enough corroboration to resolve it.
-- `INSUFFICIENT` — not enough independent support, not enough lexical coverage, missing required official support, or confidence below policy.
+These labels are evidence states, not judgments about motive, intent, competence, or character.
 
-The packet receives one of three statuses:
+## Repetition is not corroboration
 
-- `VERIFIED` — all claim targets are `SUPPORTED`.
-- `NEEDS_RESEARCH` — too many claim targets remain insufficient.
-- `BLOCK` — at least the configured number of claims is materially contested.
+Independent support is counted by canonical source domain, not number of URLs or number of syndicated copies. Ten pages from the same domain still count as one supporting domain. Therefore repeated publication cannot mechanically turn `reported`, `claimed`, or `unverified` material into `confirmed`.
+
+## Packet gate
+
+The packet status is deterministic:
+
+- `VERIFIED` — every mandatory claim is `confirmed`;
+- `NEEDS_RESEARCH` — at least one claim remains `reported`, `claimed`, `unverified`, or `unknown`, with no blocking claim;
+- `BLOCK` — at least the configured number of claims are `disputed` or `false`.
+
+Only `VERIFIED` can auto-promote while the engine is enabled.
 
 ## Provenance
 
-Every stored claim preserves:
+Every persisted claim retains:
 
-- the research question that created the verification target;
-- the exact evidence-bound claim sentence;
-- independent supporting domains;
-- supporting source URLs and source class;
-- contradicting source URLs when present;
-- short evidence excerpts and their polarity;
-- deterministic claim and packet fingerprints.
+- research question;
+- exact source-bound claim sentence;
+- classification and reason;
+- confidence score;
+- supporting domains and sources;
+- contradiction domains and sources;
+- short evidence excerpts with support/contradict polarity;
+- deterministic claim fingerprint.
 
-The packet is immutable/idempotent for the same research snapshot. Re-running verification against the same evidence reuses the same persisted packet.
+The packet retains exact classification counts and an immutable packet fingerprint bound to the 12.6 research snapshot.
 
-## Safety and neutrality
+## Neutrality discipline
 
-The engine does not decide truth from source popularity, political actor identity, or editorial preference. Thresholds operate on source independence, evidence overlap, source class, corroboration, contradiction and confidence. Identical evidence and requirements produce identical verification outcomes regardless of named political actor.
+Truth classification uses source independence, lexical evidence overlap, source class, corroboration, contradiction and confidence. Actor metadata, popularity, editorial preference, or how many times a claim is repeated do not change the rules.
 
-A contradiction signal is conservative: it identifies opposing polarity in relevant evidence; it does not infer motive, intent, deception or culpability.
+For contested public or political claims, `reported`, `claimed`, `disputed`, `unverified`, `false`, and `unknown` remain explicit evidence states; the system does not rewrite them into a preferred conclusion.
 
-## Promotion gate
+## Downstream safety
 
-When enabled:
-
-- 12.6 must be `EVIDENCE_READY`;
-- 12.7 must be `VERIFIED`;
-- only then may automatic newsroom promotion continue.
-
-The resulting backlog rationale records the claim-verification summary. Existing Research & Provenance, factual quality, approval and publishing gates remain mandatory and are not bypassed.
+12.7 does not replace Phase 5 Research & Provenance, the factual quality gate, operator approval, or publishing controls. It is an additional upstream truth gate. Even a `VERIFIED` packet must pass the existing downstream production safeguards.
 
 ## API
 
@@ -66,6 +73,10 @@ Protected endpoints:
 - `GET /api/newsroom/claims/packets`
 - `GET /api/newsroom/claims/packets/:packetId`
 
+## Dashboard
+
+Global Newsroom gains `EVIDENCE / TRUTH 12.7`, showing packet status, confidence and counts for all seven claim classifications, plus per-claim reason and provenance domains.
+
 ## Environment
 
 ```env
@@ -73,15 +84,16 @@ NEWSROOM_CLAIM_VERIFICATION_ENABLED=true
 NEWSROOM_CLAIM_MIN_SUPPORTING_DOMAINS=2
 NEWSROOM_CLAIM_MIN_TOKEN_COVERAGE=0.22
 NEWSROOM_CLAIM_MIN_CONFIDENCE=62
-NEWSROOM_CLAIM_INSUFFICIENT_RATIO=0.45
+NEWSROOM_CLAIM_UNRESOLVED_RATIO=0.01
 ```
 
 ## Validation
 
-The dedicated regression command is:
+After materialization:
 
 ```powershell
+cd upstream
 npm run test:claim-verification
 ```
 
-The canonical `materialize.ps1` chain applies 12.7 after 12.6 and runs the 12.7 verifier before returning control to the caller.
+The verifier explicitly proves all seven classifications, same-domain repetition resistance, strict packet gating, deterministic persistence, actor-metadata neutrality, protected APIs, and downstream Research & Provenance preservation.
