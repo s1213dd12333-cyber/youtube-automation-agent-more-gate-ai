@@ -17,7 +17,6 @@
         manifest TEXT NOT NULL DEFAULT '{}',
         created_by TEXT,
         created_at TEXT NOT NULL,
-        UNIQUE(series_id, episode_number, gate_version, context_fingerprint, candidate_fingerprint),
         FOREIGN KEY (series_id) REFERENCES serialized_series_bibles(id) ON DELETE CASCADE
       )`,
       `CREATE INDEX IF NOT EXISTS idx_serialized_narrative_continuity_episode ON serialized_narrative_continuity_reports(series_id, episode_number, created_at DESC)`,
