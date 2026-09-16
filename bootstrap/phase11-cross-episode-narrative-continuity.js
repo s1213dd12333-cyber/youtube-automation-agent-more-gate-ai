@@ -25,7 +25,32 @@ function insertBefore(text, anchor, block, label) {
 }
 
 function copyService() {
-  write('utils/cross-episode-narrative-continuity-gate-v12.js', template('cross-episode-narrative-continuity-gate-v12.js'));
+  let service = template('cross-episode-narrative-continuity-gate-v12.js');
+  service = replaceOnce(
+    service,
+    "function statementsContradict(a, b) {\n",
+    "function coverageSimilarity(a, b) {\n  const left = new Set(contentTokens(a));\n  const right = new Set(contentTokens(b));\n  if (!left.size || !right.size) return 0;\n  let overlap = 0;\n  for (const token of left) if (right.has(token)) overlap += 1;\n  return overlap / Math.min(left.size, right.size);\n}\n\nfunction statementsContradict(a, b) {\n",
+    'containment-oriented semantic coverage helper'
+  );
+  service = replaceOnce(
+    service,
+    "      && similarity([event.summary, ...(event.consequences || [])].join(' '), fact) >= 0.45);",
+    "      && coverageSimilarity([event.summary, ...(event.consequences || [])].join(' '), fact) >= 0.75);",
+    'target-episode knowledge evidence uses fact coverage'
+  );
+  service = replaceOnce(
+    service,
+    "        const missingPayoffs = (thread.requiredPayoffs || []).filter(payoff => similarity(payoff, corpus) < 0.2);",
+    "        const missingPayoffs = (thread.requiredPayoffs || []).filter(payoff => coverageSimilarity(payoff, corpus) < 0.66);",
+    'required payoff uses obligation coverage'
+  );
+  service = replaceOnce(
+    service,
+    "    const reportId = `narrative_continuity_${hash(`${seriesId}:${targetEpisode}:${context.fingerprint}:${fingerprint}:${VERSION}`).slice(0, 24)}`;",
+    "    const reviewFingerprint = hash(JSON.stringify(stable(manifest))).slice(0, 24);\n    const reportId = `narrative_continuity_${hash(`${seriesId}:${targetEpisode}:${context.fingerprint}:${fingerprint}:${reviewFingerprint}:${VERSION}`).slice(0, 24)}`;",
+    'immutable review identity includes manifest fingerprint'
+  );
+  write('utils/cross-episode-narrative-continuity-gate-v12.js', service);
 }
 
 function patchDatabase() {
