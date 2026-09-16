@@ -1,8 +1,8 @@
-name: Validate Phase 11.10 + 11.11 + 11.12.1
+name: Validate Phase 11.10 + 11.11 + 11.12.1 + 11.12.2
 
 on:
   push:
-    branches: [main, phase-11.12.1-series-bible]
+    branches: [main, phase-11.12.2-canonical-timeline]
     paths:
       - '.github/workflows/validate-phase-11-10.yml'
       - 'bootstrap/**'
@@ -66,3 +66,8 @@ jobs:
         shell: pwsh
         working-directory: upstream
         run: npm run test:series-bible
+
+      - name: Run Phase 11.12.2 Canonical Timeline suite
+        shell: pwsh
+        working-directory: upstream
+        run: npm run test:canonical-timeline
