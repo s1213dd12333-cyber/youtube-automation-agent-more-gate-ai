@@ -67,6 +67,9 @@ function normalizeBible(input = {}, base = {}) {
   const namespace = clean(merged.namespace || 'default', 200) || 'default';
   const title = clean(merged.title || base.title || '', 240);
   const seriesKey = clean(merged.seriesKey || base.seriesKey || slug(title), 220) || slug(title);
+  const plannedEndingSource = Object.prototype.hasOwnProperty.call(input, 'plannedEnding')
+    ? input.plannedEnding
+    : (Object.prototype.hasOwnProperty.call(base, 'plannedEnding') ? base.plannedEnding : null);
   return {
     id: clean(merged.id || base.id || '', 240) || null,
     namespace,
@@ -79,7 +82,7 @@ function normalizeBible(input = {}, base = {}) {
     immutableCanon: uniqueStrings(merged.immutableCanon ?? base.immutableCanon ?? [], 240, 1800),
     narrativeRules: uniqueStrings(merged.narrativeRules ?? base.narrativeRules ?? [], 120, 1400),
     centralConflicts: uniqueStrings(merged.centralConflicts ?? base.centralConflicts ?? [], 120, 1800),
-    plannedEnding: normalizePlannedEnding(merged.plannedEnding ?? base.plannedEnding ?? null),
+    plannedEnding: normalizePlannedEnding(plannedEndingSource),
     currentEpisode: Math.max(0, Math.floor(Number(merged.currentEpisode ?? base.currentEpisode ?? 0) || 0)),
     canonVersion: Math.max(1, Math.floor(Number(merged.canonVersion ?? base.canonVersion ?? 1) || 1)),
     revisionNumber: Math.max(1, Math.floor(Number(merged.revisionNumber ?? base.revisionNumber ?? 1) || 1)),
