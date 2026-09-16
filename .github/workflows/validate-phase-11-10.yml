@@ -2,7 +2,7 @@ name: Validate Phase 11.10 + 11.11 + 11.12.1
 
 on:
   push:
-    branches: [main]
+    branches: [main, phase-11.12.1-series-bible]
     paths:
       - '.github/workflows/validate-phase-11-10.yml'
       - 'bootstrap/**'
