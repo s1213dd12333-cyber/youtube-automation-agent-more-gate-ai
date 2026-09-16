@@ -1,7 +1,14 @@
-name: Validate Phase 11.10 + 11.11 Full
+name: Validate Phase 11.10 + 11.11 + 11.12.1
 
 on:
   push:
+    branches: [main, phase-11.12.1-series-bible]
+    paths:
+      - '.github/workflows/validate-phase-11-10.yml'
+      - 'bootstrap/**'
+      - 'materialize.ps1'
+      - '.gitmodules'
+  pull_request:
     branches: [main]
     paths:
       - '.github/workflows/validate-phase-11-10.yml'
@@ -54,3 +61,8 @@ jobs:
         shell: pwsh
         working-directory: upstream
         run: npm run test:persistent-character:full
+
+      - name: Run Phase 11.12.1 Series Bible suite
+        shell: pwsh
+        working-directory: upstream
+        run: npm run test:series-bible
