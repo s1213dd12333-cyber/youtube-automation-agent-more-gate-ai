@@ -1,0 +1,340 @@
+  async ensureSerializedTimelineState(seriesId) {
+    const now = new Date().toISOString();
+    await this.executeQuery(
+      `INSERT OR IGNORE INTO serialized_timeline_states (
+        series_id, revision_number, last_chronology_index, created_at, updated_at
+      ) VALUES (?, 0, 0, ?, ?)`,
+      [seriesId, now, now]
+    );
+    return this.getSerializedTimelineState(seriesId);
+  }
+
+  async getSerializedTimelineState(seriesId) {
+    const row = await this.getRow('SELECT * FROM serialized_timeline_states WHERE series_id = ? LIMIT 1', [seriesId]);
+    return row ? {
+      seriesId: row.series_id,
+      revisionNumber: Number(row.revision_number || 0),
+      lastChronologyIndex: Number(row.last_chronology_index || 0),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    } : { seriesId, revisionNumber: 0, lastChronologyIndex: 0, createdAt: null, updatedAt: null };
+  }
+
+  async getSerializedTimelineEvent(eventId) {
+    const row = await this.getRow('SELECT * FROM serialized_timeline_events WHERE id = ? LIMIT 1', [eventId]);
+    return this.parseSerializedTimelineEvent(row);
+  }
+
+  async getSerializedTimelineEventByKey(seriesId, eventKey) {
+    const row = await this.getRow(
+      'SELECT * FROM serialized_timeline_events WHERE series_id = ? AND event_key = ? LIMIT 1',
+      [seriesId, eventKey]
+    );
+    return this.parseSerializedTimelineEvent(row);
+  }
+
+  async listSerializedTimelineEvents(seriesId, limit = 2000) {
+    const rows = await this.getAllRows(
+      `SELECT * FROM serialized_timeline_events
+       WHERE series_id = ?
+       ORDER BY chronology_index ASC, created_at ASC, rowid ASC LIMIT ?`,
+      [seriesId, Math.max(1, Math.min(5000, Number(limit || 2000)))]
+    );
+    return rows.map(row => this.parseSerializedTimelineEvent(row));
+  }
+
+  async commitSerializedTimelineEventsAtomic(input = {}) {
+    const events = Array.isArray(input.events) ? input.events : [];
+    if (!input.seriesId) throw new Error('timeline_series_id_required');
+    if (!events.length) throw new Error('timeline_events_required');
+
+    await this.executeQuery('BEGIN IMMEDIATE');
+    try {
+      const series = await this.getRow('SELECT id FROM serialized_series_bibles WHERE id = ? LIMIT 1', [input.seriesId]);
+      if (!series) throw new Error('timeline_series_not_found');
+
+      const now = new Date().toISOString();
+      await this.executeQuery(
+        `INSERT OR IGNORE INTO serialized_timeline_states (
+          series_id, revision_number, last_chronology_index, created_at, updated_at
+        ) VALUES (?, 0, 0, ?, ?)`,
+        [input.seriesId, now, now]
+      );
+      const state = await this.getRow('SELECT * FROM serialized_timeline_states WHERE series_id = ? LIMIT 1', [input.seriesId]);
+      const currentRevision = Number(state?.revision_number || 0);
+      const expectedRevision = input.expectedTimelineRevision === undefined || input.expectedTimelineRevision === null
+        ? currentRevision
+        : Number(input.expectedTimelineRevision);
+      if (expectedRevision !== currentRevision) throw new Error('timeline_revision_conflict');
+
+      const nextTimelineRevision = currentRevision + 1;
+      const commitId = input.commitId || this.generateId('serialized_timeline_commit');
+      const actor = input.actor || null;
+      const reason = input.reason || '';
+      let maxChronologyIndex = Number(state?.last_chronology_index || 0);
+      const eventIds = [];
+
+      for (const event of events) {
+        const eventId = event.id || this.generateId('serialized_timeline_event');
+        eventIds.push(eventId);
+        maxChronologyIndex = Math.max(maxChronologyIndex, Number(event.chronologyIndex || 0));
+        await this.executeQuery(
+          `INSERT INTO serialized_timeline_events (
+            id, series_id, event_key, chronology_index, episode_number, scene_id, scene_order,
+            story_time_label, event_type, summary, participants, location_refs, cause_event_ids,
+            consequences, must_follow_event_ids, must_precede_event_ids, truth_status,
+            revision_number, status, created_by, commit_id, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
+          [
+            eventId, input.seriesId, event.eventKey, Number(event.chronologyIndex),
+            Math.max(0, Number(event.episodeNumber || 0)), event.sceneId || null,
+            event.sceneOrder === null || event.sceneOrder === undefined ? null : Number(event.sceneOrder),
+            event.storyTimeLabel || null, event.eventType || 'story_event', event.summary,
+            JSON.stringify(event.participants || []), JSON.stringify(event.locationRefs || []),
+            JSON.stringify(event.causeEventIds || []), JSON.stringify(event.consequences || []),
+            JSON.stringify(event.mustFollowEventIds || []), JSON.stringify(event.mustPrecedeEventIds || []),
+            event.truthStatus || 'confirmed', event.status || 'active', event.createdBy || actor,
+            commitId, event.createdAt || now, now
+          ]
+        );
+        const snapshot = { ...event, id: eventId, seriesId: input.seriesId, revisionNumber: 1, commitId };
+        await this.executeQuery(
+          `INSERT INTO serialized_timeline_event_revisions (
+            id, event_id, series_id, event_revision_number, timeline_revision_number,
+            snapshot, change_kind, change_reason, actor, created_at
+          ) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?)`,
+          [
+            this.generateId('serialized_timeline_event_revision'), eventId, input.seriesId,
+            nextTimelineRevision, JSON.stringify(snapshot), input.changeKind || 'create', reason,
+            actor, now
+          ]
+        );
+      }
+
+      const commitEpisode = input.episodeNumber === null || input.episodeNumber === undefined
+        ? null
+        : Math.max(0, Number(input.episodeNumber || 0));
+      await this.executeQuery(
+        `INSERT INTO serialized_timeline_commits (
+          id, series_id, timeline_revision_number, commit_kind, episode_number,
+          event_ids, reason, actor, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          commitId, input.seriesId, nextTimelineRevision, input.commitKind || 'append',
+          commitEpisode, JSON.stringify(eventIds), reason, actor, now
+        ]
+      );
+      await this.executeQuery(
+        `UPDATE serialized_timeline_states
+         SET revision_number = ?, last_chronology_index = ?, updated_at = ?
+         WHERE series_id = ? AND revision_number = ?`,
+        [nextTimelineRevision, maxChronologyIndex, now, input.seriesId, currentRevision]
+      );
+      const confirmed = await this.getRow('SELECT revision_number FROM serialized_timeline_states WHERE series_id = ? LIMIT 1', [input.seriesId]);
+      if (Number(confirmed?.revision_number || -1) !== nextTimelineRevision) throw new Error('timeline_revision_conflict');
+
+      await this.executeQuery('COMMIT');
+      const savedEvents = [];
+      for (const eventId of eventIds) savedEvents.push(await this.getSerializedTimelineEvent(eventId));
+      return {
+        commit: await this.getSerializedTimelineCommit(commitId),
+        state: await this.getSerializedTimelineState(input.seriesId),
+        events: savedEvents
+      };
+    } catch (error) {
+      await this.executeQuery('ROLLBACK');
+      throw error;
+    }
+  }
+
+  async updateSerializedTimelineEventAtomic(input = {}) {
+    if (!input.seriesId || !input.event?.id) throw new Error('timeline_event_identity_required');
+    await this.executeQuery('BEGIN IMMEDIATE');
+    try {
+      const currentRow = await this.getRow(
+        'SELECT * FROM serialized_timeline_events WHERE id = ? AND series_id = ? LIMIT 1',
+        [input.event.id, input.seriesId]
+      );
+      if (!currentRow) throw new Error('timeline_event_not_found');
+      const currentEventRevision = Number(currentRow.revision_number || 1);
+      const expectedEventRevision = Number(input.expectedEventRevision || currentEventRevision);
+      if (expectedEventRevision !== currentEventRevision) throw new Error('timeline_event_revision_conflict');
+
+      const now = new Date().toISOString();
+      await this.executeQuery(
+        `INSERT OR IGNORE INTO serialized_timeline_states (
+          series_id, revision_number, last_chronology_index, created_at, updated_at
+        ) VALUES (?, 0, 0, ?, ?)`,
+        [input.seriesId, now, now]
+      );
+      const state = await this.getRow('SELECT * FROM serialized_timeline_states WHERE series_id = ? LIMIT 1', [input.seriesId]);
+      const currentTimelineRevision = Number(state?.revision_number || 0);
+      const expectedTimelineRevision = input.expectedTimelineRevision === undefined || input.expectedTimelineRevision === null
+        ? currentTimelineRevision
+        : Number(input.expectedTimelineRevision);
+      if (expectedTimelineRevision !== currentTimelineRevision) throw new Error('timeline_revision_conflict');
+
+      const event = input.event;
+      const nextEventRevision = currentEventRevision + 1;
+      const nextTimelineRevision = currentTimelineRevision + 1;
+      const commitId = input.commitId || this.generateId('serialized_timeline_commit');
+      await this.executeQuery(
+        `UPDATE serialized_timeline_events SET
+          event_key = ?, chronology_index = ?, episode_number = ?, scene_id = ?, scene_order = ?,
+          story_time_label = ?, event_type = ?, summary = ?, participants = ?, location_refs = ?,
+          cause_event_ids = ?, consequences = ?, must_follow_event_ids = ?, must_precede_event_ids = ?,
+          truth_status = ?, revision_number = ?, status = ?, commit_id = ?, updated_at = ?
+         WHERE id = ? AND series_id = ? AND revision_number = ?`,
+        [
+          event.eventKey, Number(event.chronologyIndex), Math.max(0, Number(event.episodeNumber || 0)),
+          event.sceneId || null, event.sceneOrder === null || event.sceneOrder === undefined ? null : Number(event.sceneOrder),
+          event.storyTimeLabel || null, event.eventType || 'story_event', event.summary,
+          JSON.stringify(event.participants || []), JSON.stringify(event.locationRefs || []),
+          JSON.stringify(event.causeEventIds || []), JSON.stringify(event.consequences || []),
+          JSON.stringify(event.mustFollowEventIds || []), JSON.stringify(event.mustPrecedeEventIds || []),
+          event.truthStatus || 'confirmed', nextEventRevision, event.status || 'active', commitId, now,
+          event.id, input.seriesId, currentEventRevision
+        ]
+      );
+      const confirmedEvent = await this.getRow('SELECT revision_number FROM serialized_timeline_events WHERE id = ? LIMIT 1', [event.id]);
+      if (Number(confirmedEvent?.revision_number || -1) !== nextEventRevision) throw new Error('timeline_event_revision_conflict');
+
+      const snapshot = { ...event, seriesId: input.seriesId, revisionNumber: nextEventRevision, commitId };
+      await this.executeQuery(
+        `INSERT INTO serialized_timeline_event_revisions (
+          id, event_id, series_id, event_revision_number, timeline_revision_number,
+          snapshot, change_kind, change_reason, actor, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          this.generateId('serialized_timeline_event_revision'), event.id, input.seriesId,
+          nextEventRevision, nextTimelineRevision, JSON.stringify(snapshot), input.changeKind || 'retcon',
+          input.reason || '', input.actor || null, now
+        ]
+      );
+      await this.executeQuery(
+        `INSERT INTO serialized_timeline_commits (
+          id, series_id, timeline_revision_number, commit_kind, episode_number,
+          event_ids, reason, actor, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          commitId, input.seriesId, nextTimelineRevision, input.commitKind || 'retcon',
+          Math.max(0, Number(event.episodeNumber || 0)), JSON.stringify([event.id]),
+          input.reason || '', input.actor || null, now
+        ]
+      );
+      const maxRow = await this.getRow(
+        `SELECT MAX(chronology_index) AS max_chronology_index
+         FROM serialized_timeline_events WHERE series_id = ? AND status = 'active'`,
+        [input.seriesId]
+      );
+      const lastChronologyIndex = Number(maxRow?.max_chronology_index || 0);
+      await this.executeQuery(
+        `UPDATE serialized_timeline_states
+         SET revision_number = ?, last_chronology_index = ?, updated_at = ?
+         WHERE series_id = ? AND revision_number = ?`,
+        [nextTimelineRevision, lastChronologyIndex, now, input.seriesId, currentTimelineRevision]
+      );
+      const confirmedState = await this.getRow('SELECT revision_number FROM serialized_timeline_states WHERE series_id = ? LIMIT 1', [input.seriesId]);
+      if (Number(confirmedState?.revision_number || -1) !== nextTimelineRevision) throw new Error('timeline_revision_conflict');
+
+      await this.executeQuery('COMMIT');
+      return {
+        commit: await this.getSerializedTimelineCommit(commitId),
+        state: await this.getSerializedTimelineState(input.seriesId),
+        event: await this.getSerializedTimelineEvent(event.id)
+      };
+    } catch (error) {
+      await this.executeQuery('ROLLBACK');
+      throw error;
+    }
+  }
+
+  async listSerializedTimelineEventRevisions(eventId, limit = 100) {
+    const rows = await this.getAllRows(
+      `SELECT * FROM serialized_timeline_event_revisions
+       WHERE event_id = ? ORDER BY event_revision_number DESC LIMIT ?`,
+      [eventId, Math.max(1, Math.min(1000, Number(limit || 100)))]
+    );
+    return rows.map(row => this.parseSerializedTimelineEventRevision(row));
+  }
+
+  async getSerializedTimelineCommit(commitId) {
+    const row = await this.getRow('SELECT * FROM serialized_timeline_commits WHERE id = ? LIMIT 1', [commitId]);
+    return this.parseSerializedTimelineCommit(row);
+  }
+
+  async listSerializedTimelineCommits(seriesId, limit = 250) {
+    const rows = await this.getAllRows(
+      `SELECT * FROM serialized_timeline_commits
+       WHERE series_id = ? ORDER BY timeline_revision_number DESC LIMIT ?`,
+      [seriesId, Math.max(1, Math.min(1000, Number(limit || 250)))]
+    );
+    return rows.map(row => this.parseSerializedTimelineCommit(row));
+  }
+
+  parseSerializedTimelineEvent(row) {
+    if (!row) return null;
+    const parse = (value, fallback) => {
+      try { return JSON.parse(value); } catch (_error) { return fallback; }
+    };
+    return {
+      id: row.id,
+      seriesId: row.series_id,
+      eventKey: row.event_key,
+      chronologyIndex: Number(row.chronology_index || 0),
+      episodeNumber: Math.max(0, Number(row.episode_number || 0)),
+      sceneId: row.scene_id || null,
+      sceneOrder: row.scene_order === null || row.scene_order === undefined ? null : Number(row.scene_order),
+      storyTimeLabel: row.story_time_label || null,
+      eventType: row.event_type || 'story_event',
+      summary: row.summary || '',
+      participants: parse(row.participants || '[]', []),
+      locationRefs: parse(row.location_refs || '[]', []),
+      causeEventIds: parse(row.cause_event_ids || '[]', []),
+      consequences: parse(row.consequences || '[]', []),
+      mustFollowEventIds: parse(row.must_follow_event_ids || '[]', []),
+      mustPrecedeEventIds: parse(row.must_precede_event_ids || '[]', []),
+      truthStatus: row.truth_status || 'confirmed',
+      revisionNumber: Math.max(1, Number(row.revision_number || 1)),
+      status: row.status || 'active',
+      createdBy: row.created_by || null,
+      commitId: row.commit_id || null,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  }
+
+  parseSerializedTimelineEventRevision(row) {
+    if (!row) return null;
+    let snapshot = {};
+    try { snapshot = JSON.parse(row.snapshot || '{}'); } catch (_error) {}
+    return {
+      id: row.id,
+      eventId: row.event_id,
+      seriesId: row.series_id,
+      eventRevisionNumber: Math.max(1, Number(row.event_revision_number || 1)),
+      timelineRevisionNumber: Math.max(1, Number(row.timeline_revision_number || 1)),
+      snapshot,
+      changeKind: row.change_kind || 'update',
+      changeReason: row.change_reason || '',
+      actor: row.actor || null,
+      createdAt: row.created_at
+    };
+  }
+
+  parseSerializedTimelineCommit(row) {
+    if (!row) return null;
+    let eventIds = [];
+    try { eventIds = JSON.parse(row.event_ids || '[]'); } catch (_error) {}
+    return {
+      id: row.id,
+      seriesId: row.series_id,
+      timelineRevisionNumber: Math.max(1, Number(row.timeline_revision_number || 1)),
+      commitKind: row.commit_kind || 'append',
+      episodeNumber: row.episode_number === null || row.episode_number === undefined ? null : Math.max(0, Number(row.episode_number || 0)),
+      eventIds,
+      reason: row.reason || '',
+      actor: row.actor || null,
+      createdAt: row.created_at
+    };
+  }
