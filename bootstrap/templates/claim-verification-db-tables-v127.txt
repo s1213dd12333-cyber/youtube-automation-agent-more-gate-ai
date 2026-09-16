@@ -1,4 +1,4 @@
-      // Phase 12.7 — Claim Verification & Evidence Synthesis Engine
+      // Phase 12.7 — Evidence / Truth Engine
       `CREATE TABLE IF NOT EXISTS newsroom_claim_verification_packets (
         id TEXT PRIMARY KEY,
         research_run_id TEXT NOT NULL,
@@ -8,9 +8,9 @@
         engine_version TEXT NOT NULL,
         status TEXT NOT NULL CHECK(status IN ('VERIFIED','NEEDS_RESEARCH','BLOCK')),
         claim_count INTEGER NOT NULL DEFAULT 0,
-        supported_count INTEGER NOT NULL DEFAULT 0,
-        contested_count INTEGER NOT NULL DEFAULT 0,
-        insufficient_count INTEGER NOT NULL DEFAULT 0,
+        classification_counts_json TEXT NOT NULL DEFAULT '{}',
+        unresolved_count INTEGER NOT NULL DEFAULT 0,
+        blocking_count INTEGER NOT NULL DEFAULT 0,
         confidence_score INTEGER NOT NULL DEFAULT 0,
         packet_fingerprint TEXT NOT NULL UNIQUE,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -23,9 +23,11 @@
         ordinal INTEGER NOT NULL,
         question TEXT NOT NULL,
         claim_text TEXT NOT NULL,
-        status TEXT NOT NULL CHECK(status IN ('SUPPORTED','CONTESTED','INSUFFICIENT')),
+        classification TEXT NOT NULL CHECK(classification IN ('confirmed','reported','claimed','disputed','unverified','false','unknown')),
         confidence_score INTEGER NOT NULL DEFAULT 0,
+        reason TEXT NOT NULL,
         support_domains_json TEXT NOT NULL DEFAULT '[]',
+        contradiction_domains_json TEXT NOT NULL DEFAULT '[]',
         supporting_sources_json TEXT NOT NULL DEFAULT '[]',
         contradicting_sources_json TEXT NOT NULL DEFAULT '[]',
         evidence_excerpt_json TEXT NOT NULL DEFAULT '[]',
