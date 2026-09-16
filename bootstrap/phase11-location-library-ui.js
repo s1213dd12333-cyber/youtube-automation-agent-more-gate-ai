@@ -139,3 +139,9 @@ syntax(['phase11-serialized-series-bible.js', 'verify-phase11-serialized-series-
 requireFiles(['templates/serialized-series-bible-db-tables-v12.txt', 'templates/serialized-series-bible-db-methods-v12.txt'], 'Phase 11.12.1');
 require('./phase11-serialized-series-bible.js');
 run('verify-phase11-serialized-series-bible.js');
+
+// 11.12.2 — atomic, append-only Canonical Timeline layered on the validated Series Bible.
+syntax(['phase11-canonical-timeline.js', 'verify-phase11-canonical-timeline.js', 'templates/canonical-timeline-v12.js']);
+requireFiles(['templates/canonical-timeline-db-tables-v12.txt', 'templates/canonical-timeline-db-methods-v12.txt'], 'Phase 11.12.2');
+require('./phase11-canonical-timeline.js');
+run('verify-phase11-canonical-timeline.js');
