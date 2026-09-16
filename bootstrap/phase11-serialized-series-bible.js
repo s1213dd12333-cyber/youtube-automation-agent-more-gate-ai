@@ -117,6 +117,12 @@ function patchScriptWriter() {
   );
   s = replaceOnce(
     s,
+    "    if (!this.aiTextService.isAvailable()) {\n      this.logger.info('Using template script generation because no AI text provider is configured');\n      return null;\n    }\n",
+    "    if (!this.aiTextService.isAvailable()) {\n      const serializedUnavailableContext = await this.serializedSeriesBible.getScriptContext(strategy);\n      if (serializedUnavailableContext.active) {\n        throw new Error('Serialized Series Bible is active but no AI text provider is available; refusing canon-unaware template fallback.');\n      }\n      this.logger.info('Using template script generation because no AI text provider is configured');\n      return null;\n    }\n",
+    'fail closed when serialized series has no AI provider'
+  );
+  s = replaceOnce(
+    s,
     "    const evidencePolicy = fictionEvidencePrompt(strategy);\n    const prompt = `You are writing a YouTube script plan.\n",
     "    const evidencePolicy = fictionEvidencePrompt(strategy);\n    const serializedSeriesContext = await this.serializedSeriesBible.getScriptContext(strategy);\n    const serializedSeriesPrompt = serializedSeriesContext.promptContext || '';\n    const prompt = `You are writing a YouTube script plan.\n",
     'resolve Series Bible before AI script prompt'
@@ -126,6 +132,12 @@ function patchScriptWriter() {
     '${evidencePolicy}\\nEvidence packet:',
     '${evidencePolicy}\\n${serializedSeriesPrompt}\\nEvidence packet:',
     'inject Series Bible context into AI script prompt'
+  );
+  s = replaceOnce(
+    s,
+    "      this.logger.warn(`AI script generation failed; using template fallback: ${error.message}`);\n      return null;\n",
+    "      if (serializedSeriesContext.active) {\n        this.logger.error(`Serialized script generation failed; refusing canon-unaware template fallback: ${error.message}`);\n        throw error;\n      }\n      this.logger.warn(`AI script generation failed; using template fallback: ${error.message}`);\n      return null;\n",
+    'fail closed when serialized AI generation fails'
   );
   write('agents/script-writer-agent.js', s);
 }
