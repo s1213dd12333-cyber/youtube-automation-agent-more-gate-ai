@@ -148,4 +148,5 @@ patchDatabase();
 patchIndexApi();
 patchScriptWriter();
 patchPackageAndEnv();
+require('./fix-phase11-relationship-structural-validation.js');
 console.log('FASE 11.12.5 ativa: Relationship State Graph direcionado, versionado, pos-Episode Memory e read-only no roteirista.');
