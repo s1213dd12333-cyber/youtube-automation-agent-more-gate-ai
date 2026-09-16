@@ -148,4 +148,5 @@ patchDatabase();
 patchIndexApi();
 patchScriptWriter();
 patchPackageAndEnv();
+require('./fix-phase11-character-arc-visual-binding.js');
 console.log('FASE 11.12.4 ativa: Character Arc Memory versionada, pos-Episode Memory, knowledge-safe e read-only no roteirista.');
