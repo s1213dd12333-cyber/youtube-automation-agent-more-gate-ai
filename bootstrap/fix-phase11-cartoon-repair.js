@@ -16,3 +16,8 @@ if (!source.includes(to)) {
 
 fs.writeFileSync(target, source, 'utf8');
 console.log('Phase 11.1 cartoon repair routing hardened: manual cartoon regeneration cannot fall back to documentary source search.');
+
+// Runtime hardening: duplicate protection is automatic for autonomous sources,
+// while operator-directed/manual reruns remain possible without crashing the app.
+require('./fix-topic-duplicate-handling.js');
+require('./verify-topic-duplicate-handling.js');
