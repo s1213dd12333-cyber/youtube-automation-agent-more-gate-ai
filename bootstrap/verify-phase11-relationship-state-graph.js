@@ -219,8 +219,11 @@ async function main() {
   const missingTarget = await service.commitEpisodeRelationships('series_star', 1, [{ sourceCharacterKey: 'mara', targetCharacterKey: 'ghost' }], { actor: 'showrunner', reason: 'Attempt missing character relation.' });
   check(missingTarget.status === 'conflict' && missingTarget.reason === 'relationship_target_character_arc_not_found', 'relationship endpoint must resolve exact same-series Character Arc');
 
-  const badTimeline = await service.commitEpisodeRelationships('series_star', 1, [{ sourceCharacterKey: 'mara', targetCharacterKey: 'ivo', relevantTimelineEventIds: ['evt_future'] }], { actor: 'showrunner', reason: 'Attempt invalid relationship event.' });
+  const badTimeline = await service.commitEpisodeRelationships('series_star', 1, [{ sourceCharacterKey: 'mara', targetCharacterKey: 'ivo', relevantTimelineEventIds: ['evt_future'] }], { actor: 'showrunner', reason: 'Attempt invalid relationship event.', allowBackfill: true });
   check(badTimeline.status === 'conflict' && badTimeline.reason === 'relationship_timeline_reference_outside_episode_memory', 'relationship timeline refs must be subset of Episode Memory');
+
+  const implicitBackfill = await service.commitEpisodeRelationships('series_star', 1, [{ sourceCharacterKey: 'mara', targetCharacterKey: 'ivo', relevantTimelineEventIds: ['evt_signal'] }], { actor: 'showrunner', reason: 'Attempt historical relation without approval.' });
+  check(implicitBackfill.status === 'conflict' && implicitBackfill.reason === 'relationship_backfill_requires_explicit_approval', 'historical relationship backfill must require explicit approval');
 
   const firstForward = await service.commitEpisodeRelationships('series_star', 1, [{
     sourceCharacterKey: 'mara', targetCharacterKey: 'ivo', relationshipLabel: 'trusted partner',
@@ -231,7 +234,7 @@ async function main() {
     promisesToTarget: ['Share the next verified signal trace'], grievancesAgainstTarget: [], expectationsOfTarget: ['Tell her if the council contacts him'],
     boundariesWithTarget: ['Do not expose the forbidden frequency publicly'], sharedHistory: ['Survived the harbor blackout together'],
     currentTensions: ['Mara is withholding one detail'], relevantTimelineEventIds: ['evt_signal'], changeSummary: 'Mara deepens trust in Ivo.'
-  }], { actor: 'showrunner', reason: 'Episode one Mara-to-Ivo relationship approved.' });
+  }], { actor: 'showrunner', reason: 'Episode one Mara-to-Ivo relationship approved.', allowBackfill: true });
   check(firstForward.status === 'committed' && firstForward.relationships[0].revisionNumber === 1, 'initial directed relationship commit failed');
 
   const firstReverse = await service.commitEpisodeRelationships('series_star', 1, [{
@@ -240,7 +243,7 @@ async function main() {
     loyaltyScore: 35, fearScore: 0, attractionScore: 5, dependenceScore: 20,
     beliefsAboutTarget: ['Mara is hiding something important'], grievancesAgainstTarget: ['She excluded him from the archive search'],
     relevantTimelineEventIds: ['evt_lock'], changeSummary: 'Ivo remains cautious toward Mara.'
-  }], { actor: 'showrunner', reason: 'Episode one Ivo-to-Mara relationship approved.' });
+  }], { actor: 'showrunner', reason: 'Episode one Ivo-to-Mara relationship approved.', allowBackfill: true });
   check(firstReverse.status === 'committed', 'reverse directed relationship commit failed');
   const maraToIvo = await db.getSerializedRelationshipState('series_star', 'mara', 'ivo');
   const ivoToMara = await db.getSerializedRelationshipState('series_star', 'ivo', 'mara');
