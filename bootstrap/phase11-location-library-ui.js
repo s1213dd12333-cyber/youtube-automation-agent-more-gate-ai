@@ -151,3 +151,9 @@ syntax(['phase11-episode-memory.js', 'verify-phase11-episode-memory.js', 'templa
 requireFiles(['templates/episode-memory-db-tables-v12.txt', 'templates/episode-memory-db-methods-v12.txt'], 'Phase 11.12.3');
 require('./phase11-episode-memory.js');
 run('verify-phase11-episode-memory.js');
+
+// 11.12.4 — per-character narrative arc state committed only after finalized Episode Memory.
+syntax(['phase11-character-arc-memory.js', 'verify-phase11-character-arc-memory.js', 'templates/character-arc-memory-v12.js']);
+requireFiles(['templates/character-arc-memory-db-tables-v12.txt', 'templates/character-arc-memory-db-methods-v12.txt'], 'Phase 11.12.4');
+require('./phase11-character-arc-memory.js');
+run('verify-phase11-character-arc-memory.js');
