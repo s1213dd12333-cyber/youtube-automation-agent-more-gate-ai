@@ -143,3 +143,8 @@ console.log('FASE 11.12.7 ativa: Narrative Context Resolver deterministico, hist
 // Its verifier runs here so the canonical materializer validates the approval gate before returning.
 require('./phase11-cross-episode-narrative-continuity.js');
 require('child_process').execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-cross-episode-narrative-continuity.js')], { stdio: 'inherit' });
+
+// 12.1 starts only after the serialized narrative stack has been fully materialized and verified.
+// Newsroom discovery is independent from narrative canon and cannot bypass downstream evidence/quality/publishing gates.
+require('./phase12-global-news-radar.js');
+require('child_process').execFileSync(process.execPath, [path.join(__dirname, 'verify-phase12-global-news-radar.js')], { stdio: 'inherit' });
