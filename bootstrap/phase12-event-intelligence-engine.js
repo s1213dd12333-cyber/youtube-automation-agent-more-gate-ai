@@ -198,3 +198,8 @@ patchIndex();
 patchDashboard();
 patchPackageAndEnv();
 console.log('FASE 12.2 ativa: Event Intelligence Engine com identidade persistente, normalizacao multilingue, revisoes append-only, evolucao material e relacoes nao-causais.');
+
+// 12.3 consumes the persistent event layer and decides which verified candidate deserves the scarce editorial slot.
+// It never bypasses downstream Research/Provenance, quality, approval or publishing gates.
+require('./phase12-autonomous-editorial-decision-brain.js');
+require('child_process').execFileSync(process.execPath, [path.join(__dirname, 'verify-phase12-autonomous-editorial-decision-brain.js')], { stdio: 'inherit' });
