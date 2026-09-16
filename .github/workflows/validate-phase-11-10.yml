@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/validate-phase-11-10.yml'
       - 'bootstrap/**'
+      - 'docs/phase-12.4-global-importance-engine.md'
       - 'materialize.ps1'
       - '.gitmodules'
   pull_request:
@@ -13,6 +14,7 @@ on:
     paths:
       - '.github/workflows/validate-phase-11-10.yml'
       - 'bootstrap/**'
+      - 'docs/phase-12.4-global-importance-engine.md'
       - 'materialize.ps1'
       - '.gitmodules'
   workflow_dispatch:
