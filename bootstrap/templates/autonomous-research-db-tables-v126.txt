@@ -48,7 +48,6 @@
         coverage_ratio REAL NOT NULL DEFAULT 0,
         gaps_json TEXT NOT NULL DEFAULT '[]',
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(run_id, round_number),
-        FOREIGN KEY (run_id) REFERENCES newsroom_autonomous_research_runs(id)
+        UNIQUE(run_id, round_number)
       )`,
       `CREATE INDEX IF NOT EXISTS idx_newsroom_research_round_run ON newsroom_autonomous_research_rounds(run_id, round_number)`,
