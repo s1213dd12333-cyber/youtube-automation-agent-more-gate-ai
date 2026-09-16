@@ -80,4 +80,6 @@ jobs:
       - name: Run Phase 11.12.4 Character Arc Memory suite
         shell: pwsh
         working-directory: upstream
-        run: npm run test:character-arc-memory
+        run: |
+          npm run test:character-arc-memory
+          node ../bootstrap/verify-phase11-character-arc-visual-binding-hardening.js
