@@ -145,3 +145,9 @@ syntax(['phase11-canonical-timeline.js', 'verify-phase11-canonical-timeline.js',
 requireFiles(['templates/canonical-timeline-db-tables-v12.txt', 'templates/canonical-timeline-db-methods-v12.txt'], 'Phase 11.12.2');
 require('./phase11-canonical-timeline.js');
 run('verify-phase11-canonical-timeline.js');
+
+// 11.12.3 — post-approval Episode Memory / Ledger with atomic Series Bible advancement.
+syntax(['phase11-episode-memory.js', 'verify-phase11-episode-memory.js', 'templates/episode-memory-v12.js']);
+requireFiles(['templates/episode-memory-db-tables-v12.txt', 'templates/episode-memory-db-methods-v12.txt'], 'Phase 11.12.3');
+require('./phase11-episode-memory.js');
+run('verify-phase11-episode-memory.js');
