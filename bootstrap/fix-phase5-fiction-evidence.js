@@ -40,10 +40,12 @@ function patchScriptWriter() {
     'fiction evidence prompt construction'
   );
 
+  // Phase 6 may prefix the Evidence packet with its own instruction block, so
+  // anchor on the stable label instead of its escaped surrounding whitespace.
   s = replaceOnce(
     s,
-    '${instructionBlock}\\nEvidence packet:',
-    '${evidencePolicy}\\n${instructionBlock}\\nEvidence packet:',
+    'Evidence packet:',
+    '${evidencePolicy}\\nEvidence packet:',
     'inject fiction evidence policy into AI prompt'
   );
 
