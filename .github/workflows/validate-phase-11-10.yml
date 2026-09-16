@@ -1,8 +1,8 @@
-name: Validate Phase 11.10 + 11.11 + 11.12.1-11.12.8 + 12.1 + 12.2
+name: Validate Phase 11.10 + 11.11 + 11.12.1-11.12.8 + 12.1 + 12.2 + 12.3
 
 on:
   push:
-    branches: [main, phase-11.12.8-cross-episode-narrative-continuity, phase-12.1-global-news-radar-autonomous-editor, phase-12.2-event-intelligence-engine]
+    branches: [main, phase-11.12.8-cross-episode-narrative-continuity, phase-12.1-global-news-radar-autonomous-editor, phase-12.2-event-intelligence-engine, phase-12.3-autonomous-editorial-decision-brain]
     paths:
       - '.github/workflows/validate-phase-11-10.yml'
       - 'bootstrap/**'
@@ -49,9 +49,9 @@ jobs:
           npm install
 
       # The canonical materializer runs the serialized narrative phases in order,
-      # then Phase 12.1 discovers/clusters global coverage and Phase 12.2 resolves
-      # persistent event identity/evolution without bypassing downstream evidence gates.
-      - name: Materialize and run all bootstrap regression gates through 12.2
+      # then 12.1 discovers global coverage, 12.2 resolves stable event memory,
+      # and 12.3 competitively allocates the scarce autonomous editorial slot.
+      - name: Materialize and run all bootstrap regression gates through 12.3
         shell: pwsh
         run: ./materialize.ps1
 
@@ -89,3 +89,8 @@ jobs:
         shell: pwsh
         working-directory: upstream
         run: npm run test:event-intelligence
+
+      - name: Run Phase 12.3 Autonomous Editorial Decision Brain suite
+        shell: pwsh
+        working-directory: upstream
+        run: npm run test:autonomous-editorial-brain
