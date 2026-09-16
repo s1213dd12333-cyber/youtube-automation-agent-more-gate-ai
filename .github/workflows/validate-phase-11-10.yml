@@ -1,11 +1,12 @@
-name: Validate Phase 11.10 + 11.11 + 11.12.1-11.12.8 + 12.1 + 12.2 + 12.3
+name: Validate Phase 11.10 + 11.11 + 11.12.1-11.12.8 + 12.1 + 12.2 + 12.3 + 12.4
 
 on:
   push:
-    branches: [main, phase-11.12.8-cross-episode-narrative-continuity, phase-12.1-global-news-radar-autonomous-editor, phase-12.2-event-intelligence-engine, phase-12.3-autonomous-editorial-decision-brain]
+    branches: [main, phase-11.12.8-cross-episode-narrative-continuity, phase-12.1-global-news-radar-autonomous-editor, phase-12.2-event-intelligence-engine, phase-12.3-autonomous-editorial-decision-brain, phase-12.4-global-importance-engine]
     paths:
       - '.github/workflows/validate-phase-11-10.yml'
       - 'bootstrap/**'
+      - 'docs/phase-12.4-global-importance-engine.md'
       - 'materialize.ps1'
       - '.gitmodules'
   pull_request:
@@ -13,6 +14,7 @@ on:
     paths:
       - '.github/workflows/validate-phase-11-10.yml'
       - 'bootstrap/**'
+      - 'docs/phase-12.4-global-importance-engine.md'
       - 'materialize.ps1'
       - '.gitmodules'
   workflow_dispatch:
@@ -50,8 +52,9 @@ jobs:
 
       # The canonical materializer runs the serialized narrative phases in order,
       # then 12.1 discovers global coverage, 12.2 resolves stable event memory,
-      # and 12.3 competitively allocates the scarce autonomous editorial slot.
-      - name: Materialize and run all bootstrap regression gates through 12.3
+      # 12.3 competitively allocates the scarce editorial slot and 12.4 separates
+      # raw repercussion from structural global importance before that competition.
+      - name: Materialize and run all bootstrap regression gates through 12.4
         shell: pwsh
         run: ./materialize.ps1
 
@@ -94,3 +97,8 @@ jobs:
         shell: pwsh
         working-directory: upstream
         run: npm run test:autonomous-editorial-brain
+
+      - name: Run Phase 12.4 Global Importance Engine suite
+        shell: pwsh
+        working-directory: upstream
+        run: npm run test:global-importance
