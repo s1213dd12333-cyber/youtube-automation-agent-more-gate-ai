@@ -169,3 +169,9 @@ syntax(['phase11-plot-thread-registry.js', 'verify-phase11-plot-thread-registry.
 requireFiles(['templates/plot-thread-registry-db-tables-v12.txt', 'templates/plot-thread-registry-db-methods-v12.txt'], 'Phase 11.12.6');
 require('./phase11-plot-thread-registry.js');
 run('verify-phase11-plot-thread-registry.js');
+
+// 11.12.7 — deterministic, read-only Narrative Context Resolver across all serialized memory layers.
+syntax(['phase11-narrative-context-resolver.js', 'verify-phase11-narrative-context-resolver.js']);
+requireFiles(['templates/narrative-context-resolver-v12.js'], 'Phase 11.12.7');
+require('./phase11-narrative-context-resolver.js');
+run('verify-phase11-narrative-context-resolver.js');
