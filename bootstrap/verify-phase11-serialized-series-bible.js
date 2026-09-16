@@ -75,6 +75,8 @@ async function main() {
   check(writerSource.includes("require('../utils/serialized-series-bible-v12')"), 'Script Writer Series Bible import missing');
   check(writerSource.includes('await this.serializedSeriesBible.getScriptContext(strategy)'), 'Script Writer context lookup missing');
   check(writerSource.includes('${serializedSeriesPrompt}'), 'Script Writer prompt injection missing');
+  check(writerSource.includes('no AI text provider is available; refusing canon-unaware template fallback'), 'serialized no-provider fallback must fail closed');
+  check(writerSource.includes('Serialized script generation failed; refusing canon-unaware template fallback'), 'serialized failed-generation fallback must fail closed');
   check(indexSource.includes("this.app.post('/api/series-bibles', protect"), 'protected create Series Bible route missing');
   check(indexSource.includes("this.app.patch('/api/series-bibles/:seriesId', protect"), 'protected update Series Bible route missing');
   check(indexSource.includes("this.app.post('/api/series-bibles/:seriesId/advance', protect"), 'protected advance route missing');
