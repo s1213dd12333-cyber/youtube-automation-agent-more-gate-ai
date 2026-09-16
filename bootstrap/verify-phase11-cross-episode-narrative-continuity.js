@@ -120,7 +120,7 @@ async function main() {
   check(statementsContradict('The station burned before Mara was born.', 'The station did not burn before Mara was born.'), 'deterministic negation contradiction failed');
   check(!statementsContradict('The station burned before Mara was born.', 'Mara visits the burned station.'), 'non-contradictory statement falsely rejected');
   check(similarity('Council record relay code', 'The relay code appears in the council record') >= 0.5, 'continuity text similarity unexpectedly weak');
-  const nm = normalizeManifest({ continuityManifest: { relationshipTransitions: [{ edgeKey: ' Mara -> Ivo ' }], plotThreadActions: [{ threadKey: 'Council Cover-up', action: 'resolve' }] } });
+  const nm = normalizeManifest({ continuityManifest: { relationshipTransitions: [{ edgeKey: ' Mara -> Ivo ' }], plotThreadActions: [{ threadKey: 'Council_Coverup', action: 'resolve' }] } });
   check(nm.relationshipTransitions[0].edgeKey === 'mara->ivo' && nm.plotThreadActions[0].threadKey === 'council_coverup', 'manifest canonical key normalization failed');
 
   const db = new MemoryDb(); seedBase(db); const resolver = new FakeResolver(); const gate = new CrossEpisodeNarrativeContinuityGateV12(db, { resolver, blockThreadPriority: 90, warnThreadPriority: 70 });
@@ -147,12 +147,17 @@ async function main() {
   const terminalResult = await gate.evaluateEpisode('series_star', 3, terminal, { actor: 'showrunner' });
   check(terminalResult.blockers.some(v => v.code === 'continuity_terminal_plot_thread_mutation'), 'terminal plot thread mutation was not blocked');
 
+  db.seedThread({ id: 'thread_diver', seriesId: 'series_star', threadKey: 'missing_diver', title: 'Missing Diver', status: 'open', priority: 96, currentState: 'A rescue diver vanished beneath the south pier.', centralQuestion: 'Where is the missing diver?', openQuestions: ['Where is the missing diver?'], narrativePromises: ['Find the missing diver'], requiredPayoffs: ['Reveal the diver fate'], involvedCharacterKeys: ['ivo'], relationshipEdgeKeys: [], introducedEpisodeNumber: 2, lastAdvancedEpisodeNumber: 2, revisionNumber: 1 });
   const ignored = { episodeNumber: 3, title: 'Side Trip', summary: 'Mara watches the rain far from the archive.', discoveries: [], establishedFacts: [], resolvedQuestions: [], unresolvedQuestions: [], narrativePromises: [], cliffhangers: [], timelineEventIds: ['evt_relay'], continuityManifest: { knowledgeUses: [], characterTransitions: [], relationshipTransitions: [], plotThreadActions: [] } };
   const ignoredResult = await gate.evaluateEpisode('series_star', 3, ignored, { actor: 'showrunner' });
-  check(ignoredResult.blockers.some(v => v.code === 'continuity_high_priority_thread_unaddressed'), 'ignored high-priority thread did not block');
-  const deferred = JSON.parse(JSON.stringify(ignored)); deferred.continuityManifest.plotThreadActions = [{ threadKey: 'council_coverup', action: 'defer', expectedRevision: 3, reason: 'Episode three deliberately postpones the council confrontation.' }];
+  check(ignoredResult.blockers.some(v => v.code === 'continuity_high_priority_thread_unaddressed' && v.details?.threadKey === 'missing_diver'), 'genuinely ignored high-priority thread did not block');
+  const deferred = JSON.parse(JSON.stringify(ignored)); deferred.continuityManifest.plotThreadActions = [
+    { threadKey: 'missing_diver', action: 'defer', expectedRevision: 1, reason: 'Episode three deliberately postpones the missing-diver search.' },
+    { threadKey: 'council_coverup', action: 'defer', expectedRevision: 3, reason: 'Episode three deliberately postpones further council-coverup work.' }
+  ];
   const deferredResult = await gate.evaluateEpisode('series_star', 3, deferred, { actor: 'showrunner' });
   check(!deferredResult.blockers.some(v => v.code === 'continuity_high_priority_thread_unaddressed'), 'explicit thread deferral did not suppress obligation blocker');
+  db.threads = db.threads.filter(v => v.threadKey !== 'missing_diver');
 
   const payoffMissing = goodCandidate(); payoffMissing.summary = 'Mara discovers a code but never confronts the council record.'; payoffMissing.continuityManifest.plotThreadActions[0] = { threadKey: 'council_coverup', action: 'resolve', expectedRevision: 3, supportingEventIds: ['evt_relay'] };
   const payoffResult = await gate.evaluateEpisode('series_star', 3, payoffMissing, { actor: 'showrunner' });
