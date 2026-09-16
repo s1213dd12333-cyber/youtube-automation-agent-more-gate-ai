@@ -93,6 +93,8 @@ async function main() {
   const serviceSource = read('utils/cross-episode-narrative-continuity-gate-v12.js'); const episodeSource = read('utils/episode-memory-v12.js'); const dbSource = read('database/db.js'); const indexSource = read('index.js'); const envSource = read('.env.example'); const pkg = JSON.parse(read('package.json'));
   check(serviceSource.includes("const VERSION = '11.12.8'"), 'continuity gate version missing');
   check(serviceSource.includes('narrative_continuity_context_stale'), 'context freshness guard missing');
+  check(serviceSource.includes('coverageSimilarity'), 'semantic coverage hardening missing');
+  check(serviceSource.includes('reviewFingerprint'), 'manifest-bound immutable review identity missing');
   check(serviceSource.includes('continuity_immutable_canon_contradiction'), 'immutable canon contradiction check missing');
   check(serviceSource.includes('continuity_uncertain_truth_promoted'), 'truth promotion check missing');
   check(serviceSource.includes('continuity_impossible_character_knowledge'), 'character knowledge check missing');
@@ -104,6 +106,7 @@ async function main() {
   check(!serviceSource.includes('commitSerializedTimeline') && !serviceSource.includes('commitSerializedPlotThreads') && !serviceSource.includes('finalizeSerializedEpisodeMemoryAtomic'), 'continuity gate must not mutate canon');
   check(dbSource.includes('CREATE TABLE IF NOT EXISTS serialized_narrative_continuity_reports'), 'continuity report table missing');
   check(dbSource.includes("CHECK(verdict IN ('pass', 'block'))"), 'continuity report verdict constraint missing');
+  check(!dbSource.includes('UNIQUE(series_id, episode_number, gate_version, context_fingerprint, candidate_fingerprint)'), 'different immutable review attempts must not collide');
   check(dbSource.includes('getLatestPassingNarrativeContinuityReport') && dbSource.includes('saveSerializedNarrativeContinuityReport'), 'continuity report DB methods missing');
   check(episodeSource.includes("require('./cross-episode-narrative-continuity-gate-v12')"), 'Episode Memory continuity gate integration missing');
   check(episodeSource.includes('await continuityGate.verifyPassingReport(seriesId, memory.episodeNumber, memory)'), 'Episode Memory PASS verification missing');
@@ -117,7 +120,7 @@ async function main() {
   check(pkg.scripts?.['test:narrative-continuity-gate'] === 'node ../bootstrap/verify-phase11-cross-episode-narrative-continuity.js', 'continuity npm test command missing');
 
   const { CrossEpisodeNarrativeContinuityGateV12, normalizeManifest, candidateFingerprint, statementsContradict, similarity } = require(path.join(upstream, 'utils', 'cross-episode-narrative-continuity-gate-v12.js'));
-  check(statementsContradict('The station burned before Mara was born.', 'The station did not burn before Mara was born.'), 'deterministic negation contradiction failed');
+  check(statementsContradict('The station burned before Mara was born.', 'The station never burned before Mara was born.'), 'deterministic negation contradiction failed');
   check(!statementsContradict('The station burned before Mara was born.', 'Mara visits the burned station.'), 'non-contradictory statement falsely rejected');
   check(similarity('Council record relay code', 'The relay code appears in the council record') >= 0.5, 'continuity text similarity unexpectedly weak');
   const nm = normalizeManifest({ continuityManifest: { relationshipTransitions: [{ edgeKey: ' Mara -> Ivo ' }], plotThreadActions: [{ threadKey: 'Council_Coverup', action: 'resolve' }] } });
@@ -126,7 +129,7 @@ async function main() {
   const db = new MemoryDb(); seedBase(db); const resolver = new FakeResolver(); const gate = new CrossEpisodeNarrativeContinuityGateV12(db, { resolver, blockThreadPriority: 90, warnThreadPriority: 70 });
   const mismatch = await gate.evaluateEpisode('series_star', 3, { ...goodCandidate(), timelineEventIds: [] }, { actor: 'showrunner' });
   check(mismatch.verdict === 'block' && mismatch.blockers.some(v => v.code === 'continuity_timeline_set_mismatch'), 'Timeline mismatch must block');
-  const canonConflict = await gate.evaluateEpisode('series_star', 3, { ...goodCandidate(), summary: 'The old station did not burn before Mara was born, and Mara checks the council record.' }, { actor: 'showrunner' });
+  const canonConflict = await gate.evaluateEpisode('series_star', 3, { ...goodCandidate(), summary: 'The old station never burned before Mara was born.' }, { actor: 'showrunner' });
   check(canonConflict.blockers.some(v => v.code === 'continuity_immutable_canon_contradiction'), 'immutable canon contradiction was not blocked');
   const rumorPromotion = await gate.evaluateEpisode('series_star', 3, { ...goodCandidate(), establishedFacts: ['The council built a secret relay under the harbor.'] }, { actor: 'showrunner' });
   check(rumorPromotion.blockers.some(v => v.code === 'continuity_uncertain_truth_promoted'), 'uncertain Timeline truth promotion was not blocked');
@@ -161,7 +164,7 @@ async function main() {
 
   const payoffMissing = goodCandidate(); payoffMissing.summary = 'Mara discovers a code but never confronts the council record.'; payoffMissing.continuityManifest.plotThreadActions[0] = { threadKey: 'council_coverup', action: 'resolve', expectedRevision: 3, supportingEventIds: ['evt_relay'] };
   const payoffResult = await gate.evaluateEpisode('series_star', 3, payoffMissing, { actor: 'showrunner' });
-  check(payoffResult.blockers.some(v => v.code === 'continuity_required_payoff_missing') === false, 'fixture should contain payoff text via target Timeline event');
+  check(payoffResult.blockers.some(v => v.code === 'continuity_required_payoff_missing') === false, 'fixture should contain payoff evidence via target Timeline event');
   const coverup = db.threads.find(v => v.threadKey === 'council_coverup'); coverup.requiredPayoffs = ['Publicly expose the mayor on live television'];
   const missingPayoffResult = await gate.evaluateEpisode('series_star', 3, payoffMissing, { actor: 'showrunner' });
   check(missingPayoffResult.blockers.some(v => v.code === 'continuity_required_payoff_missing'), 'missing required payoff was not blocked'); coverup.requiredPayoffs = ['Confront the council record'];
