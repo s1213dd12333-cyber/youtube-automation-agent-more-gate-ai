@@ -60,7 +60,7 @@ jobs:
       # then 12.1 discovers global coverage, 12.2 resolves stable event memory,
       # 12.3 allocates the editorial slot, 12.4 separates repercussion from
       # structural importance, 12.5 plans the report, 12.6 acquires evidence and
-      # 12.7 converts that evidence into source-bound, cross-checked claims.
+      # 12.7 classifies each source-bound claim into an explicit truth state.
       - name: Materialize and run all bootstrap regression gates through 12.7
         shell: pwsh
         run: ./materialize.ps1
@@ -120,7 +120,7 @@ jobs:
         working-directory: upstream
         run: npm run test:autonomous-research
 
-      - name: Run Phase 12.7 Claim Verification & Evidence Synthesis suite
+      - name: Run Phase 12.7 Evidence / Truth Engine suite
         shell: pwsh
         working-directory: upstream
         run: npm run test:claim-verification
