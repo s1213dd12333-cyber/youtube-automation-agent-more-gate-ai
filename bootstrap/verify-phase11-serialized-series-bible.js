@@ -102,6 +102,8 @@ async function main() {
   check(normalized.title === 'Star Harbor', 'title normalization failed');
   check(normalized.genres.length === 2, 'genre de-duplication failed');
   check(normalized.currentEpisode === 0, 'initial episode should be zero');
+  const clearedEnding = normalizeBible({ plannedEnding: null }, { title: 'Base', premise: 'Base premise', plannedEnding: { destination: 'Old ending' } });
+  check(clearedEnding.plannedEnding === null, 'explicit null must clear a previously planned ending');
 
   const created = await service.createBible({
     title: 'Star Harbor',
