@@ -26,7 +26,6 @@ function insertBefore(text, anchor, block, label) {
 
 function copyService() {
   let service = template('narrative-context-resolver-v12.js');
-  // Keep the checked-in template deterministic even if an older draft used an unnamed object-literal expression.
   service = service.replace(
     "promptContext = buildPromptContext({ bible, targetEpisode, focus, selected, hash(JSON.stringify(stable(fingerprintSeed))).slice(0, 32), maxPromptChars: this.maxPromptChars, sourceValidation });",
     "promptContext = buildPromptContext({ bible, targetEpisode, focus, selected, fingerprint: hash(JSON.stringify(stable(fingerprintSeed))).slice(0, 32), maxPromptChars: this.maxPromptChars, sourceValidation });"
@@ -139,3 +138,8 @@ patchIndexApi();
 patchScriptWriter();
 patchPackageAndEnv();
 console.log('FASE 11.12.7 ativa: Narrative Context Resolver deterministico, historico as-of, provenance-aware, global-budgeted e read-only no roteirista.');
+
+// 11.12.8 is intentionally applied only after the final 11.12.7 resolver exists.
+// Its verifier runs here so the canonical materializer validates the approval gate before returning.
+require('./phase11-cross-episode-narrative-continuity.js');
+require('child_process').execFileSync(process.execPath, [path.join(__dirname, 'verify-phase11-cross-episode-narrative-continuity.js')], { stdio: 'inherit' });

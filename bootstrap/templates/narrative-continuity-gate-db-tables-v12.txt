@@ -1,0 +1,23 @@
+      // Phase 11.12.8 cross-episode narrative continuity gate reports (audit only; never canon)
+      `CREATE TABLE IF NOT EXISTS serialized_narrative_continuity_reports (
+        id TEXT PRIMARY KEY,
+        series_id TEXT NOT NULL,
+        episode_number INTEGER NOT NULL,
+        gate_version TEXT NOT NULL,
+        context_fingerprint TEXT NOT NULL,
+        candidate_fingerprint TEXT NOT NULL,
+        source_fingerprint TEXT,
+        verdict TEXT NOT NULL CHECK(verdict IN ('pass', 'block')),
+        score INTEGER NOT NULL DEFAULT 0 CHECK(score >= 0 AND score <= 100),
+        blockers TEXT NOT NULL DEFAULT '[]',
+        warnings TEXT NOT NULL DEFAULT '[]',
+        checks TEXT NOT NULL DEFAULT '[]',
+        focus TEXT NOT NULL DEFAULT '{}',
+        candidate_snapshot TEXT NOT NULL DEFAULT '{}',
+        manifest TEXT NOT NULL DEFAULT '{}',
+        created_by TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (series_id) REFERENCES serialized_series_bibles(id) ON DELETE CASCADE
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_serialized_narrative_continuity_episode ON serialized_narrative_continuity_reports(series_id, episode_number, created_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_serialized_narrative_continuity_candidate ON serialized_narrative_continuity_reports(series_id, episode_number, candidate_fingerprint, verdict, created_at DESC)`,

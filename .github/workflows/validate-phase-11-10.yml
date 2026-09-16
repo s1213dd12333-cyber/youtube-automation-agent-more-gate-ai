@@ -1,8 +1,8 @@
-name: Validate Phase 11.10 + 11.11 + 11.12.1-11.12.7
+name: Validate Phase 11.10 + 11.11 + 11.12.1-11.12.8
 
 on:
   push:
-    branches: [main, phase-11.12.7-narrative-context-resolver]
+    branches: [main, phase-11.12.8-cross-episode-narrative-continuity]
     paths:
       - '.github/workflows/validate-phase-11-10.yml'
       - 'bootstrap/**'
@@ -48,10 +48,10 @@ jobs:
           npm pkg set "allowScripts.sqlite3=true" --json
           npm install
 
-      # The canonical materializer executes every bootstrap verifier in phase order.
-      # 11.12.1-11.12.6 are verified before 11.12.7 intentionally replaces their
-      # direct Script Writer prompt injection with the unified resolver packet.
-      - name: Materialize and run all bootstrap regression gates through 11.12.7
+      # The canonical materializer runs the serialized narrative phases in order.
+      # 11.12.8 is chained immediately after the final 11.12.7 resolver and verifies
+      # that Episode Memory finalization is approval-blocked by a fresh exact PASS.
+      - name: Materialize and run all bootstrap regression gates through 11.12.8
         shell: pwsh
         run: ./materialize.ps1
 
@@ -70,7 +70,12 @@ jobs:
         working-directory: upstream
         run: node ../bootstrap/verify-phase11-character-arc-visual-binding-hardening.js
 
-      - name: Run Phase 11.12.7 Narrative Context Resolver suite after final materialization
+      - name: Recheck Phase 11.12.7 Narrative Context Resolver after final materialization
         shell: pwsh
         working-directory: upstream
         run: npm run test:narrative-context-resolver
+
+      - name: Run Phase 11.12.8 Cross-Episode Narrative Continuity Gate suite
+        shell: pwsh
+        working-directory: upstream
+        run: npm run test:narrative-continuity-gate
