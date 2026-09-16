@@ -125,3 +125,10 @@ run('verify-phase11-persistent-character-library-ui.js');
 syntax(['phase11-persistent-character-e2e.js', 'verify-phase11-persistent-character-e2e.js', 'e2e/character-system-memory-db.js', 'e2e/character-system-fixtures.js']);
 require('./phase11-persistent-character-e2e.js');
 run('verify-phase11-persistent-character-e2e.js');
+
+// Phase 5 hardening — Story/explicit fiction must not treat plot events as factual claims.
+// Documentary/true-story intent remains on the normal strict Evidence Desk path.
+syntax(['fix-phase5-fiction-evidence.js', 'verify-phase5-fiction-evidence.js', 'templates/fiction-evidence-policy-v5.js']);
+requireFiles(['templates/fiction-evidence-policy-v5.js'], 'Phase 5 fiction evidence hardening');
+require('./fix-phase5-fiction-evidence.js');
+run('verify-phase5-fiction-evidence.js');
