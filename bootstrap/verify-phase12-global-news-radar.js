@@ -183,10 +183,11 @@ async function main() {
   assert(html.includes('data-view="newsroom"'), 'dashboard must expose Global newsroom navigation');
   assert(html.includes('id="newsroom-view"'), 'dashboard must contain newsroom view');
   assert(html.includes('id="newsroom-scan-button"'), 'dashboard must expose explicit manual scan control');
-  assert(html.includes('<script src="/newsroom-v121.js" defer></script>'), 'dashboard must load newsroom client');
+  const dashboardClientPath = html.includes('<script src="/newsroom-v122.js" defer></script>') ? 'dashboard/newsroom-v122.js' : 'dashboard/newsroom-v121.js';
+  assert(html.includes('<script src="/newsroom-v121.js" defer></script>') || html.includes('<script src="/newsroom-v122.js" defer></script>'), 'dashboard must load a compatible newsroom client');
   const app = read('dashboard/app.js');
   assert(app.includes("newsroom: ['GLOBAL NEWSROOM', 'See what the world is talking about.']"), 'dashboard view title must register newsroom');
-  const dashboardClient = read('dashboard/newsroom-v121.js');
+  const dashboardClient = read(dashboardClientPath);
   assert(dashboardClient.includes("api('/api/newsroom/status')"), 'newsroom UI must read live status API');
   assert(dashboardClient.includes("api('/api/newsroom/scan'"), 'newsroom UI must run live scan API');
   assert(dashboardClient.includes('data-newsroom-promote'), 'newsroom UI must support audited manual promotion');
