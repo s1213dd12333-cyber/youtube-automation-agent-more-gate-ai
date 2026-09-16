@@ -1,13 +1,14 @@
-name: Validate Phase 11.10 + 11.11 + 11.12.1-11.12.8 + 12.1 + 12.2 + 12.3 + 12.4 + 12.5
+name: Validate Phase 11.10 + 11.11 + 11.12.1-11.12.8 + 12.1 + 12.2 + 12.3 + 12.4 + 12.5 + 12.6
 
 on:
   push:
-    branches: [main, phase-11.12.8-cross-episode-narrative-continuity, phase-12.1-global-news-radar-autonomous-editor, phase-12.2-event-intelligence-engine, phase-12.3-autonomous-editorial-decision-brain, phase-12.4-global-importance-engine, phase-12.5-editorial-planning-ai]
+    branches: [main, phase-11.12.8-cross-episode-narrative-continuity, phase-12.1-global-news-radar-autonomous-editor, phase-12.2-event-intelligence-engine, phase-12.3-autonomous-editorial-decision-brain, phase-12.4-global-importance-engine, phase-12.5-editorial-planning-ai, phase-12.6-autonomous-research]
     paths:
       - '.github/workflows/validate-phase-11-10.yml'
       - 'bootstrap/**'
       - 'docs/phase-12.4-global-importance-engine.md'
       - 'docs/phase-12.5-editorial-planning-ai.md'
+      - 'docs/phase-12.6-autonomous-research.md'
       - 'materialize.ps1'
       - '.gitmodules'
   pull_request:
@@ -17,6 +18,7 @@ on:
       - 'bootstrap/**'
       - 'docs/phase-12.4-global-importance-engine.md'
       - 'docs/phase-12.5-editorial-planning-ai.md'
+      - 'docs/phase-12.6-autonomous-research.md'
       - 'materialize.ps1'
       - '.gitmodules'
   workflow_dispatch:
@@ -55,11 +57,14 @@ jobs:
       # The canonical materializer runs the serialized narrative phases in order,
       # then 12.1 discovers global coverage, 12.2 resolves stable event memory,
       # 12.3 competitively allocates the scarce editorial slot, 12.4 separates
-      # repercussion from structural importance and 12.5 converts the winning
-      # candidate into an auditable research/format/visual production plan.
+      # repercussion from structural importance and 12.5 creates the production plan.
       - name: Materialize and run all bootstrap regression gates through 12.5
         shell: pwsh
         run: ./materialize.ps1
+
+      - name: Apply Phase 12.6 Autonomous Research overlay
+        shell: pwsh
+        run: node ./bootstrap/phase12-autonomous-research.js
 
       - name: Run Phase 11.10 full suite after final materialization
         shell: pwsh
@@ -110,3 +115,8 @@ jobs:
         shell: pwsh
         working-directory: upstream
         run: npm run test:editorial-planning
+
+      - name: Run Phase 12.6 Autonomous Research suite
+        shell: pwsh
+        working-directory: upstream
+        run: npm run test:autonomous-research
