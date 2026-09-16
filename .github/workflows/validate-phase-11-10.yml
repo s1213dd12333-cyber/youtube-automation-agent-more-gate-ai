@@ -1,8 +1,8 @@
-name: Validate Phase 11.10 + 11.11 + 11.12.1 + 11.12.2 + 11.12.3 + 11.12.4 + 11.12.5 + 11.12.6
+name: Validate Phase 11.10 + 11.11 + 11.12.1 + 11.12.2 + 11.12.3 + 11.12.4 + 11.12.5 + 11.12.6 + 11.12.7
 
 on:
   push:
-    branches: [main, phase-11.12.6-plot-thread-registry]
+    branches: [main, phase-11.12.7-narrative-context-resolver]
     paths:
       - '.github/workflows/validate-phase-11-10.yml'
       - 'bootstrap/**'
@@ -93,3 +93,8 @@ jobs:
         shell: pwsh
         working-directory: upstream
         run: npm run test:plot-thread-registry
+
+      - name: Run Phase 11.12.7 Narrative Context Resolver suite
+        shell: pwsh
+        working-directory: upstream
+        run: npm run test:narrative-context-resolver
