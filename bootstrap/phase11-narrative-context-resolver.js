@@ -153,3 +153,8 @@ require('child_process').execFileSync(process.execPath, [path.join(__dirname, 'v
 // The Event Intelligence verifier runs inside the canonical Windows materializer before it returns.
 require('./phase12-event-intelligence-engine.js');
 require('child_process').execFileSync(process.execPath, [path.join(__dirname, 'verify-phase12-event-intelligence-engine.js')], { stdio: 'inherit' });
+
+// 12.4 runs after 12.2 has chained the validated 12.3 Editorial Brain.
+// It separates media repercussion from structural global impact before editorial competition.
+require('./phase12-global-importance-engine.js');
+require('child_process').execFileSync(process.execPath, [path.join(__dirname, 'verify-phase12-global-importance-engine.js')], { stdio: 'inherit' });
