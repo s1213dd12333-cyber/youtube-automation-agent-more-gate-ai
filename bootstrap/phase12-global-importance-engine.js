@@ -199,3 +199,7 @@ patchIndex();
 patchDashboard();
 patchPackageAndEnv();
 console.log('FASE 12.4 ativa: Global Importance Engine separa repercussao de impacto estrutural global, com dimensoes auditaveis, confianca de evidencia e integracao ao Editorial Brain.');
+
+// 12.5 consumes the selected, importance-aware editorial candidate and produces the executable research/format/visual plan.
+require('./phase12-editorial-planning-ai.js');
+require('child_process').execFileSync(process.execPath, [path.join(__dirname, 'verify-phase12-editorial-planning-ai.js')], { stdio: 'inherit' });
