@@ -197,20 +197,20 @@ class AutonomousProductionDirectorV128 {
     if (!this.db) return built;
     const plan = input.editorialPlan || {}; const truth = input.claimVerification || input.claimPacket || {}; const decision = input.decision || {}; const cluster = input.candidate?.cluster || input.cluster || {};
     const id = `prod_${built.fingerprint.slice(0, 24)}`;
-    await this.db.run(
+    await this.db.executeQuery(
       `INSERT OR IGNORE INTO newsroom_production_directives (id, plan_id, claim_packet_id, decision_id, cluster_id, engine_version, status, mode, format, urgency, visual_strategy, provider_tier, max_budget_usd, target_duration_seconds, scene_seconds, scene_count, tts_json, visuals_json, fact_locks_json, forbidden_json, directive_fingerprint) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [id, plan.id || null, truth.id || null, decision.id || null, cluster.id || null, VERSION, PLAN_READY, built.mode, built.format, built.urgency, built.visualStrategy, built.providerTier, built.maxBudgetUsd, built.targetDurationSeconds, built.sceneSeconds, built.sceneCount, JSON.stringify(built.tts), JSON.stringify(built.visuals), JSON.stringify(built.factLocks), JSON.stringify(built.forbidden), built.fingerprint]
     );
-    const row = await this.db.get('SELECT * FROM newsroom_production_directives WHERE directive_fingerprint = ?', [built.fingerprint]);
+    const row = await this.db.getRow('SELECT * FROM newsroom_production_directives WHERE directive_fingerprint = ?', [built.fingerprint]);
     return this.rowToDirective(row);
   }
   async linkPromotion(id, promotion = {}) {
     if (!this.db || !id) return null;
-    await this.db.run('UPDATE newsroom_production_directives SET assignment_id = COALESCE(assignment_id, ?) WHERE id = ?', [promotion.assignmentId || null, id]);
+    await this.db.executeQuery('UPDATE newsroom_production_directives SET assignment_id = COALESCE(assignment_id, ?) WHERE id = ?', [promotion.assignmentId || null, id]);
     return this.getDirective(id);
   }
-  async getDirective(id) { if (!this.db) return null; return this.rowToDirective(await this.db.get('SELECT * FROM newsroom_production_directives WHERE id = ?', [id])); }
-  async listDirectives(limit = 100) { if (!this.db) return []; const rows = await this.db.all('SELECT * FROM newsroom_production_directives ORDER BY created_at DESC LIMIT ?', [Math.max(1, Math.min(500, Number(limit) || 100))]); return rows.map(row => this.rowToDirective(row)); }
+  async getDirective(id) { if (!this.db) return null; return this.rowToDirective(await this.db.getRow('SELECT * FROM newsroom_production_directives WHERE id = ?', [id])); }
+  async listDirectives(limit = 100) { if (!this.db) return []; const rows = await this.db.getAllRows('SELECT * FROM newsroom_production_directives ORDER BY created_at DESC LIMIT ?', [Math.max(1, Math.min(500, Number(limit) || 100))]); return rows.map(row => this.rowToDirective(row)); }
   async status() { const rows = await this.listDirectives(100); return { version: VERSION, enabled: this.getConfig().enabled, total: rows.length, ready: rows.filter(r => r.status === PLAN_READY).length, latest: rows[0] || null, policy: this.getConfig().policy }; }
 }
 
