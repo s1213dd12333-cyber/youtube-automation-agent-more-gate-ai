@@ -1,0 +1,23 @@
+      `CREATE TABLE IF NOT EXISTS newsroom_publishing_reservations (
+        id TEXT PRIMARY KEY,
+        production_id TEXT NOT NULL UNIQUE,
+        publish_time DATETIME NOT NULL,
+        cadence_minutes INTEGER NOT NULL,
+        is_breaking INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL CHECK(status IN ('reserved','scheduled','published','cancelled')),
+        reservation_fingerprint TEXT NOT NULL UNIQUE,
+        published_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_newsroom_publish_reservations_time ON newsroom_publishing_reservations(status, publish_time ASC)`,
+      `CREATE TABLE IF NOT EXISTS newsroom_publishing_decisions (
+        id TEXT PRIMARY KEY,
+        engine_version TEXT NOT NULL,
+        decision_kind TEXT NOT NULL CHECK(decision_kind IN ('RESERVE','BLOCK','PUBLISHED','DISPLACE')),
+        production_id TEXT,
+        payload_json TEXT NOT NULL,
+        decision_fingerprint TEXT NOT NULL UNIQUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_newsroom_publish_decisions_created ON newsroom_publishing_decisions(created_at DESC)`,
