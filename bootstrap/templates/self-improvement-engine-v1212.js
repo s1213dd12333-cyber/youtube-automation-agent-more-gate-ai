@@ -57,19 +57,26 @@ class SelfImprovementEngineV1212 {
 
   async inspectPerformance(report = {}, context = {}) {
     const findings = [];
+    const proposals = [];
     const qualityScore = Number(report.performance?.score ?? report.qualityScore ?? 100);
     if (Number.isFinite(qualityScore) && qualityScore < 60) {
-      findings.push(await this.observe({ source: 'analytics', category: 'content_quality', severity: qualityScore < 40 ? 'high' : 'medium', summary: `Published output quality score fell to ${qualityScore}/100.`, evidence: [{ qualityScore, videoId: report.videoId || null }], context }));
+      const evidence = [{ qualityScore, videoId: report.videoId || null }];
+      findings.push(await this.observe({ source: 'analytics', category: 'content_quality', severity: qualityScore < 40 ? 'high' : 'medium', summary: `Published output quality score fell to ${qualityScore}/100.`, evidence, context }));
+      proposals.push(await this.propose({ kind: 'rule', title: 'Strengthen quality retry gate', rationale: `Published quality reached ${qualityScore}/100, indicating the current acceptance gate may be too permissive.`, target: { subsystem: 'quality-council', rule: 'minimum_acceptance_score' }, change: { recommendation: 'Raise or conditionally tighten the pre-publication quality threshold and force a retry when the same failure category repeats.' }, evidence, confidence: qualityScore < 40 ? 0.9 : 0.75, risk: 'medium' }));
     }
     const ctr = Number(report.thumbnailMetrics?.clickThroughRate ?? report.analytics?.views?.averageCTR ?? 0);
     if (ctr > 0 && ctr < 2) {
-      findings.push(await this.observe({ source: 'analytics', category: 'packaging', severity: 'medium', summary: `CTR is unusually low at ${ctr}%.`, evidence: [{ ctr, videoId: report.videoId || null }], context }));
+      const evidence = [{ ctr, videoId: report.videoId || null }];
+      findings.push(await this.observe({ source: 'analytics', category: 'packaging', severity: 'medium', summary: `CTR is unusually low at ${ctr}%.`, evidence, context }));
+      proposals.push(await this.propose({ kind: 'prompt', title: 'Improve title and thumbnail hypothesis generation', rationale: `CTR measured ${ctr}%, so packaging ideation should generate clearer competing hypotheses before publication.`, target: { subsystem: 'content-strategy', prompt: 'packaging_ideation' }, change: { recommendation: 'Require multiple evidence-grounded title/thumbnail hypotheses, explicit audience promise, and a differentiation check before selecting packaging.' }, evidence, confidence: 0.72, risk: 'low' }));
     }
     const retention = Number(report.analytics?.watchTime?.averageViewPercentage ?? 0);
     if (retention > 0 && retention < 30) {
-      findings.push(await this.observe({ source: 'analytics', category: 'retention', severity: 'medium', summary: `Average view percentage is low at ${retention}%.`, evidence: [{ retention, videoId: report.videoId || null }], context }));
+      const evidence = [{ retention, videoId: report.videoId || null }];
+      findings.push(await this.observe({ source: 'analytics', category: 'retention', severity: 'medium', summary: `Average view percentage is low at ${retention}%.`, evidence, context }));
+      proposals.push(await this.propose({ kind: 'prompt', title: 'Strengthen opening and retention structure', rationale: `Average view percentage measured ${retention}%, suggesting the narrative structure is not holding attention strongly enough.`, target: { subsystem: 'script-generation', prompt: 'retention_structure' }, change: { recommendation: 'Require a concrete opening promise, earlier payoff, fewer repeated setup beats, and explicit retention checkpoints without adding unsupported claims.' }, evidence, confidence: 0.78, risk: 'low' }));
     }
-    return { findings: findings.filter(Boolean), version: VERSION };
+    return { findings: findings.filter(Boolean), proposals: proposals.filter(Boolean), version: VERSION };
   }
 
   async propose(input = {}) {
