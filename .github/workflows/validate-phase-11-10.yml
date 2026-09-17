@@ -1,8 +1,8 @@
-name: Validate Phase 11.10 + 11.11 + 11.12.1-11.12.8 + 12.1 + 12.2 + 12.3 + 12.4 + 12.5 + 12.6 + 12.7 + 12.8 + 12.9 + 12.10
+name: Validate Phase 11.10 + 11.11 + 11.12.1-11.12.8 + 12.1 + 12.2 + 12.3 + 12.4 + 12.5 + 12.6 + 12.7 + 12.8 + 12.9 + 12.10 + 12.11
 
 on:
   push:
-    branches: [main, phase-11.12.8-cross-episode-narrative-continuity, phase-12.1-global-news-radar-autonomous-editor, phase-12.2-event-intelligence-engine, phase-12.3-autonomous-editorial-decision-brain, phase-12.4-global-importance-engine, phase-12.5-editorial-planning-ai, phase-12.6-autonomous-research, phase-12.7-claim-verification-engine, phase-12.8-autonomous-production-director, phase-12.9-autonomous-quality-council, phase-12.10-autonomous-publishing-brain]
+    branches: [main, phase-11.12.8-cross-episode-narrative-continuity, phase-12.1-global-news-radar-autonomous-editor, phase-12.2-event-intelligence-engine, phase-12.3-autonomous-editorial-decision-brain, phase-12.4-global-importance-engine, phase-12.5-editorial-planning-ai, phase-12.6-autonomous-research, phase-12.7-claim-verification-engine, phase-12.8-autonomous-production-director, phase-12.9-autonomous-quality-council, phase-12.10-autonomous-publishing-brain, phase-12.11-performance-learning]
     paths:
       - '.github/workflows/validate-phase-11-10.yml'
       - 'bootstrap/**'
@@ -13,6 +13,7 @@ on:
       - 'docs/phase-12.8-autonomous-production-director.md'
       - 'docs/phase-12.9-autonomous-quality-council.md'
       - 'docs/phase-12.10-autonomous-publishing-brain.md'
+      - 'docs/phase-12.11-performance-learning.md'
       - 'materialize.ps1'
       - '.gitmodules'
   pull_request:
@@ -27,6 +28,7 @@ on:
       - 'docs/phase-12.8-autonomous-production-director.md'
       - 'docs/phase-12.9-autonomous-quality-council.md'
       - 'docs/phase-12.10-autonomous-publishing-brain.md'
+      - 'docs/phase-12.11-performance-learning.md'
       - 'materialize.ps1'
       - '.gitmodules'
   workflow_dispatch:
@@ -67,8 +69,9 @@ jobs:
       # the editorial slot, 12.4 measures structural importance, 12.5 plans the
       # report, 12.6 acquires evidence, 12.7 verifies claim truth, 12.8 creates
       # a production directive, 12.9 applies pre/post-production quality councils,
-      # and 12.10 reserves cadence-safe publication slots with breaking preemption.
-      - name: Materialize and run all bootstrap regression gates through 12.10
+      # 12.10 reserves cadence-safe publication slots with breaking preemption,
+      # and 12.11 learns from real post-publication performance with bounded influence.
+      - name: Materialize and run all bootstrap regression gates through 12.11
         shell: pwsh
         run: ./materialize.ps1
 
@@ -146,3 +149,8 @@ jobs:
         shell: pwsh
         working-directory: upstream
         run: npm run test:autonomous-publishing-brain
+
+      - name: Run Phase 12.11 Performance Learning suite
+        shell: pwsh
+        working-directory: upstream
+        run: npm run test:performance-learning
