@@ -20,4 +20,5 @@ childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-phase1
 require('./phase12-self-improvement-engine.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-phase12-self-improvement-engine.js')], { stdio: 'inherit' });
 require('./fix-newsroom-source-resilience.js');
+require('./fix-newsroom-default-rss.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-newsroom-source-resilience.js')], { stdio: 'inherit' });
