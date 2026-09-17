@@ -19,3 +19,5 @@ require('./phase12-performance-learning.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-phase12-performance-learning.js')], { stdio: 'inherit' });
 require('./phase12-self-improvement-engine.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-phase12-self-improvement-engine.js')], { stdio: 'inherit' });
+require('./fix-newsroom-source-resilience.js');
+childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-newsroom-source-resilience.js')], { stdio: 'inherit' });
