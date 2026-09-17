@@ -3,7 +3,7 @@
 const path = require('path');
 const childProcess = require('child_process');
 
-// Preserve the validated 12.5 materializer unchanged, then extend the canonical chain through 12.11.
+// Preserve the validated 12.5 materializer unchanged, then extend the canonical chain through 12.12.
 require('./phase12-editorial-planning-ai-core-v125.js');
 require('./phase12-autonomous-research.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-phase12-autonomous-research.js')], { stdio: 'inherit' });
@@ -17,3 +17,5 @@ require('./phase12-autonomous-publishing-brain.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-phase12-autonomous-publishing-brain.js')], { stdio: 'inherit' });
 require('./phase12-performance-learning.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-phase12-performance-learning.js')], { stdio: 'inherit' });
+require('./phase12-self-improvement-engine.js');
+childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-phase12-self-improvement-engine.js')], { stdio: 'inherit' });
