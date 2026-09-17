@@ -1,0 +1,27 @@
+      `CREATE TABLE IF NOT EXISTS newsroom_quality_council_policy_revisions (
+        id TEXT PRIMARY KEY,
+        revision_number INTEGER NOT NULL UNIQUE,
+        policy_json TEXT NOT NULL,
+        changed_by TEXT,
+        change_reason TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS newsroom_quality_council_reviews (
+        id TEXT PRIMARY KEY,
+        phase TEXT NOT NULL CHECK(phase IN ('pre_production','post_production')),
+        subject_id TEXT,
+        production_id TEXT,
+        directive_id TEXT,
+        claim_packet_id TEXT,
+        engine_version TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('PASS','REPAIR','BLOCK')),
+        score INTEGER NOT NULL,
+        blocking_count INTEGER NOT NULL DEFAULT 0,
+        repair_count INTEGER NOT NULL DEFAULT 0,
+        members_json TEXT NOT NULL,
+        review_fingerprint TEXT NOT NULL UNIQUE,
+        assignment_id TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_newsroom_quality_reviews_phase_created ON newsroom_quality_council_reviews(phase, created_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_newsroom_quality_reviews_production ON newsroom_quality_council_reviews(production_id, created_at DESC)`,
