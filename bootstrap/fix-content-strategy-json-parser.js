@@ -16,8 +16,8 @@ if (start === -1 || end === -1) throw new Error('Content strategy JSON parser an
 const replacement = `  parseAIJsonResponse(response) {
     const text = String(response || '').trim();
     const cleaned = text
-      .replace(/^\\s*\\`\\`\\`(?:json)?\\s*/i, '')
-      .replace(/\\`\\`\\`\\s*$/i, '')
+      .replace(/^\\s*\\x60{3}(?:json)?\\s*/i, '')
+      .replace(/\\x60{3}\\s*$/i, '')
       .trim();
 
     const parse = value => JSON.parse(String(value || '').trim());
