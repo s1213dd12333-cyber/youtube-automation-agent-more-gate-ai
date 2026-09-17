@@ -22,3 +22,5 @@ childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-phase1
 require('./fix-newsroom-source-resilience.js');
 require('./fix-newsroom-default-rss.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-newsroom-source-resilience.js')], { stdio: 'inherit' });
+require('./fix-gemini-tts-transient-fallback.js');
+childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-gemini-tts-transient-fallback.js')], { stdio: 'inherit' });
