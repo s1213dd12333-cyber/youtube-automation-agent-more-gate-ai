@@ -126,8 +126,8 @@ function patchMainRuntime() {
   );
   s = replaceOnce(
     s,
-    "    this.discoverability = null;\n    this.setupRequired = false;\n",
-    "    this.discoverability = null;\n    this.qualityCouncil = null;\n    this.setupRequired = false;\n",
+    "    this.discoverability = null;\n",
+    "    this.discoverability = null;\n    this.qualityCouncil = null;\n",
     'main Quality Council property'
   );
   s = replaceOnce(
