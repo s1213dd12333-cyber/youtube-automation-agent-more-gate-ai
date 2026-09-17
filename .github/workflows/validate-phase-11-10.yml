@@ -1,8 +1,8 @@
-name: Validate Phase 11.10 + 11.11 + 11.12.1-11.12.8 + 12.1 + 12.2 + 12.3 + 12.4 + 12.5 + 12.6 + 12.7 + 12.8 + 12.9 + 12.10 + 12.11
+name: Validate Phase 11.10 + 11.11 + 11.12.1-11.12.8 + 12.1 + 12.2 + 12.3 + 12.4 + 12.5 + 12.6 + 12.7 + 12.8 + 12.9 + 12.10 + 12.11 + 12.12
 
 on:
   push:
-    branches: [main, phase-11.12.8-cross-episode-narrative-continuity, phase-12.1-global-news-radar-autonomous-editor, phase-12.2-event-intelligence-engine, phase-12.3-autonomous-editorial-decision-brain, phase-12.4-global-importance-engine, phase-12.5-editorial-planning-ai, phase-12.6-autonomous-research, phase-12.7-claim-verification-engine, phase-12.8-autonomous-production-director, phase-12.9-autonomous-quality-council, phase-12.10-autonomous-publishing-brain, phase-12.11-performance-learning]
+    branches: [main, phase-11.12.8-cross-episode-narrative-continuity, phase-12.1-global-news-radar-autonomous-editor, phase-12.2-event-intelligence-engine, phase-12.3-autonomous-editorial-decision-brain, phase-12.4-global-importance-engine, phase-12.5-editorial-planning-ai, phase-12.6-autonomous-research, phase-12.7-claim-verification-engine, phase-12.8-autonomous-production-director, phase-12.9-autonomous-quality-council, phase-12.10-autonomous-publishing-brain, phase-12.11-performance-learning, phase-12.12-self-improvement-engine]
     paths:
       - '.github/workflows/validate-phase-11-10.yml'
       - 'bootstrap/**'
@@ -14,6 +14,7 @@ on:
       - 'docs/phase-12.9-autonomous-quality-council.md'
       - 'docs/phase-12.10-autonomous-publishing-brain.md'
       - 'docs/phase-12.11-performance-learning.md'
+      - 'docs/phase-12.12-self-improvement-engine.md'
       - 'materialize.ps1'
       - '.gitmodules'
   pull_request:
@@ -29,6 +30,7 @@ on:
       - 'docs/phase-12.9-autonomous-quality-council.md'
       - 'docs/phase-12.10-autonomous-publishing-brain.md'
       - 'docs/phase-12.11-performance-learning.md'
+      - 'docs/phase-12.12-self-improvement-engine.md'
       - 'materialize.ps1'
       - '.gitmodules'
   workflow_dispatch:
@@ -70,8 +72,10 @@ jobs:
       # report, 12.6 acquires evidence, 12.7 verifies claim truth, 12.8 creates
       # a production directive, 12.9 applies pre/post-production quality councils,
       # 12.10 reserves cadence-safe publication slots with breaking preemption,
-      # and 12.11 learns from real post-publication performance with bounded influence.
-      - name: Materialize and run all bootstrap regression gates through 12.11
+      # 12.11 learns from real post-publication performance with bounded influence,
+      # and 12.12 turns system weaknesses into human-approved improvement proposals
+      # while code changes are restricted to branch + draft PR + normal CI/review.
+      - name: Materialize and run all bootstrap regression gates through 12.12
         shell: pwsh
         run: ./materialize.ps1
 
@@ -154,3 +158,8 @@ jobs:
         shell: pwsh
         working-directory: upstream
         run: npm run test:performance-learning
+
+      - name: Run Phase 12.12 Self-Improvement Engine suite
+        shell: pwsh
+        working-directory: upstream
+        run: npm run test:self-improvement
