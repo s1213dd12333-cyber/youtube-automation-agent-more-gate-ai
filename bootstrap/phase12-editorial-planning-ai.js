@@ -24,3 +24,5 @@ require('./fix-newsroom-default-rss.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-newsroom-source-resilience.js')], { stdio: 'inherit' });
 require('./fix-gemini-tts-transient-fallback.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-gemini-tts-transient-fallback.js')], { stdio: 'inherit' });
+require('./fix-content-strategy-json-parser.js');
+childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-content-strategy-json-parser.js')], { stdio: 'inherit' });
