@@ -1,8 +1,8 @@
-name: Validate Phase 11.10 + 11.11 + 11.12.1-11.12.8 + 12.1 + 12.2 + 12.3 + 12.4 + 12.5 + 12.6 + 12.7
+name: Validate Phase 11.10 + 11.11 + 11.12.1-11.12.8 + 12.1 + 12.2 + 12.3 + 12.4 + 12.5 + 12.6 + 12.7 + 12.8
 
 on:
   push:
-    branches: [main, phase-11.12.8-cross-episode-narrative-continuity, phase-12.1-global-news-radar-autonomous-editor, phase-12.2-event-intelligence-engine, phase-12.3-autonomous-editorial-decision-brain, phase-12.4-global-importance-engine, phase-12.5-editorial-planning-ai, phase-12.6-autonomous-research, phase-12.7-claim-verification-engine]
+    branches: [main, phase-11.12.8-cross-episode-narrative-continuity, phase-12.1-global-news-radar-autonomous-editor, phase-12.2-event-intelligence-engine, phase-12.3-autonomous-editorial-decision-brain, phase-12.4-global-importance-engine, phase-12.5-editorial-planning-ai, phase-12.6-autonomous-research, phase-12.7-claim-verification-engine, phase-12.8-autonomous-production-director]
     paths:
       - '.github/workflows/validate-phase-11-10.yml'
       - 'bootstrap/**'
@@ -10,6 +10,7 @@ on:
       - 'docs/phase-12.5-editorial-planning-ai.md'
       - 'docs/phase-12.6-autonomous-research.md'
       - 'docs/phase-12.7-claim-verification-engine.md'
+      - 'docs/phase-12.8-autonomous-production-director.md'
       - 'materialize.ps1'
       - '.gitmodules'
   pull_request:
@@ -21,6 +22,7 @@ on:
       - 'docs/phase-12.5-editorial-planning-ai.md'
       - 'docs/phase-12.6-autonomous-research.md'
       - 'docs/phase-12.7-claim-verification-engine.md'
+      - 'docs/phase-12.8-autonomous-production-director.md'
       - 'materialize.ps1'
       - '.gitmodules'
   workflow_dispatch:
@@ -57,11 +59,11 @@ jobs:
           npm install
 
       # The canonical materializer runs the serialized narrative phases in order,
-      # then 12.1 discovers global coverage, 12.2 resolves stable event memory,
-      # 12.3 allocates the editorial slot, 12.4 separates repercussion from
-      # structural importance, 12.5 plans the report, 12.6 acquires evidence and
-      # 12.7 classifies each source-bound claim into an explicit truth state.
-      - name: Materialize and run all bootstrap regression gates through 12.7
+      # then 12.1 discovers coverage, 12.2 resolves event memory, 12.3 allocates
+      # the editorial slot, 12.4 measures structural importance, 12.5 plans the
+      # report, 12.6 acquires evidence, 12.7 verifies claim truth and 12.8 turns
+      # only VERIFIED packets into auditable production directives.
+      - name: Materialize and run all bootstrap regression gates through 12.8
         shell: pwsh
         run: ./materialize.ps1
 
@@ -124,3 +126,8 @@ jobs:
         shell: pwsh
         working-directory: upstream
         run: npm run test:claim-verification
+
+      - name: Run Phase 12.8 Autonomous Production Director suite
+        shell: pwsh
+        working-directory: upstream
+        run: npm run test:autonomous-production-director
