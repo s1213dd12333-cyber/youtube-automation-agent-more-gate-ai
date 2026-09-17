@@ -73,18 +73,10 @@ source = replaceOnce(
   'partial status understands open circuits'
 );
 
-source = replaceOnce(
-  source,
-  "    if (!this.db) return { config: this.getConfig(), latestScan: null, clusters: [], decisions: [] };\n",
-  "    if (!this.db) return { config: this.getConfig(), sourceHealth: this.sourceHealthSnapshot(), latestScan: null, clusters: [], decisions: [] };\n",
-  'status exposes source health without persistence'
-);
-source = replaceOnce(
-  source,
-  "    return { config: this.getConfig(), latestScan: latest, clusters, decisions };\n",
-  "    return { config: this.getConfig(), sourceHealth: this.sourceHealthSnapshot(), latestScan: latest, clusters, decisions };\n",
-  'status exposes source health'
-);
+// Do not rewrite status() here. Later Phase 12 materializers add fields to that
+// response, so source health stays observable through sourceResults and the
+// sourceHealthSnapshot() runtime helper without coupling this hotfix to a stale
+// status-object shape.
 
 write(runtimePath, source);
 
