@@ -35,3 +35,7 @@ childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-newsro
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-newsroom-event-clustering.js')], { stdio: 'inherit' });
 require('./fix-live-process-monitor.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-live-process-monitor.js')], { stdio: 'inherit' });
+require('./fix-global-news-strategy-intent.js');
+require('./fix-global-news-research-candidate.js');
+require('./fix-global-news-corroboration-gate.js');
+childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-global-news-end-to-end-flow.js')], { stdio: 'inherit' });
