@@ -26,3 +26,5 @@ require('./fix-gemini-tts-transient-fallback.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-gemini-tts-transient-fallback.js')], { stdio: 'inherit' });
 require('./fix-content-strategy-json-parser.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-content-strategy-json-parser.js')], { stdio: 'inherit' });
+require('./fix-high-frequency-autonomous-cadence.js');
+childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-high-frequency-autonomous-cadence.js')], { stdio: 'inherit' });
