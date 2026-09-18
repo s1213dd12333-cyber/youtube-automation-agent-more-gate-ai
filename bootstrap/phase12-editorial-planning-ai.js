@@ -39,3 +39,5 @@ require('./fix-global-news-strategy-intent.js');
 require('./fix-global-news-research-candidate.js');
 require('./fix-global-news-corroboration-gate.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-global-news-end-to-end-flow.js')], { stdio: 'inherit' });
+require('./fix-global-news-scheduler-handoff.js');
+childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-global-news-scheduler-handoff.js')], { stdio: 'inherit' });
