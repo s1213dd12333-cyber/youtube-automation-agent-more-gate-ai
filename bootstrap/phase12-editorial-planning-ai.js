@@ -30,3 +30,4 @@ require('./fix-high-frequency-autonomous-cadence.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-high-frequency-autonomous-cadence.js')], { stdio: 'inherit' });
 require('./fix-newsroom-first-operator-planning.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-newsroom-first-operator-planning.js')], { stdio: 'inherit' });
+childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-newsroom-event-clustering.js')], { stdio: 'inherit' });
