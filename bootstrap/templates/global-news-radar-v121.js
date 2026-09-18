@@ -13,6 +13,36 @@ const GENERIC_TOKENS = new Set([
   'une','des','les','dans','avec','pour','sur','apres','avant','monde','actualites','aujourd','hui'
 ]);
 
+const EVENT_TOKEN_ALIASES = new Map(Object.entries({
+  quake: 'earthquake', quakes: 'earthquake', terremoto: 'earthquake', terremotos: 'earthquake', sismo: 'earthquake', sismos: 'earthquake', seisme: 'earthquake', seismes: 'earthquake',
+  incendio: 'fire', incendios: 'fire', incendie: 'fire', incendies: 'fire', feux: 'fire',
+  inundacao: 'flood', inundacoes: 'flood', inundacion: 'flood', inundaciones: 'flood', inondation: 'flood', inondations: 'flood',
+  ataque: 'attack', ataques: 'attack', attaque: 'attack', attaques: 'attack', attacked: 'attack', attacking: 'attack',
+  airstrike: 'strike', airstrikes: 'strike', strikes: 'strike', struck: 'strike',
+  eleicao: 'election', eleicoes: 'election', elecciones: 'election', elections: 'election',
+  tempestade: 'storm', tempestades: 'storm', tormenta: 'storm', tormentas: 'storm', tempete: 'storm', tempetes: 'storm',
+  alerta: 'alert', alertas: 'alert', alerte: 'alert', alertes: 'alert', alerts: 'alert',
+  aviso: 'warning', avisos: 'warning', avertissement: 'warning', avertissements: 'warning', warnings: 'warning',
+  norte: 'north', nord: 'north', northern: 'north', sul: 'south', sud: 'south', southern: 'south',
+  leste: 'east', eastern: 'east', oeste: 'west', ouest: 'west', western: 'west',
+  japao: 'japan', japon: 'japan', japanese: 'japan', israelense: 'israel', israeli: 'israel',
+  palestino: 'palestine', palestina: 'palestine', palestinian: 'palestine', ucraniano: 'ukraine', ucraniana: 'ukraine', ukrainian: 'ukraine',
+  russo: 'russia', russa: 'russia', russian: 'russia', iraniano: 'iran', iraniana: 'iran', iranian: 'iran',
+  chines: 'china', chinesa: 'china', chinese: 'china', americano: 'usa', americana: 'usa', american: 'usa',
+  atingiu: 'hit', atinge: 'hit', atingem: 'hit', golpea: 'hit', golpeo: 'hit', frappe: 'hit', frappent: 'hit', hits: 'hit',
+  emitido: 'issue', emitida: 'issue', emitidos: 'issue', emitidas: 'issue', issued: 'issue', issues: 'issue',
+  forte: 'strong', fuerte: 'strong', fuertes: 'strong', puissant: 'strong', puissante: 'strong'
+}));
+
+function canonicalEventToken(value) {
+  let token = String(value || '').toLowerCase().replace(/^['-]+|['-]+$/g, '').replace(/'s$/i, '');
+  if (!token) return '';
+  if (EVENT_TOKEN_ALIASES.has(token)) return EVENT_TOKEN_ALIASES.get(token);
+  if (token.length > 5 && token.endsWith('ies')) token = token.slice(0, -3) + 'y';
+  else if (token.length > 4 && token.endsWith('s') && !/(ss|us|is)$/.test(token)) token = token.slice(0, -1);
+  return EVENT_TOKEN_ALIASES.get(token) || token;
+}
+
 const DEFAULT_GDELT_LANES = Object.freeze([
   { id: 'gdelt_global_english', query: 'sourcelang:english', language: 'English', maxRecords: 180 },
   { id: 'gdelt_global_spanish', query: 'sourcelang:spanish', language: 'Spanish', maxRecords: 120 },
@@ -83,6 +113,15 @@ function tokens(value) {
     .replace(/[^a-z0-9\s'-]/g, ' ')
     .split(/\s+/)
     .map(token => token.replace(/^['-]+|['-]+$/g, ''))
+    .filter(token => token.length >= 3 && !GENERIC_TOKENS.has(token)))];
+}
+
+function eventTokens(value) {
+  const prepared = String(value || '')
+    .replace(/\bU\.?S\.?\b/gi, ' usa ')
+    .replace(/\bU\.?K\.?\b/gi, ' britain ');
+  return [...new Set(tokens(prepared)
+    .map(canonicalEventToken)
     .filter(token => token.length >= 3 && !GENERIC_TOKENS.has(token)))];
 }
 
@@ -207,28 +246,61 @@ function recalcCluster(cluster) {
   return cluster;
 }
 
-function clusterArticles(articles, threshold = 0.36) {
-  const prepared = (articles || []).map(article => ({
-    ...article,
-    normalizedTitle: normalizeTitle(article.title),
-    topicTokens: tokens(normalizeTitle(article.title))
-  })).filter(article => article.topicTokens.length >= 2);
-  prepared.sort((a, b) => new Date(b.publishedAt || b.seenAt || 0) - new Date(a.publishedAt || a.seenAt || 0));
+function articleContextTokens(article) {
+  const titleTokens = Array.isArray(article?.topicTokens) ? article.topicTokens : eventTokens(normalizeTitle(article?.title));
+  const summaryTokens = eventTokens(clean(article?.summary || '', 500)).slice(0, 18);
+  return [...new Set([...titleTokens, ...summaryTokens])];
+}
+
+function articleTimeMs(article) {
+  const value = new Date(article?.publishedAt || article?.seenAt || 0).getTime();
+  return Number.isFinite(value) ? value : 0;
+}
+
+function eventSimilarity(left, right, maxGapHours = 18) {
+  const leftTime = articleTimeMs(left);
+  const rightTime = articleTimeMs(right);
+  const gapHours = leftTime && rightTime ? Math.abs(leftTime - rightTime) / 3600000 : 0;
+  if (gapHours > maxGapHours) return { score: 0, titleScore: 0, contextScore: 0, sharedTitle: 0, sharedContext: 0, gapHours };
+  const leftTitle = left?.topicTokens || [];
+  const rightTitle = right?.topicTokens || [];
+  const leftContext = left?.contextTokens || articleContextTokens(left);
+  const rightContext = right?.contextTokens || articleContextTokens(right);
+  const sharedTitle = leftTitle.filter(token => rightTitle.includes(token)).length;
+  const sharedContext = leftContext.filter(token => rightContext.includes(token)).length;
+  const titleScore = Math.max(jaccard(leftTitle, rightTitle), overlapCoefficient(leftTitle, rightTitle) * 0.88);
+  const contextScore = Math.max(jaccard(leftContext, rightContext) * 0.72, overlapCoefficient(leftContext, rightContext) * 0.66);
+  return { score: Math.max(titleScore, contextScore), titleScore, contextScore, sharedTitle, sharedContext, gapHours };
+}
+
+function clusterArticles(articles, threshold = 0.36, maxGapHours = 18) {
+  const prepared = (articles || []).map(article => {
+    const topicTokens = eventTokens(normalizeTitle(article.title));
+    return { ...article, normalizedTitle: normalizeTitle(article.title), topicTokens, contextTokens: articleContextTokens({ ...article, topicTokens }) };
+  }).filter(article => article.topicTokens.length >= 2);
+  prepared.sort((a, b) => articleTimeMs(b) - articleTimeMs(a));
 
   const clusters = [];
   for (const article of prepared) {
     let best = null;
     let bestScore = 0;
     for (const cluster of clusters) {
-      const score = Math.max(
-        jaccard(article.topicTokens, cluster.topicTokens),
-        overlapCoefficient(article.topicTokens, cluster.topicTokens) * 0.82
-      );
-      const shared = article.topicTokens.filter(token => cluster.topicTokens.includes(token)).length;
-      if ((score >= threshold || (shared >= 3 && score >= threshold * 0.75)) && score > bestScore) {
-        best = cluster;
-        bestScore = score;
+      const centroidScore = Math.max(jaccard(article.topicTokens, cluster.topicTokens), overlapCoefficient(article.topicTokens, cluster.topicTokens) * 0.82);
+      const centroidShared = article.topicTokens.filter(token => cluster.topicTokens.includes(token)).length;
+      const newestClusterTime = Math.max(0, ...cluster.articles.map(articleTimeMs));
+      const articleTime = articleTimeMs(article);
+      const centroidGapHours = newestClusterTime && articleTime ? Math.abs(newestClusterTime - articleTime) / 3600000 : 0;
+      const centroidWithinWindow = centroidGapHours <= maxGapHours;
+      let pairwise = { score: 0, titleScore: 0, contextScore: 0, sharedTitle: 0, sharedContext: 0 };
+      for (const existing of cluster.articles) {
+        const compared = eventSimilarity(article, existing, maxGapHours);
+        if (compared.score > pairwise.score) pairwise = compared;
       }
+      const centroidMatch = centroidWithinWindow && centroidScore >= threshold && centroidShared >= 2;
+      const titlePairMatch = pairwise.score >= threshold && pairwise.sharedTitle >= 2;
+      const contextPairMatch = pairwise.contextScore >= threshold && pairwise.sharedTitle >= 1 && pairwise.sharedContext >= 5;
+      const score = Math.max(centroidScore, pairwise.score);
+      if ((centroidMatch || titlePairMatch || contextPairMatch) && score > bestScore) { best = cluster; bestScore = score; }
     }
     if (!best) {
       best = { articles: [], topicTokens: [...article.topicTokens], canonicalArticle: article, canonicalTitle: article.title };
@@ -371,6 +443,7 @@ class GlobalNewsRadarServiceV121 {
     this.lookbackHours = clamp(options.lookbackHours || process.env.NEWSROOM_LOOKBACK_HOURS, 1, 48, 6);
     this.timeoutMs = clamp(options.timeoutMs || process.env.NEWSROOM_HTTP_TIMEOUT_MS, 1500, 30000, 9000);
     this.clusterThreshold = clamp(options.clusterThreshold || process.env.NEWSROOM_CLUSTER_THRESHOLD, 0.20, 0.80, 0.36);
+    this.clusterMaxGapHours = clamp(options.clusterMaxGapHours || process.env.NEWSROOM_CLUSTER_MAX_GAP_HOURS, 2, 48, 18);
     this.scanIntervalMinutes = clamp(options.scanIntervalMinutes || process.env.NEWSROOM_SCAN_INTERVAL_MINUTES, 2, 240, 10);
     this.minIndependentSources = clamp(options.minIndependentSources || process.env.NEWSROOM_MIN_INDEPENDENT_SOURCES, 2, 12, 3);
     this.minConfidence = clamp(options.minConfidence || process.env.NEWSROOM_MIN_COVERAGE_CONFIDENCE, 30, 95, 58);
@@ -389,6 +462,7 @@ class GlobalNewsRadarServiceV121 {
       scanIntervalMinutes: this.scanIntervalMinutes,
       lookbackHours: this.lookbackHours,
       clusterThreshold: this.clusterThreshold,
+      clusterMaxGapHours: this.clusterMaxGapHours,
       minIndependentSources: this.minIndependentSources,
       minCoverageConfidence: this.minConfidence,
       breakingThreshold: this.breakingThreshold,
@@ -659,7 +733,7 @@ class GlobalNewsRadarServiceV121 {
     const uniqueArticles = this.dedupeArticles(discovered);
     const persistedArticles = [];
     for (const article of uniqueArticles) persistedArticles.push(await this.persistArticle(article, scanId));
-    const rawClusters = clusterArticles(persistedArticles, this.clusterThreshold);
+    const rawClusters = clusterArticles(persistedArticles, this.clusterThreshold, this.clusterMaxGapHours);
     const previousRows = await this.recentClusters();
     const finalClusters = [];
     const decisions = [];
@@ -681,6 +755,9 @@ class GlobalNewsRadarServiceV121 {
     const successfulSources = sourceResults.filter(item => item.ok);
     const status = successfulSources.length === 0 ? 'failed' : failedSources.length ? 'partial' : 'completed';
     const actionableCount = decisions.filter(item => ['COVER','BREAKING','UPDATE','FOLLOW_UP'].includes(item.action)).length;
+    const multiSourceClusterCount = finalClusters.filter(cluster => Number(cluster.scores?.sourceCount || 0) >= 2).length;
+    const corroboratedClusterCount = finalClusters.filter(cluster => Number(cluster.scores?.independentEvidenceUnits || 0) >= this.minIndependentSources).length;
+    const compressionRatio = persistedArticles.length ? Number((finalClusters.length / persistedArticles.length).toFixed(3)) : 0;
     const error = successfulSources.length === 0 ? failedSources.map(item => `${item.id}: ${item.error}`).join('; ').slice(0, 1000) : null;
     if (this.db) {
       await this.db.executeQuery(
@@ -688,7 +765,7 @@ class GlobalNewsRadarServiceV121 {
         [status, JSON.stringify(sourceResults), persistedArticles.length, finalClusters.length, actionableCount, error, scanId]
       );
     }
-    this.logger.info(`Global News Radar ${scanId}: ${persistedArticles.length} article(s), ${finalClusters.length} cluster(s), ${actionableCount} actionable decision(s), status ${status}.`);
+    this.logger.info(`Global News Radar ${scanId}: ${persistedArticles.length} article(s), ${finalClusters.length} cluster(s), ${multiSourceClusterCount} multi-source, ${corroboratedClusterCount} corroborated, ${actionableCount} actionable decision(s), status ${status}.`);
     return {
       id: scanId,
       version: VERSION,
@@ -698,6 +775,7 @@ class GlobalNewsRadarServiceV121 {
       articleCount: persistedArticles.length,
       clusterCount: finalClusters.length,
       actionableCount,
+      clustering: { multiSourceClusterCount, corroboratedClusterCount, compressionRatio, maxGapHours: this.clusterMaxGapHours },
       topClusters: finalClusters.slice(0, 30).map(cluster => this.serializeCluster(cluster)),
       decisions: decisions.slice(0, 50),
       autoPromote
@@ -815,6 +893,7 @@ module.exports = {
   canonicalUrl,
   normalizeTitle,
   tokens,
+  eventTokens,
   jaccard,
   overlapCoefficient,
   countryRegion,
