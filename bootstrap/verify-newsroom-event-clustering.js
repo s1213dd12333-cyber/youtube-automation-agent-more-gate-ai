@@ -27,7 +27,8 @@ function article(title, domain, region, minutesAgo = 5, summary = '') {
     sourceEvidenceUnits,
     scoreCluster,
     editorDecision,
-    tokens
+    tokens,
+    eventTokens
   } = require(runtimePath);
 
   const sameEvent = [
@@ -60,8 +61,9 @@ function article(title, domain, region, minutesAgo = 5, summary = '') {
   assert(!eventCluster.articles.some(item => item.sourceDomain === 'chips.example'), 'chip-factory story must not be merged into earthquake event');
   assert(!eventCluster.articles.some(item => item.sourceDomain === 'old.example'), 'same-looking headline outside the temporal guardrail must remain separate');
 
-  assert(tokens('Terremoto forte atinge norte do Japão').includes('earthquake'), 'Portuguese earthquake token must canonicalize');
-  assert(tokens('Alerta de tsunami en Japón tras fuerte terremoto').includes('japan'), 'Spanish Japan token must canonicalize');
+  assert(tokens('Breaking: Major event changes global markets today').includes('markets'), 'legacy token contract must preserve meaningful title tokens');
+  assert(eventTokens('Terremoto forte atinge norte do Japão').includes('earthquake'), 'Portuguese event token must canonicalize for clustering');
+  assert(eventTokens('Alerta de tsunami en Japón tras fuerte terremoto').includes('japan'), 'Spanish event token must canonicalize for clustering');
 
   const scores = scoreCluster(eventCluster, new Date(), 6);
   eventCluster.scores = scores;
