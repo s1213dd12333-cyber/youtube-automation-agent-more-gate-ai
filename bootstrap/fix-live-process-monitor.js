@@ -35,8 +35,8 @@ function patchRuntime() {
   );
   source = replaceOnce(
     source,
-    "    this.discoverability = null;\n    this.setupRequired = false;",
-    "    this.discoverability = null;\n    this.processMonitor = null;\n    this.setupRequired = false;",
+    "    this.discoverability = null;\n",
+    "    this.discoverability = null;\n    this.processMonitor = null;\n",
     'process monitor constructor state'
   );
   source = replaceOnce(
