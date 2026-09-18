@@ -94,8 +94,8 @@ source = replaceOnce(source, oldCadence, newCadence, 'cadence generation method'
 
 source = replaceOnce(
   source,
-  "    const channelStrategy = this.db.getChannelStrategy ? await this.db.getChannelStrategy() : null;\n\n    if (channelStrategy?.status === 'active') {",
-  "    let channelStrategy = this.db.getChannelStrategy ? await this.db.getChannelStrategy() : null;\n    channelStrategy = await this.normalizeStoredGlobalNewsStrategy(channelStrategy);\n\n    if (channelStrategy?.status === 'active') {",
+  "    const channelStrategy = this.db.getChannelStrategy ? await this.db.getChannelStrategy() : null;\n",
+  "    let channelStrategy = this.db.getChannelStrategy ? await this.db.getChannelStrategy() : null;\n    channelStrategy = await this.normalizeStoredGlobalNewsStrategy(channelStrategy);\n",
   'should-generate stored strategy normalization'
 );
 
