@@ -106,17 +106,23 @@ function normalizeTitle(value) {
 }
 
 function tokens(value) {
-  const prepared = String(value || '')
-    .replace(/\bU\.?S\.?\b/gi, ' usa ')
-    .replace(/\bU\.?K\.?\b/gi, ' britain ')
+  return [...new Set(String(value || '')
     .toLowerCase()
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9\s'-]/g, ' ')
     .split(/\s+/)
+    .map(token => token.replace(/^['-]+|['-]+$/g, ''))
+    .filter(token => token.length >= 3 && !GENERIC_TOKENS.has(token)))];
+}
+
+function eventTokens(value) {
+  const prepared = String(value || '')
+    .replace(/\bU\.?S\.?\b/gi, ' usa ')
+    .replace(/\bU\.?K\.?\b/gi, ' britain ');
+  return [...new Set(tokens(prepared)
     .map(canonicalEventToken)
-    .filter(token => token.length >= 3 && !GENERIC_TOKENS.has(token));
-  return [...new Set(prepared)];
+    .filter(token => token.length >= 3 && !GENERIC_TOKENS.has(token)))];
 }
 
 function jaccard(left, right) {
@@ -241,8 +247,8 @@ function recalcCluster(cluster) {
 }
 
 function articleContextTokens(article) {
-  const titleTokens = Array.isArray(article?.topicTokens) ? article.topicTokens : tokens(normalizeTitle(article?.title));
-  const summaryTokens = tokens(clean(article?.summary || '', 500)).slice(0, 18);
+  const titleTokens = Array.isArray(article?.topicTokens) ? article.topicTokens : eventTokens(normalizeTitle(article?.title));
+  const summaryTokens = eventTokens(clean(article?.summary || '', 500)).slice(0, 18);
   return [...new Set([...titleTokens, ...summaryTokens])];
 }
 
@@ -269,7 +275,7 @@ function eventSimilarity(left, right, maxGapHours = 18) {
 
 function clusterArticles(articles, threshold = 0.36, maxGapHours = 18) {
   const prepared = (articles || []).map(article => {
-    const topicTokens = tokens(normalizeTitle(article.title));
+    const topicTokens = eventTokens(normalizeTitle(article.title));
     return { ...article, normalizedTitle: normalizeTitle(article.title), topicTokens, contextTokens: articleContextTokens({ ...article, topicTokens }) };
   }).filter(article => article.topicTokens.length >= 2);
   prepared.sort((a, b) => articleTimeMs(b) - articleTimeMs(a));
@@ -887,6 +893,7 @@ module.exports = {
   canonicalUrl,
   normalizeTitle,
   tokens,
+  eventTokens,
   jaccard,
   overlapCoefficient,
   countryRegion,
