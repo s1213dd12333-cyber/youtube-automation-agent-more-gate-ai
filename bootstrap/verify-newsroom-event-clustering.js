@@ -64,6 +64,7 @@ function article(title, domain, region, minutesAgo = 5, summary = '') {
   assert(tokens('Breaking: Major event changes global markets today').includes('markets'), 'legacy token contract must preserve meaningful title tokens');
   assert(eventTokens('Terremoto forte atinge norte do Japão').includes('earthquake'), 'Portuguese event token must canonicalize for clustering');
   assert(eventTokens('Alerta de tsunami en Japón tras fuerte terremoto').includes('japan'), 'Spanish event token must canonicalize for clustering');
+  assert(eventTokens("Japan's northern coast").includes('japan'), 'possessive place names must canonicalize for clustering');
 
   const scores = scoreCluster(eventCluster, new Date(), 6);
   eventCluster.scores = scores;
