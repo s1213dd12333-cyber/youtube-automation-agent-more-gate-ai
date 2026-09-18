@@ -35,7 +35,7 @@ const EVENT_TOKEN_ALIASES = new Map(Object.entries({
 }));
 
 function canonicalEventToken(value) {
-  let token = String(value || '').toLowerCase().replace(/^['-]+|['-]+$/g, '');
+  let token = String(value || '').toLowerCase().replace(/^['-]+|['-]+$/g, '').replace(/'s$/i, '');
   if (!token) return '';
   if (EVENT_TOKEN_ALIASES.has(token)) return EVENT_TOKEN_ALIASES.get(token);
   if (token.length > 5 && token.endsWith('ies')) token = token.slice(0, -3) + 'y';
