@@ -68,9 +68,23 @@ source = replaceOnce(source, oldFetchLoop, newFetchLoop, 'bounded concurrent sou
 
 source = replaceOnce(
   source,
-  `    const failedSources = sourceResults.filter(item => !item.ok);\n    const successfulSources = sourceResults.filter(item => item.ok);\n    const status = successfulSources.length === 0 ? 'failed' : failedSources.length ? 'partial' : 'completed';\n    const actionableCount = decisions.filter(item => ['COVER','BREAKING','UPDATE','FOLLOW_UP'].includes(item.action)).length;\n    const error = successfulSources.length === 0 ? failedSources.map(item => \`\${item.id}: \${item.error}\`).join('; ').slice(0, 1000) : null;\n`,
-  `    const failedSources = sourceResults.filter(item => !item.ok && !item.skipped);\n    const skippedSources = sourceResults.filter(item => item.skipped);\n    const successfulSources = sourceResults.filter(item => item.ok);\n    const status = successfulSources.length === 0 ? 'failed' : (failedSources.length || skippedSources.length) ? 'partial' : 'completed';\n    const actionableCount = decisions.filter(item => ['COVER','BREAKING','UPDATE','FOLLOW_UP'].includes(item.action)).length;\n    const unavailable = [...failedSources, ...skippedSources];\n    const error = successfulSources.length === 0 ? unavailable.map(item => \`\${item.id}: \${item.error || item.reason || 'unavailable'}\`).join('; ').slice(0, 1000) : null;\n`,
+  "    const failedSources = sourceResults.filter(item => !item.ok);\n",
+  "    const failedSources = sourceResults.filter(item => !item.ok && !item.skipped);\n    const skippedSources = sourceResults.filter(item => item.skipped);\n",
+  'failed source classification understands open circuits'
+);
+
+source = replaceOnce(
+  source,
+  "    const status = successfulSources.length === 0 ? 'failed' : failedSources.length ? 'partial' : 'completed';\n",
+  "    const status = successfulSources.length === 0 ? 'failed' : (failedSources.length || skippedSources.length) ? 'partial' : 'completed';\n",
   'partial status understands open circuits'
+);
+
+source = replaceOnce(
+  source,
+  "    const error = successfulSources.length === 0 ? failedSources.map(item => \`\${item.id}: \${item.error}\`).join('; ').slice(0, 1000) : null;\n",
+  "    const unavailable = [...failedSources, ...skippedSources];\n    const error = successfulSources.length === 0 ? unavailable.map(item => \`\${item.id}: \${item.error || item.reason || 'unavailable'}\`).join('; ').slice(0, 1000) : null;\n",
+  'failed scan error includes skipped/open-circuit sources'
 );
 
 // Do not rewrite status() here. Later Phase 12 materializers add fields to that
