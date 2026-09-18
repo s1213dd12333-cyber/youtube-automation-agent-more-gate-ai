@@ -34,29 +34,73 @@ function redactText(value) {
 }
 
 function componentStage(component, message = '') {
-  const value = (String(component || '') + ' ' + String(message || '')).toLowerCase();
+  const name = String(component || '').toLowerCase();
+  const text = String(message || '').toLowerCase();
+
+  if (name.includes('dailyautomation')) {
+    if (/global-news-radar|newsroom|gdelt|rss/.test(text)) return 'news_discovery';
+    if (/strategy-cadence-generation|editorial|planning/.test(text)) return 'editorial_decision';
+    if (/daily-content-generation/.test(text)) return 'production';
+    if (/publish-queue-processing|publishing/.test(text)) return 'publishing';
+    return 'system';
+  }
+
+  if (/globalnews|newsroom/.test(name)) return 'news_discovery';
+  if (/contentstrategy|editorial|importance/.test(name)) return 'editorial_decision';
+  if (/research/.test(name)) return 'research';
+  if (/evidence|truth|provenance/.test(name)) return 'evidence';
+  if (/scriptwriter/.test(name)) return 'script';
+  if (/thumbnail/.test(name)) return 'thumbnail';
+  if (/seooptimizer/.test(name)) return 'seo';
+  if (/productionmanagement/.test(name)) return 'production';
+  if (/aivideogenerator|mediageneration/.test(name)) return 'media';
+  if (/operatorservice|quality/.test(name) && /quality|blocker|review|gate/.test(text)) return 'quality';
+  if (/publishingscheduling/.test(name)) return 'publishing';
+
+  const value = name + ' ' + text;
   if (/globalnews|newsroom|radar|gdelt|rss/.test(value)) return 'news_discovery';
   if (/editorial|importance|planning brain|decision brain/.test(value)) return 'editorial_decision';
   if (/research/.test(value)) return 'research';
   if (/evidence|truth|provenance|claim/.test(value)) return 'evidence';
-  if (/scriptwriter|script writer|script generated|generating script/.test(value)) return 'script';
+  if (/script generated|generating script/.test(value)) return 'script';
   if (/thumbnail/.test(value)) return 'thumbnail';
-  if (/seooptimizer|seo optimization|seo /.test(value)) return 'seo';
-  if (/productionmanagement|production director|processing content/.test(value)) return 'production';
-  if (/aivideogenerator|visual router|tts|ffmpeg|scene |visual asset|media generation/.test(value)) return 'media';
-  if (/quality council|quality review|quality gate/.test(value)) return 'quality';
-  if (/publish|publishing|schedule|youtube upload/.test(value)) return 'publishing';
+  if (/seo optimization|seo /.test(value)) return 'seo';
+  if (/production director|processing content/.test(value)) return 'production';
+  if (/visual router|tts|ffmpeg|scene |visual asset|media generation/.test(value)) return 'media';
+  if (/quality council|quality review|quality gate|quality agents/.test(value)) return 'quality';
+  if (/publish queue|publishing|youtube upload/.test(value)) return 'publishing';
   return 'system';
 }
 
 function entryStatus(level, message = '') {
+  const severity = String(level || 'info').toLowerCase();
   const text = String(message || '').toLowerCase();
-  if (String(level).toLowerCase() === 'error' || / failed\b|failure\b|blocked\b/.test(text)) return 'failed';
-  if (String(level).toLowerCase() === 'warn' || / warning\b|retry/.test(text)) return 'warning';
-  if (/complete\b|completed\b|success\b|passed\b|published\b|scheduled\b/.test(text)) return 'completed';
+
+  if (severity === 'error') return 'failed';
+  if (severity === 'warn' || severity === 'warning') return 'warning';
+
+  if (/\b0\s+(?:failed|failures?|errors?)\b/.test(text) && /complete\b|completed\b|success\b|passed\b|sync\b/.test(text)) {
+    return 'completed';
+  }
+  if (/^started scheduled task:/.test(text)) return 'info';
+  if (/initialized successfully|agent initialized|api initialized|loaded \d+/.test(text)) return 'ready';
+  if (/ failed\b|failure\b|blocked\b/.test(text)) return 'failed';
+  if (/ warning\b|retrying\b|retry\b/.test(text)) return 'warning';
+  if (/complete\b|completed\b|success\b|passed\b|published\b/.test(text)) return 'completed';
   if (/waiting\b|empty\b|not_due\b|nothing scheduled/.test(text)) return 'waiting';
-  if (/starting\b|generating\b|processing\b|running\b|using\b|fetching\b|selected\b|planned\b/.test(text)) return 'running';
+  if (/starting\b|generating\b|processing\b|running\b|using\b|fetching\b|selected\b|planned\b|reusing\b/.test(text)) return 'running';
   return 'info';
+}
+
+function sessionStartIndex(entries) {
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const entry = entries[index];
+    if (String(entry.component || '').toLowerCase() === 'mainagent' &&
+        /^initializing database\.\.\.$/i.test(String(entry.message || '').trim())) {
+      return index;
+    }
+  }
+  return 0;
 }
 
 class ProcessMonitorService {
@@ -144,7 +188,7 @@ class ProcessMonitorService {
       level: item.entry.level,
       message: item.entry.message,
       timestamp: item.entry.timestamp,
-      active: item.ts > 0 && now - item.ts <= 120000 && ['running','warning','info'].includes(item.entry.status)
+      active: item.ts > 0 && now - item.ts <= 120000 && ['running','warning','info','ready'].includes(item.entry.status)
     })).sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
 
     const stages = STAGES.map(stage => {
@@ -170,17 +214,25 @@ class ProcessMonitorService {
 
   async snapshot(options = {}) {
     const limit = Math.max(20, Math.min(1000, Number(options.limit || 400)));
+    const scope = String(options.scope || 'current').toLowerCase() === 'history' ? 'history' : 'current';
     const text = await this.readTail();
-    let entries = this.parse(text);
-    entries.sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+    let allEntries = this.parse(text);
+    allEntries.sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+
+    const startIndex = sessionStartIndex(allEntries);
+    const sessionStartedAt = allEntries[startIndex]?.timestamp || null;
+    let entries = scope === 'history' ? allEntries : allEntries.slice(startIndex);
     if (entries.length > limit) entries = entries.slice(-limit);
+
     return {
       serverTime: new Date().toISOString(),
       logPath: path.relative(this.rootDir, this.logPath).replace(/\\/g, '/'),
+      scope,
+      sessionStartedAt,
       entries,
       summary: this.summarize(entries)
     };
   }
 }
 
-module.exports = { ProcessMonitorService, componentStage, entryStatus, redactText, STAGES };
+module.exports = { ProcessMonitorService, componentStage, entryStatus, redactText, sessionStartIndex, STAGES };
