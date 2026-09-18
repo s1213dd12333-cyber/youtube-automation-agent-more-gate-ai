@@ -113,8 +113,8 @@ function patchDashboardJs() {
   );
   source = replaceOnce(
     source,
-    "  location.hash = view;\n}",
-    "  location.hash = view;\n  if (view === 'processes') void refreshProcessMonitor(true);\n}",
+    "  location.hash = view;\n",
+    "  location.hash = view;\n  if (view === 'processes') void refreshProcessMonitor(true);\n",
     'process monitor view refresh'
   );
 
