@@ -23,8 +23,8 @@ const EVENT_TOKEN_ALIASES = new Map(Object.entries({
   tempestade: 'storm', tempestades: 'storm', tormenta: 'storm', tormentas: 'storm', tempete: 'storm', tempetes: 'storm',
   alerta: 'alert', alertas: 'alert', alerte: 'alert', alertes: 'alert', alerts: 'alert',
   aviso: 'warning', avisos: 'warning', avertissement: 'warning', avertissements: 'warning', warnings: 'warning',
-  norte: 'north', nord: 'north', northern: 'north', sul: 'south', sur: 'south', sud: 'south', southern: 'south',
-  leste: 'east', este: 'east', est: 'east', eastern: 'east', oeste: 'west', ouest: 'west', western: 'west',
+  norte: 'north', nord: 'north', northern: 'north', sul: 'south', sud: 'south', southern: 'south',
+  leste: 'east', eastern: 'east', oeste: 'west', ouest: 'west', western: 'west',
   japao: 'japan', japon: 'japan', japanese: 'japan', israelense: 'israel', israeli: 'israel',
   palestino: 'palestine', palestina: 'palestine', palestinian: 'palestine', ucraniano: 'ukraine', ucraniana: 'ukraine', ukrainian: 'ukraine',
   russo: 'russia', russa: 'russia', russian: 'russia', iraniano: 'iran', iraniana: 'iran', iranian: 'iran',
@@ -281,12 +281,16 @@ function clusterArticles(articles, threshold = 0.36, maxGapHours = 18) {
     for (const cluster of clusters) {
       const centroidScore = Math.max(jaccard(article.topicTokens, cluster.topicTokens), overlapCoefficient(article.topicTokens, cluster.topicTokens) * 0.82);
       const centroidShared = article.topicTokens.filter(token => cluster.topicTokens.includes(token)).length;
+      const newestClusterTime = Math.max(0, ...cluster.articles.map(articleTimeMs));
+      const articleTime = articleTimeMs(article);
+      const centroidGapHours = newestClusterTime && articleTime ? Math.abs(newestClusterTime - articleTime) / 3600000 : 0;
+      const centroidWithinWindow = centroidGapHours <= maxGapHours;
       let pairwise = { score: 0, titleScore: 0, contextScore: 0, sharedTitle: 0, sharedContext: 0 };
       for (const existing of cluster.articles) {
         const compared = eventSimilarity(article, existing, maxGapHours);
         if (compared.score > pairwise.score) pairwise = compared;
       }
-      const centroidMatch = centroidScore >= threshold && centroidShared >= 2;
+      const centroidMatch = centroidWithinWindow && centroidScore >= threshold && centroidShared >= 2;
       const titlePairMatch = pairwise.score >= threshold && pairwise.sharedTitle >= 2;
       const contextPairMatch = pairwise.contextScore >= threshold && pairwise.sharedTitle >= 1 && pairwise.sharedContext >= 5;
       const score = Math.max(centroidScore, pairwise.score);
