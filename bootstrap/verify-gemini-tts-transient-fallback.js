@@ -65,14 +65,19 @@ async function main() {
     };
 
     let permanentFailedClosed = false;
+    const originalLoggerError = generator.logger.error;
+    generator.logger.error = () => {};
     try {
       await generator.generateTTSAudio('Permanent error verification.', outputPath);
     } catch (error) {
       permanentFailedClosed = true;
       assert(error.status === 400, 'permanent Gemini request error should preserve status');
+    } finally {
+      generator.logger.error = originalLoggerError;
     }
     assert(permanentFailedClosed, 'permanent 4xx request errors must remain fail-closed');
     assert(fallbackCalls === 1, 'permanent 4xx request errors must not invoke local fallback');
+    console.log('Expected permanent Gemini 400 was rejected correctly without invoking local fallback.');
 
     console.log('Gemini TTS transient fallback verified: 503/high-demand retry exhaustion falls back locally; permanent 4xx errors remain fail-closed.');
   } finally {
