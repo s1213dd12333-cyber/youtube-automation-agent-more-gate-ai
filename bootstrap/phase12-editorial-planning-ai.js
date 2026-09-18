@@ -32,5 +32,6 @@ require('./fix-publishable-cadence-inventory.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-publishable-cadence-inventory.js')], { stdio: 'inherit' });
 require('./fix-newsroom-first-operator-planning.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-newsroom-first-operator-planning.js')], { stdio: 'inherit' });
+childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-newsroom-event-clustering.js')], { stdio: 'inherit' });
 require('./fix-live-process-monitor.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-live-process-monitor.js')], { stdio: 'inherit' });
