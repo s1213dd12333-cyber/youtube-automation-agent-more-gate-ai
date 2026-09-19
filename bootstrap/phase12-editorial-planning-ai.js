@@ -43,3 +43,5 @@ require('./fix-global-news-scheduler-handoff.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-global-news-scheduler-handoff.js')], { stdio: 'inherit' });
 require('./fix-quality-blocker-observability.js');
 childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-quality-blocker-observability.js')], { stdio: 'inherit' });
+require('./fix-news-provenance-publication-gate.js');
+childProcess.execFileSync(process.execPath, [path.join(__dirname, 'verify-news-provenance-publication-gate.js')], { stdio: 'inherit' });
