@@ -1,0 +1,28 @@
+'use strict';
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const upstream = path.resolve(__dirname, '..', 'upstream');
+const read = rel => fs.readFileSync(path.join(upstream, rel), 'utf8').replace(/\r\n/g,'\n');
+(async()=>{
+  const scriptSource = read('agents/script-writer-agent.js');
+  const qualitySource = read('utils/quality-agents-v9.js');
+  assert(scriptSource.includes('ensureAuditableFactualClaims'), 'claim metadata repair must be materialized');
+  assert(scriptSource.includes("operation: 'evidence_claim_metadata_repair'"), 'claim metadata repair must use its own AI operation');
+  assert(qualitySource.includes('fact_claims_required'), 'quality agent must distinguish missing factual claims from invalid provenance');
+  const { ScriptWriterAgent } = require(path.join(upstream,'agents','script-writer-agent.js'));
+  const agent = Object.create(ScriptWriterAgent.prototype);
+  agent.logger = { info(){}, warn(){}, error(){} };
+  agent.aiTextService = { async generateText(){ return JSON.stringify({claims:[{text:'A verified factual assertion already present in the script.',riskLevel:'standard',sourceUrls:['https://source.example/report']} ]}); } };
+  const script = { fullScript:'A verified factual assertion already present in the script.', claims:[] };
+  const strategy = { contentType:'Explainer', evidencePack:{ status:'ready', sources:[{url:'https://source.example/report',status:'verified',evidenceText:'A verified factual assertion already present in the script.',title:'Report'}] } };
+  await agent.ensureAuditableFactualClaims(script,strategy);
+  assert.strictEqual(script.claims.length,1);
+  assert.deepStrictEqual(script.claims[0].sourceUrls,['https://source.example/report']);
+  const { factAgent } = require(path.join(upstream,'utils','quality-agents-v9.js'));
+  const blocked = factAgent({ strategy, script:{claims:[],evidenceReview:{status:'not_required'}}, provenance:{status:'not_required',summary:{unresolvedClaims:0,resolvedClaims:0,verifiedSources:1}} });
+  assert(blocked.findings.some(x=>x.id==='fact_claims_required'&&x.blocking), 'evidence-backed production with zero claims must block explicitly');
+  const clean = factAgent({ strategy:{}, script:{claims:[],evidenceReview:{status:'not_required'}}, provenance:{status:'not_required',summary:{unresolvedClaims:0,resolvedClaims:0,verifiedSources:0}} });
+  assert(!clean.findings.some(x=>x.id==='fact_provenance'), 'true not_required provenance must not be treated as invalid');
+  console.log('Evidence claims autopublish verification passed.');
+})().catch(e=>{console.error(e.stack||e);process.exit(1);});
