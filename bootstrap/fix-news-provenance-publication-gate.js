@@ -57,9 +57,10 @@ write('index.js', source);
 source = read('agents/script-writer-agent.js');
 source = replaceOnce(
   source,
-  "  async verifyEvidenceBeforePersistence(script, strategy) {\n    const review = await this.evidenceDesk.verifyScript({",
+  "    }\n\n    const review = await this.evidenceDesk.verifyScript({",
   [
-    "  async verifyEvidenceBeforePersistence(script, strategy) {",
+    "    }",
+    "",
     "    const newsroomEvidenceRequired = Boolean(",
     "      strategy?.newsroomAssignmentId || strategy?.newsroomClusterId || strategy?.requiresNewsCorroboration ||",
     "      /^(BREAKING|UPDATE|COVER|FOLLOW_UP|RESEARCH_CANDIDATE)$/i.test(String(strategy?.newsroomAction || ''))",
@@ -70,6 +71,7 @@ source = replaceOnce(
     "      error.status = 422;",
     "      throw error;",
     "    }",
+    "",
     "    const review = await this.evidenceDesk.verifyScript({"
   ].join('\n'),
   'news scripts require auditable claims'
