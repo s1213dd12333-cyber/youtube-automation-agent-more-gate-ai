@@ -25,7 +25,7 @@ function insertBefore(text, anchor, block, label) {
 let source = read('index.js');
 source = replaceOnce(
   source,
-  "      generated.contentPillar = strategyContext.pillar || null;\n      generated.callToAction = profile.call_to_action || null;",
+  "      generated.contentPillar = strategyContext.pillar || null;\n",
   [
     "      generated.contentPillar = strategyContext.pillar || null;",
     "      generated.newsroomAssignmentId = strategyContext.newsroomAssignmentId || null;",
@@ -33,7 +33,7 @@ source = replaceOnce(
     "      generated.newsroomClusterId = strategyContext.newsroomClusterId || null;",
     "      generated.requiresNewsCorroboration = Boolean(strategyContext.requiresNewsCorroboration);",
     "      generated.newsroomCandidateDomains = Array.isArray(strategyContext.newsroomCandidateDomains) ? strategyContext.newsroomCandidateDomains : [];",
-    "      generated.callToAction = profile.call_to_action || null;"
+    ""
   ].join('\n'),
   'strategy preserves newsroom metadata'
 );
